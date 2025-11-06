@@ -14,29 +14,43 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , current_pattern_(0)
     , current_track_(0)
     , current_step_(0)
+    , song_mode_pattern_(0)
     , last_step_time_(0)
-    , step_interval_ms_(0) {
+    , step_interval_ms_(0)
+    , last_clock_time_(0)
+    , clock_interval_ms_(0)
+    , led_on_(false)
+    , led_on_time_(0) {
 
     scheduler_ = std::make_unique<MidiScheduler>(hardware);
     calculateStepInterval();
+    calculateClockInterval();
 }
 
 void Engine::start() {
     is_playing_ = true;
     current_step_ = 0;
     last_step_time_ = hardware_->getMillis();
-    std::cout << "Engine started" << std::endl;
+    last_clock_time_ = last_step_time_;
+
+    // Send MIDI start message
+    scheduler_->sendStart();
 }
 
 void Engine::stop() {
     is_playing_ = false;
     scheduler_->clear();
-    std::cout << "Engine stopped" << std::endl;
+
+    // Send MIDI stop message
+    scheduler_->sendStop();
 }
 
 void Engine::update() {
     // Update MIDI scheduler
     scheduler_->update();
+
+    // Update LED tempo indicator
+    updateLED();
 
     // Handle input
     handleInput();
@@ -45,41 +59,50 @@ void Engine::update() {
         return;
     }
 
-    // Check if it's time for next step
     uint32_t current_time = hardware_->getMillis();
+
+    // Send MIDI clock messages at 24 PPQN
+    if (current_time - last_clock_time_ >= clock_interval_ms_) {
+        sendMidiClock();
+        last_clock_time_ = current_time;
+    }
+
+    // Check if it's time for next step
     if (current_time - last_step_time_ >= step_interval_ms_) {
         processStep();
         last_step_time_ = current_time;
 
         // Advance step
         current_step_ = (current_step_ + 1) % 16;
+
+        // In song mode (mode 0), advance pattern when we loop back to step 0
+        if (current_mode_ == 0 && current_step_ == 0) {
+            song_mode_pattern_ = (song_mode_pattern_ + 1) % Mode::NUM_PATTERNS;
+        }
     }
 }
 
 void Engine::setTempo(int bpm) {
     tempo_ = std::clamp(bpm, 1, 1000);
     calculateStepInterval();
-    std::cout << "Tempo: " << tempo_ << " BPM" << std::endl;
+    calculateClockInterval();
 }
 
 void Engine::setMode(int mode) {
     if (mode >= 0 && mode < Song::NUM_MODES) {
         current_mode_ = mode;
-        std::cout << "Mode: " << current_mode_ << std::endl;
     }
 }
 
 void Engine::setPattern(int pattern) {
     if (pattern >= 0 && pattern < Mode::NUM_PATTERNS) {
         current_pattern_ = pattern;
-        std::cout << "Pattern: " << current_pattern_ << std::endl;
     }
 }
 
 void Engine::setTrack(int track) {
     if (track >= 0 && track < Pattern::NUM_TRACKS) {
         current_track_ = track;
-        std::cout << "Track: " << current_track_ << std::endl;
     }
 }
 
@@ -89,10 +112,7 @@ void Engine::toggleCurrentSwitch() {
     Event& event = pattern.getEvent(current_track_, current_step_);
 
     event.setSwitch(!event.getSwitch());
-
-    std::cout << "Toggle [M" << current_mode_ << " P" << current_pattern_
-              << " T" << current_track_ << " S" << current_step_ << "] = "
-              << (event.getSwitch() ? "ON" : "OFF") << std::endl;
+    // No console spam
 }
 
 void Engine::setCurrentPot(int pot, uint8_t value) {
@@ -103,10 +123,7 @@ void Engine::setCurrentPot(int pot, uint8_t value) {
     Event& event = pattern.getEvent(current_track_, current_step_);
 
     event.setPot(pot, value);
-
-    std::cout << "Pot" << pot << " [M" << current_mode_ << " P" << current_pattern_
-              << " T" << current_track_ << " S" << current_step_ << "] = "
-              << (int)value << std::endl;
+    // No console spam
 }
 
 void Engine::calculateStepInterval() {
@@ -116,29 +133,70 @@ void Engine::calculateStepInterval() {
     step_interval_ms_ = (60000 / tempo_) / 4;
 }
 
+void Engine::calculateClockInterval() {
+    // MIDI clock runs at 24 PPQN (pulses per quarter note)
+    // Formula: (60000 / BPM) / 24 = ms per clock pulse
+    // At 120 BPM: 60000 / 120 / 24 = 20.833ms per clock
+    clock_interval_ms_ = (60000 / tempo_) / 24;
+    if (clock_interval_ms_ < 1) clock_interval_ms_ = 1;  // Minimum 1ms
+}
+
+void Engine::sendMidiClock() {
+    scheduler_->sendClock();
+}
+
 void Engine::processStep() {
-    // Get current pattern
-    Mode& mode = song_->getMode(current_mode_);
-    Pattern& pattern = mode.getPattern(current_pattern_);
+    // Determine which pattern to play
+    // Mode 0 = "song mode" - reads pattern number from S1 of track 0 events
+    // Modes 1-14 = play the current_pattern_ across all modes
+    int pattern_to_play;
 
-    // Process all tracks for this step
-    LuaContext* lua_mode = mode_loader_->getMode(current_mode_);
+    if (current_mode_ == 0) {
+        // Song mode: read pattern number from mode 0, track 0, current step
+        Mode& mode0 = song_->getMode(0);
+        Pattern& song_pattern = mode0.getPattern(0);  // Mode 0 always uses pattern 0
+        const Event& step_event = song_pattern.getEvent(0, current_step_);  // Track 0
 
-    if (lua_mode && lua_mode->isValid()) {
-        for (int track = 0; track < Pattern::NUM_TRACKS; ++track) {
-            const Event& event = pattern.getEvent(track, current_step_);
+        if (step_event.getSwitch()) {
+            // S1 encodes pattern number (0-127 maps to 0-31)
+            uint8_t s1_value = step_event.getPot(0);
+            pattern_to_play = (s1_value * 32) / 128;  // Map to 0-31
+        } else {
+            // If step is off, keep playing current pattern (or default to 0)
+            pattern_to_play = current_pattern_;
+        }
+    } else {
+        // Edit mode: play the same pattern across all modes
+        pattern_to_play = current_pattern_;
+    }
 
-            // Call Lua to process event
-            auto midi_events = lua_mode->callProcessEvent(track, event);
+    // Process ALL 15 modes simultaneously (each on its own MIDI channel!)
+    // Skip mode 0 for MIDI output (it's only for pattern control)
+    for (int mode_num = 1; mode_num < Song::NUM_MODES; ++mode_num) {
+        Mode& mode = song_->getMode(mode_num);
+        Pattern& pattern = mode.getPattern(pattern_to_play);
 
-            // Schedule returned MIDI events
-            scheduler_->schedule(midi_events);
+        LuaContext* lua_mode = mode_loader_->getMode(mode_num);
+
+        if (lua_mode && lua_mode->isValid()) {
+            // Process all tracks for this mode
+            for (int track = 0; track < Pattern::NUM_TRACKS; ++track) {
+                const Event& event = pattern.getEvent(track, current_step_);
+
+                // Call Lua to process event
+                auto midi_events = lua_mode->callProcessEvent(track, event);
+
+                // Schedule returned MIDI events
+                scheduler_->schedule(midi_events);
+            }
         }
     }
 
-    // Visual feedback
+    // LED tempo indicator: blink on every beat (every 4 steps)
     if (current_step_ % 4 == 0) {
         hardware_->setLED(true);
+        led_on_ = true;
+        led_on_time_ = hardware_->getMillis();
     }
 }
 
@@ -174,20 +232,39 @@ void Engine::handleInput() {
     }
 
     // Read buttons (B1-B16) to toggle steps
+    // When a button is pressed, parameter-lock the current slider values to that event
     for (int btn = 0; btn < 16; ++btn) {
         if (hardware_->readButton(btn)) {
             // Button pressed - toggle the switch for this step
-            int old_step = current_step_;
-            current_step_ = btn;
-            toggleCurrentSwitch();
-            current_step_ = old_step;
+            Mode& mode = song_->getMode(current_mode_);
+            Pattern& pattern = mode.getPattern(current_pattern_);
+            Event& event = pattern.getEvent(current_track_, btn);
+
+            // Toggle switch
+            event.setSwitch(!event.getSwitch());
+
+            // If we just turned it ON, parameter-lock current slider values to this event
+            if (event.getSwitch()) {
+                for (int pot = 0; pot < 4; ++pot) {
+                    uint8_t value = hardware_->readSliderPot(pot);
+                    event.setPot(pot, value);
+                }
+            }
         }
     }
 
-    // Read sliders for pot values
-    for (int pot = 0; pot < 4; ++pot) {
-        uint8_t value = hardware_->readSliderPot(pot);
-        setCurrentPot(pot, value);
+    // NOTE: We no longer continuously write slider values to the current step.
+    // Slider values are only saved when you press a button to create an event.
+}
+
+void Engine::updateLED() {
+    // Turn off LED after blink duration
+    if (led_on_) {
+        uint32_t current_time = hardware_->getMillis();
+        if (current_time - led_on_time_ >= LED_BLINK_DURATION_MS) {
+            hardware_->setLED(false);
+            led_on_ = false;
+        }
     }
 }
 

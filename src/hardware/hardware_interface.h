@@ -42,6 +42,7 @@ public:
 
     // LED control
     virtual void setLED(bool on) = 0;
+    virtual bool getLED() const = 0;  // Get current LED state
 
     // Timing
     virtual uint32_t getMillis() = 0;  // Milliseconds since start

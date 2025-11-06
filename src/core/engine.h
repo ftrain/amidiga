@@ -53,12 +53,27 @@ private:
     int current_track_;
     int current_step_;  // 0-15
 
+    // Song mode (mode 0) - cycles through all patterns
+    int song_mode_pattern_;  // Current pattern in song mode
+
     uint32_t last_step_time_;
     uint32_t step_interval_ms_;
 
+    // MIDI clock tracking (24 PPQN)
+    uint32_t last_clock_time_;
+    uint32_t clock_interval_ms_;
+
+    // LED tempo indicator
+    bool led_on_;
+    uint32_t led_on_time_;
+    static constexpr uint32_t LED_BLINK_DURATION_MS = 50;  // LED stays on for 50ms
+
     void calculateStepInterval();
+    void calculateClockInterval();
+    void sendMidiClock();
     void processStep();
     void handleInput();
+    void updateLED();
 };
 
 } // namespace gruvbok

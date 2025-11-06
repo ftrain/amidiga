@@ -29,6 +29,10 @@ add_subdirectory(src/hardware)
 add_subdirectory(src/lua_bridge)
 add_subdirectory(src/desktop)
 
+# Enable testing
+enable_testing()
+add_subdirectory(tests)
+
 # Print configuration
 message(STATUS "=== GRUVBOK Configuration ===")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

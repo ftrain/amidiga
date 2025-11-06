@@ -49,6 +49,9 @@ public:
     // Set MIDI channel for this mode
     void setChannel(uint8_t channel);
 
+    // Get mode name (from MODE_NAME global variable in Lua)
+    std::string getModeName() const;
+
 private:
     lua_State* L_;
     bool is_valid_;

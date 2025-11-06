@@ -86,4 +86,36 @@ ScheduledMidiEvent MidiScheduler::allNotesOff(uint8_t channel, uint32_t delta) {
     return controlChange(123, 0, channel, delta);  // CC 123 = All Notes Off
 }
 
+// ============================================================================
+// MIDI Clock and Transport
+// ============================================================================
+
+void MidiScheduler::sendClock() {
+    // MIDI Clock (0xF8) - System Real-Time message
+    std::vector<uint8_t> data = {0xF8};
+    MidiMessage msg(data, hardware_->getMillis());
+    hardware_->sendMidiMessage(msg);
+}
+
+void MidiScheduler::sendStart() {
+    // MIDI Start (0xFA) - System Real-Time message
+    std::vector<uint8_t> data = {0xFA};
+    MidiMessage msg(data, hardware_->getMillis());
+    hardware_->sendMidiMessage(msg);
+}
+
+void MidiScheduler::sendStop() {
+    // MIDI Stop (0xFC) - System Real-Time message
+    std::vector<uint8_t> data = {0xFC};
+    MidiMessage msg(data, hardware_->getMillis());
+    hardware_->sendMidiMessage(msg);
+}
+
+void MidiScheduler::sendContinue() {
+    // MIDI Continue (0xFB) - System Real-Time message
+    std::vector<uint8_t> data = {0xFB};
+    MidiMessage msg(data, hardware_->getMillis());
+    hardware_->sendMidiMessage(msg);
+}
+
 } // namespace gruvbok
