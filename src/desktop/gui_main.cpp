@@ -85,6 +85,18 @@ const char* GetSliderLabel(int slider_index, int mode_number) {
     } else if (mode_number == 3) {  // Chords
         const char* labels[] = {"Root", "Type", "Velocity", "Length"};
         return labels[slider_index];
+    } else if (mode_number == 4) {  // Arpeggiator
+        const char* labels[] = {"Root", "Pattern", "Velocity", "Length"};
+        return labels[slider_index];
+    } else if (mode_number == 5) {  // Euclidean
+        const char* labels[] = {"Hits", "Rotate", "Pitch", "Velocity"};
+        return labels[slider_index];
+    } else if (mode_number == 6) {  // Random
+        const char* labels[] = {"Prob", "Center", "Range", "Velocity"};
+        return labels[slider_index];
+    } else if (mode_number == 7) {  // Sample & Hold
+        const char* labels[] = {"Rate", "Quant", "Glitch", "Mod"};
+        return labels[slider_index];
     } else {
         const char* labels[] = {"S1", "S2", "S3", "S4"};
         return labels[slider_index];
