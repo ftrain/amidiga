@@ -73,7 +73,10 @@ bool Knob(const char* label, int* value, int min_val, int max_val, const char* d
 
 // Get slider labels for current mode
 const char* GetSliderLabel(int slider_index, int mode_number) {
-    if (mode_number == 1) {  // Drums
+    if (mode_number == 0) {  // Song/Pattern Sequencer
+        const char* labels[] = {"Pattern", "---", "---", "---"};
+        return labels[slider_index];
+    } else if (mode_number == 1) {  // Drums
         const char* labels[] = {"Velocity", "Length", "S3", "S4"};
         return labels[slider_index];
     } else if (mode_number == 2) {  // Acid
@@ -141,8 +144,10 @@ int main(int argc, char* argv[]) {
     }
 
     // Set default rotary pot values
+    // Tempo formula: tempo = 60 + (r2 * 180) / 127
+    // For 120 BPM: r2 = (120-60)*127/180 = 42.33 ≈ 42
     hardware->simulateRotaryPot(0, 0);    // R1: Mode 0
-    hardware->simulateRotaryPot(1, 64);   // R2: 120 BPM (middle of range)
+    hardware->simulateRotaryPot(1, 42);   // R2: 120 BPM (calculated: 60 + 42*180/127 = 119 BPM)
     hardware->simulateRotaryPot(2, 0);    // R3: Pattern 0
     hardware->simulateRotaryPot(3, 0);    // R4: Track 0
 
@@ -157,6 +162,40 @@ int main(int argc, char* argv[]) {
     }
 
     auto engine = std::make_unique<Engine>(song.get(), hardware.get(), mode_loader.get());
+
+    // Mode 0: Song/Pattern Sequencer - Default pattern chain
+    // Patterns 0-3 repeating 4 times each (steps 0-3, 4-7, 8-11, 12-15)
+    Mode& mode0 = song->getMode(0);
+    Pattern& song_pattern = mode0.getPattern(0);  // Mode 0 always uses pattern 0
+
+    // Steps 0-3: Pattern 0
+    for (int step = 0; step < 4; step++) {
+        Event& event = song_pattern.getEvent(0, step);
+        event.setSwitch(true);
+        event.setPot(0, 0);  // S1 = 0 -> Pattern 0
+    }
+
+    // Steps 4-7: Pattern 1
+    for (int step = 4; step < 8; step++) {
+        Event& event = song_pattern.getEvent(0, step);
+        event.setSwitch(true);
+        event.setPot(0, 4);  // S1 = 4 -> Pattern 1
+    }
+
+    // Steps 8-11: Pattern 2
+    for (int step = 8; step < 12; step++) {
+        Event& event = song_pattern.getEvent(0, step);
+        event.setSwitch(true);
+        event.setPot(0, 8);  // S1 = 8 -> Pattern 2
+    }
+
+    // Steps 12-15: Pattern 3
+    for (int step = 12; step < 16; step++) {
+        Event& event = song_pattern.getEvent(0, step);
+        event.setSwitch(true);
+        event.setPot(0, 12);  // S1 = 12 -> Pattern 3
+    }
+
     Mode& mode1 = song->getMode(1);
     Pattern& pattern0 = mode1.getPattern(0);
 

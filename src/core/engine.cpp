@@ -142,20 +142,32 @@ void Engine::sendMidiClock() {
 
 void Engine::processStep() {
     // Determine which pattern to play
-    // Mode 0 = "song mode" - cycles through all 32 patterns
+    // Mode 0 = "song mode" - reads pattern number from S1 of track 0 events
     // Modes 1-14 = play the current_pattern_ across all modes
     int pattern_to_play;
 
     if (current_mode_ == 0) {
-        // Song mode: cycle through all patterns
-        pattern_to_play = song_mode_pattern_;
+        // Song mode: read pattern number from mode 0, track 0, current step
+        Mode& mode0 = song_->getMode(0);
+        Pattern& song_pattern = mode0.getPattern(0);  // Mode 0 always uses pattern 0
+        const Event& step_event = song_pattern.getEvent(0, current_step_);  // Track 0
+
+        if (step_event.getSwitch()) {
+            // S1 encodes pattern number (0-127 maps to 0-31)
+            uint8_t s1_value = step_event.getPot(0);
+            pattern_to_play = (s1_value * 32) / 128;  // Map to 0-31
+        } else {
+            // If step is off, keep playing current pattern (or default to 0)
+            pattern_to_play = current_pattern_;
+        }
     } else {
         // Edit mode: play the same pattern across all modes
         pattern_to_play = current_pattern_;
     }
 
     // Process ALL 15 modes simultaneously (each on its own MIDI channel!)
-    for (int mode_num = 0; mode_num < Song::NUM_MODES; ++mode_num) {
+    // Skip mode 0 for MIDI output (it's only for pattern control)
+    for (int mode_num = 1; mode_num < Song::NUM_MODES; ++mode_num) {
         Mode& mode = song_->getMode(mode_num);
         Pattern& pattern = mode.getPattern(pattern_to_play);
 
