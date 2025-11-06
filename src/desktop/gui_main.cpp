@@ -422,30 +422,69 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            // Save/Load buttons
-            ImGui::SameLine();
-            ImGui::Spacing();
-            ImGui::SameLine();
+            // Save/Load Section
+            ImGui::Separator();
+            ImGui::Text("Song Persistence");
 
-            if (ImGui::Button("Save Song")) {
-                std::string filename = "/tmp/gruvbok_song_" + std::to_string(hardware->getMillis()) + ".json";
-                if (song->save(filename)) {
-                    hardware->addLog("Song saved to: " + filename);
+            // Static state for UI persistence
+            static char song_name_buf[128] = "My GRUVBOK Song";
+            static char save_path_buf[256] = "/tmp/gruvbok_song.json";
+            static char load_path_buf[256] = "/tmp/gruvbok_song.json";
+
+            // Song name input
+            ImGui::PushItemWidth(300);
+            ImGui::InputText("Song Name", song_name_buf, sizeof(song_name_buf));
+            ImGui::PopItemWidth();
+
+            // Save section
+            ImGui::PushItemWidth(400);
+            ImGui::InputText("Save Path", save_path_buf, sizeof(save_path_buf));
+            ImGui::PopItemWidth();
+            ImGui::SameLine();
+            if (ImGui::Button("Save")) {
+                int current_tempo = engine->getTempo();
+                if (song->save(save_path_buf, song_name_buf, current_tempo)) {
+                    hardware->addLog("✓ Song saved: " + std::string(save_path_buf));
                 } else {
-                    hardware->addLog("ERROR: Failed to save song");
+                    hardware->addLog("✗ ERROR: Failed to save song");
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Quick Save")) {
+                // Use last path with timestamp
+                std::string quick_path = "/tmp/gruvbok_autosave_" + std::to_string(hardware->getMillis()) + ".json";
+                int current_tempo = engine->getTempo();
+                if (song->save(quick_path, song_name_buf, current_tempo)) {
+                    hardware->addLog("✓ Autosaved: " + quick_path);
+                    // Update save path to autosave location
+                    snprintf(save_path_buf, sizeof(save_path_buf), "%s", quick_path.c_str());
+                } else {
+                    hardware->addLog("✗ ERROR: Autosave failed");
                 }
             }
 
+            // Load section
+            ImGui::PushItemWidth(400);
+            ImGui::InputText("Load Path", load_path_buf, sizeof(load_path_buf));
+            ImGui::PopItemWidth();
             ImGui::SameLine();
+            if (ImGui::Button("Load")) {
+                std::string loaded_name;
+                int loaded_tempo = 120;
+                if (song->load(load_path_buf, &loaded_name, &loaded_tempo)) {
+                    hardware->addLog("✓ Song loaded: " + std::string(load_path_buf));
+                    hardware->addLog("  Name: " + loaded_name + ", Tempo: " + std::to_string(loaded_tempo) + " BPM");
 
-            if (ImGui::Button("Load Song")) {
-                // For now, load from a default path
-                // TODO: Add file browser dialog
-                std::string filename = "/tmp/gruvbok_song_latest.json";
-                if (song->load(filename)) {
-                    hardware->addLog("Song loaded from: " + filename);
+                    // Update UI with loaded metadata
+                    snprintf(song_name_buf, sizeof(song_name_buf), "%s", loaded_name.c_str());
+
+                    // Apply loaded tempo to engine
+                    engine->setTempo(loaded_tempo);
+
+                    // Update save path to match load path (for easy resave)
+                    snprintf(save_path_buf, sizeof(save_path_buf), "%s", load_path_buf);
                 } else {
-                    hardware->addLog("ERROR: Failed to load song from " + filename);
+                    hardware->addLog("✗ ERROR: Failed to load from " + std::string(load_path_buf));
                 }
             }
 

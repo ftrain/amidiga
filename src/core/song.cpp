@@ -77,11 +77,12 @@ void Song::clear() {
     }
 }
 
-bool Song::save(const std::string& filepath) {
+bool Song::save(const std::string& filepath, const std::string& name, int tempo) {
     try {
         json j;
         j["version"] = "1.0";
-        j["name"] = "GRUVBOK Song";
+        j["name"] = name;
+        j["tempo"] = tempo;
         j["events"] = json::array();
 
         // Iterate through all events and save only non-empty ones (sparse format)
@@ -128,7 +129,7 @@ bool Song::save(const std::string& filepath) {
     }
 }
 
-bool Song::load(const std::string& filepath) {
+bool Song::load(const std::string& filepath, std::string* out_name, int* out_tempo) {
     try {
         std::ifstream file(filepath);
         if (!file.is_open()) {
@@ -142,6 +143,14 @@ bool Song::load(const std::string& filepath) {
         // Validate version
         if (!j.contains("version") || j["version"] != "1.0") {
             return false;
+        }
+
+        // Load metadata (optional)
+        if (out_name && j.contains("name")) {
+            *out_name = j["name"];
+        }
+        if (out_tempo && j.contains("tempo")) {
+            *out_tempo = j["tempo"];
         }
 
         // Clear existing song data
