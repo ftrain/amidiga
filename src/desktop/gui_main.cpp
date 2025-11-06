@@ -103,7 +103,71 @@ int main(int argc, char* argv[]) {
         event.setPot(1, 20);
     }
 
-    hardware->addLog("Demo pattern created (kick, snare, hi-hat)");
+    // Acid bassline on mode 2 - Track 0 only, S1 controls pitch
+    Mode& mode2 = song->getMode(2);
+    Pattern& acid_pattern = mode2.getPattern(0);
+
+    // Classic acid pattern - all on track 0, S1 varies to create melody
+    // S1 mapping: 0-41 = octave 1, 42-83 = octave 2, 84-127 = octave 3
+    // Within each range: C, Eb, F, G, Bb (pentatonic)
+
+    // Step 0: Root (C2) - octave 2
+    acid_pattern.getEvent(0, 0).setSwitch(true);
+    acid_pattern.getEvent(0, 0).setPot(0, 42);   // S1: C in octave 2
+    acid_pattern.getEvent(0, 0).setPot(1, 40);   // S2: Short note
+    acid_pattern.getEvent(0, 0).setPot(2, 10);   // S3: Minimal slide
+    acid_pattern.getEvent(0, 0).setPot(3, 60);   // S4: Filter
+
+    // Step 3: Fifth (G2)
+    acid_pattern.getEvent(0, 3).setSwitch(true);
+    acid_pattern.getEvent(0, 3).setPot(0, 67);   // S1: G in octave 2
+    acid_pattern.getEvent(0, 3).setPot(1, 35);   // S2: Short note
+    acid_pattern.getEvent(0, 3).setPot(2, 60);   // S3: Some slide
+    acid_pattern.getEvent(0, 3).setPot(3, 80);   // S4: Higher filter
+
+    // Step 4: Octave up (C3)
+    acid_pattern.getEvent(0, 4).setSwitch(true);
+    acid_pattern.getEvent(0, 4).setPot(0, 84);   // S1: C in octave 3
+    acid_pattern.getEvent(0, 4).setPot(1, 30);   // S2: Short
+    acid_pattern.getEvent(0, 4).setPot(2, 100);  // S3: Big slide from prev note
+    acid_pattern.getEvent(0, 4).setPot(3, 110);  // S4: High filter (accent)
+
+    // Step 6: Fourth (F2)
+    acid_pattern.getEvent(0, 6).setSwitch(true);
+    acid_pattern.getEvent(0, 6).setPot(0, 59);   // S1: F in octave 2
+    acid_pattern.getEvent(0, 6).setPot(1, 40);   // S2: Medium note
+    acid_pattern.getEvent(0, 6).setPot(2, 20);   // S3: Slight slide
+    acid_pattern.getEvent(0, 6).setPot(3, 70);   // S4: Mid filter
+
+    // Step 8: Back to root (C2)
+    acid_pattern.getEvent(0, 8).setSwitch(true);
+    acid_pattern.getEvent(0, 8).setPot(0, 42);   // S1: C in octave 2
+    acid_pattern.getEvent(0, 8).setPot(1, 50);   // S2: Longer note
+    acid_pattern.getEvent(0, 8).setPot(2, 5);    // S3: No slide
+    acid_pattern.getEvent(0, 8).setPot(3, 50);   // S4: Lower filter
+
+    // Step 10: Minor third (Eb2)
+    acid_pattern.getEvent(0, 10).setSwitch(true);
+    acid_pattern.getEvent(0, 10).setPot(0, 50);  // S1: Eb in octave 2
+    acid_pattern.getEvent(0, 10).setPot(1, 35);  // S2: Short
+    acid_pattern.getEvent(0, 10).setPot(2, 40);  // S3: Medium slide
+    acid_pattern.getEvent(0, 10).setPot(3, 85);  // S4: High filter
+
+    // Step 12: Fifth again (G2)
+    acid_pattern.getEvent(0, 12).setSwitch(true);
+    acid_pattern.getEvent(0, 12).setPot(0, 67);  // S1: G in octave 2
+    acid_pattern.getEvent(0, 12).setPot(1, 40);  // S2: Medium
+    acid_pattern.getEvent(0, 12).setPot(2, 30);  // S3: Some slide
+    acid_pattern.getEvent(0, 12).setPot(3, 75);  // S4: Mid-high filter
+
+    // Step 14: Lower octave root (C1) for depth
+    acid_pattern.getEvent(0, 14).setSwitch(true);
+    acid_pattern.getEvent(0, 14).setPot(0, 8);   // S1: C in octave 1 (lower)
+    acid_pattern.getEvent(0, 14).setPot(1, 60);  // S2: Long note
+    acid_pattern.getEvent(0, 14).setPot(2, 0);   // S3: No slide
+    acid_pattern.getEvent(0, 14).setPot(3, 40);  // S4: Low filter (bass)
+
+    hardware->addLog("Demo pattern created (drums on ch1, acid bass on ch2)");
     engine->start();
     hardware->addLog("Engine started - playback running");
 
@@ -137,9 +201,11 @@ int main(int argc, char* argv[]) {
             // Status display
             ImGui::Text("Status: %s", engine->isPlaying() ? "PLAYING" : "STOPPED");
             ImGui::SameLine();
-            ImGui::Text("| Tempo: %d BPM", engine->getTempo());
+            ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "(All 15 modes playing on MIDI channels 0-14)");
+
+            ImGui::Text("Tempo: %d BPM", engine->getTempo());
             ImGui::SameLine();
-            ImGui::Text("| Mode: %d", engine->getCurrentMode());
+            ImGui::Text("| Editing Mode: %d", engine->getCurrentMode());
             ImGui::SameLine();
             ImGui::Text("| Pattern: %d", engine->getCurrentPattern());
             ImGui::SameLine();

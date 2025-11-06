@@ -177,8 +177,7 @@ void DesktopHardware::addLog(const std::string& message) {
     if (log_messages_.size() > MAX_LOG_MESSAGES) {
         log_messages_.pop_front();
     }
-    // Also print to console for debugging
-    std::cout << "[LOG] " << message << std::endl;
+    // GUI-only logging - no console spam!
 }
 
 void DesktopHardware::clearLog() {
