@@ -55,6 +55,12 @@ public:
     static ScheduledMidiEvent controlChange(uint8_t controller, uint8_t value, uint8_t channel, uint32_t delta = 0);
     static ScheduledMidiEvent allNotesOff(uint8_t channel, uint32_t delta = 0);
 
+    // MIDI Clock and transport
+    void sendClock();       // Send MIDI clock message (0xF8)
+    void sendStart();       // Send MIDI start message (0xFA)
+    void sendStop();        // Send MIDI stop message (0xFC)
+    void sendContinue();    // Send MIDI continue message (0xFB)
+
 private:
     HardwareInterface* hardware_;
     std::priority_queue<AbsoluteMidiEvent, std::vector<AbsoluteMidiEvent>, std::greater<AbsoluteMidiEvent>> event_queue_;

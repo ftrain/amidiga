@@ -56,7 +56,13 @@ private:
     uint32_t last_step_time_;
     uint32_t step_interval_ms_;
 
+    // MIDI clock tracking (24 PPQN)
+    uint32_t last_clock_time_;
+    uint32_t clock_interval_ms_;
+
     void calculateStepInterval();
+    void calculateClockInterval();
+    void sendMidiClock();
     void processStep();
     void handleInput();
 };

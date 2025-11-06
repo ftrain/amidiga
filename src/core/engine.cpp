@@ -15,21 +15,31 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , current_track_(0)
     , current_step_(0)
     , last_step_time_(0)
-    , step_interval_ms_(0) {
+    , step_interval_ms_(0)
+    , last_clock_time_(0)
+    , clock_interval_ms_(0) {
 
     scheduler_ = std::make_unique<MidiScheduler>(hardware);
     calculateStepInterval();
+    calculateClockInterval();
 }
 
 void Engine::start() {
     is_playing_ = true;
     current_step_ = 0;
     last_step_time_ = hardware_->getMillis();
+    last_clock_time_ = last_step_time_;
+
+    // Send MIDI start message
+    scheduler_->sendStart();
 }
 
 void Engine::stop() {
     is_playing_ = false;
     scheduler_->clear();
+
+    // Send MIDI stop message
+    scheduler_->sendStop();
 }
 
 void Engine::update() {
@@ -43,8 +53,15 @@ void Engine::update() {
         return;
     }
 
-    // Check if it's time for next step
     uint32_t current_time = hardware_->getMillis();
+
+    // Send MIDI clock messages at 24 PPQN
+    if (current_time - last_clock_time_ >= clock_interval_ms_) {
+        sendMidiClock();
+        last_clock_time_ = current_time;
+    }
+
+    // Check if it's time for next step
     if (current_time - last_step_time_ >= step_interval_ms_) {
         processStep();
         last_step_time_ = current_time;
@@ -57,6 +74,7 @@ void Engine::update() {
 void Engine::setTempo(int bpm) {
     tempo_ = std::clamp(bpm, 1, 1000);
     calculateStepInterval();
+    calculateClockInterval();
 }
 
 void Engine::setMode(int mode) {
@@ -102,6 +120,18 @@ void Engine::calculateStepInterval() {
     // At 120 BPM: 1 beat = 500ms, 16 steps per bar = 4 beats, so 1 step = 125ms
     // Formula: (60000 / BPM) / 4 = ms per step (assuming 16th notes)
     step_interval_ms_ = (60000 / tempo_) / 4;
+}
+
+void Engine::calculateClockInterval() {
+    // MIDI clock runs at 24 PPQN (pulses per quarter note)
+    // Formula: (60000 / BPM) / 24 = ms per clock pulse
+    // At 120 BPM: 60000 / 120 / 24 = 20.833ms per clock
+    clock_interval_ms_ = (60000 / tempo_) / 24;
+    if (clock_interval_ms_ < 1) clock_interval_ms_ = 1;  // Minimum 1ms
+}
+
+void Engine::sendMidiClock() {
+    scheduler_->sendClock();
 }
 
 void Engine::processStep() {
