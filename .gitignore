@@ -60,7 +60,7 @@ songs/
 *.log
 *.pdb
 *.ilk
-core
+/core
 core.*
 
 # Package managers
