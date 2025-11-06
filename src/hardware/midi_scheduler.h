@@ -1,0 +1,63 @@
+#pragma once
+
+#include "hardware_interface.h"
+#include <queue>
+#include <vector>
+#include <functional>
+
+namespace gruvbok {
+
+/**
+ * Scheduled MIDI event (relative timing)
+ */
+struct ScheduledMidiEvent {
+    std::vector<uint8_t> data;
+    uint32_t delta_ms;  // Milliseconds from now
+    uint8_t channel;    // MIDI channel 0-15
+
+    ScheduledMidiEvent(const std::vector<uint8_t>& msg_data, uint32_t delta, uint8_t chan)
+        : data(msg_data), delta_ms(delta), channel(chan) {}
+};
+
+/**
+ * Internal event with absolute timing (for priority queue)
+ */
+struct AbsoluteMidiEvent {
+    MidiMessage message;
+    uint32_t absolute_time_ms;
+
+    bool operator>(const AbsoluteMidiEvent& other) const {
+        return absolute_time_ms > other.absolute_time_ms;
+    }
+};
+
+/**
+ * MIDI Scheduler handles delta-timed MIDI events
+ * Converts relative timing to absolute and sends at precise times
+ */
+class MidiScheduler {
+public:
+    explicit MidiScheduler(HardwareInterface* hardware);
+
+    // Schedule MIDI events (relative timing)
+    void schedule(const std::vector<ScheduledMidiEvent>& events);
+    void schedule(const ScheduledMidiEvent& event);
+
+    // Update - call frequently to send scheduled events
+    void update();
+
+    // Clear all scheduled events
+    void clear();
+
+    // Utility: Create common MIDI messages
+    static ScheduledMidiEvent noteOn(uint8_t pitch, uint8_t velocity, uint8_t channel, uint32_t delta = 0);
+    static ScheduledMidiEvent noteOff(uint8_t pitch, uint8_t channel, uint32_t delta = 0);
+    static ScheduledMidiEvent controlChange(uint8_t controller, uint8_t value, uint8_t channel, uint32_t delta = 0);
+    static ScheduledMidiEvent allNotesOff(uint8_t channel, uint32_t delta = 0);
+
+private:
+    HardwareInterface* hardware_;
+    std::priority_queue<AbsoluteMidiEvent, std::vector<AbsoluteMidiEvent>, std::greater<AbsoluteMidiEvent>> event_queue_;
+};
+
+} // namespace gruvbok
