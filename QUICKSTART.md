@@ -4,7 +4,7 @@
 
 ```bash
 # 1. Install dependencies (one-time setup)
-brew install cmake lua rtmidi
+brew install cmake lua
 
 # 2. Build
 ./build.sh
@@ -12,6 +12,8 @@ brew install cmake lua rtmidi
 # 3. Run (from project root)
 ./build/bin/gruvbok
 ```
+
+**Note:** RtMidi is bundled - no need to install it separately!
 
 Press `Ctrl+C` to quit.
 
