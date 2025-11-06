@@ -445,8 +445,10 @@ int main(int argc, char* argv[]) {
                 int current_tempo = engine->getTempo();
                 if (song->save(save_path_buf, song_name_buf, current_tempo)) {
                     hardware->addLog("✓ Song saved: " + std::string(save_path_buf));
+                    engine->triggerLEDPattern(Engine::LEDPattern::SAVING);
                 } else {
                     hardware->addLog("✗ ERROR: Failed to save song");
+                    engine->triggerLEDPattern(Engine::LEDPattern::ERROR);
                 }
             }
             ImGui::SameLine();
@@ -456,10 +458,12 @@ int main(int argc, char* argv[]) {
                 int current_tempo = engine->getTempo();
                 if (song->save(quick_path, song_name_buf, current_tempo)) {
                     hardware->addLog("✓ Autosaved: " + quick_path);
+                    engine->triggerLEDPattern(Engine::LEDPattern::SAVING);
                     // Update save path to autosave location
                     snprintf(save_path_buf, sizeof(save_path_buf), "%s", quick_path.c_str());
                 } else {
                     hardware->addLog("✗ ERROR: Autosave failed");
+                    engine->triggerLEDPattern(Engine::LEDPattern::ERROR);
                 }
             }
 
@@ -469,6 +473,7 @@ int main(int argc, char* argv[]) {
             ImGui::PopItemWidth();
             ImGui::SameLine();
             if (ImGui::Button("Load")) {
+                engine->triggerLEDPattern(Engine::LEDPattern::LOADING);
                 std::string loaded_name;
                 int loaded_tempo = 120;
                 if (song->load(load_path_buf, &loaded_name, &loaded_tempo)) {
@@ -483,8 +488,12 @@ int main(int argc, char* argv[]) {
 
                     // Update save path to match load path (for easy resave)
                     snprintf(save_path_buf, sizeof(save_path_buf), "%s", load_path_buf);
+
+                    // Return to tempo beat pattern after successful load
+                    engine->triggerLEDPattern(Engine::LEDPattern::TEMPO_BEAT);
                 } else {
                     hardware->addLog("✗ ERROR: Failed to load from " + std::string(load_path_buf));
+                    engine->triggerLEDPattern(Engine::LEDPattern::ERROR);
                 }
             }
 

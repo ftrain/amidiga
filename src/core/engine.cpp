@@ -19,8 +19,11 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , step_interval_ms_(0)
     , last_clock_time_(0)
     , clock_interval_ms_(0)
+    , led_pattern_(LEDPattern::TEMPO_BEAT)
     , led_on_(false)
-    , led_on_time_(0)
+    , led_state_start_time_(0)
+    , led_phase_start_time_(0)
+    , led_blink_count_(0)
     , lua_reinit_pending_(false)
     , last_tempo_change_time_(0) {
 
@@ -209,9 +212,7 @@ void Engine::processStep() {
 
     // LED tempo indicator: blink on every beat (every 4 steps)
     if (current_step_ % 4 == 0) {
-        hardware_->setLED(true);
-        led_on_ = true;
-        led_on_time_ = hardware_->getMillis();
+        triggerLEDPattern(LEDPattern::TEMPO_BEAT);
     }
 }
 
@@ -272,14 +273,123 @@ void Engine::handleInput() {
     // Slider values are only saved when you press a button to create an event.
 }
 
+void Engine::triggerLEDPattern(LEDPattern pattern) {
+    led_pattern_ = pattern;
+    led_state_start_time_ = hardware_->getMillis();
+    led_phase_start_time_ = led_state_start_time_;
+    led_blink_count_ = 0;
+    led_on_ = true;
+    hardware_->setLED(true);
+}
+
 void Engine::updateLED() {
-    // Turn off LED after blink duration
-    if (led_on_) {
-        uint32_t current_time = hardware_->getMillis();
-        if (current_time - led_on_time_ >= LED_BLINK_DURATION_MS) {
-            hardware_->setLED(false);
-            led_on_ = false;
-        }
+    uint32_t current_time = hardware_->getMillis();
+    uint32_t pattern_elapsed = current_time - led_state_start_time_;
+    uint32_t phase_elapsed = current_time - led_phase_start_time_;
+
+    switch (led_pattern_) {
+        case LEDPattern::TEMPO_BEAT:
+            // Simple 50ms pulse
+            if (led_on_ && phase_elapsed >= LED_TEMPO_DURATION_MS) {
+                hardware_->setLED(false);
+                led_on_ = false;
+            }
+            break;
+
+        case LEDPattern::BUTTON_HELD:
+            // Fast double-blink: 100ms on, 50ms off, 100ms on, 150ms off (repeat)
+            if (pattern_elapsed < 100) {
+                if (!led_on_) {
+                    hardware_->setLED(true);
+                    led_on_ = true;
+                }
+            } else if (pattern_elapsed < 150) {
+                if (led_on_) {
+                    hardware_->setLED(false);
+                    led_on_ = false;
+                }
+            } else if (pattern_elapsed < 250) {
+                if (!led_on_) {
+                    hardware_->setLED(true);
+                    led_on_ = true;
+                }
+            } else if (pattern_elapsed < 400) {
+                if (led_on_) {
+                    hardware_->setLED(false);
+                    led_on_ = false;
+                }
+            } else {
+                // Restart pattern
+                led_state_start_time_ = current_time;
+            }
+            break;
+
+        case LEDPattern::SAVING:
+            // Rapid blinks: 100ms on/off, 5 times total (1 second)
+            {
+                int cycle = (int)(phase_elapsed / 200);  // Each cycle is 200ms
+                if (cycle >= 5) {
+                    // Pattern complete, return to tempo
+                    led_pattern_ = LEDPattern::TEMPO_BEAT;
+                    hardware_->setLED(false);
+                    led_on_ = false;
+                } else {
+                    bool should_be_on = (phase_elapsed % 200) < 100;
+                    if (should_be_on != led_on_) {
+                        hardware_->setLED(should_be_on);
+                        led_on_ = should_be_on;
+                    }
+                }
+            }
+            break;
+
+        case LEDPattern::LOADING:
+            // Slow pulse: 1 second on, 1 second off (2 second cycle)
+            {
+                bool should_be_on = (pattern_elapsed % 2000) < 1000;
+                if (should_be_on != led_on_) {
+                    hardware_->setLED(should_be_on);
+                    led_on_ = should_be_on;
+                }
+            }
+            break;
+
+        case LEDPattern::ERROR:
+            // Triple fast blink: 50ms on/off, 3 times (300ms total)
+            {
+                int cycle = (int)(phase_elapsed / 100);  // Each cycle is 100ms
+                if (cycle >= 3) {
+                    // Pattern complete, return to tempo
+                    led_pattern_ = LEDPattern::TEMPO_BEAT;
+                    hardware_->setLED(false);
+                    led_on_ = false;
+                } else {
+                    bool should_be_on = (phase_elapsed % 100) < 50;
+                    if (should_be_on != led_on_) {
+                        hardware_->setLED(should_be_on);
+                        led_on_ = should_be_on;
+                    }
+                }
+            }
+            break;
+
+        case LEDPattern::MIRROR_MODE:
+            // Alternating long/short: 200ms on, 100ms off (repeat)
+            if (pattern_elapsed < 200) {
+                if (!led_on_) {
+                    hardware_->setLED(true);
+                    led_on_ = true;
+                }
+            } else if (pattern_elapsed < 300) {
+                if (led_on_) {
+                    hardware_->setLED(false);
+                    led_on_ = false;
+                }
+            } else {
+                // Restart pattern
+                led_state_start_time_ = current_time;
+            }
+            break;
     }
 }
 

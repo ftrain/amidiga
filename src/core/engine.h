@@ -40,6 +40,17 @@ public:
     void toggleCurrentSwitch();
     void setCurrentPot(int pot, uint8_t value);
 
+    // LED pattern control (public enum for external access)
+    enum class LEDPattern {
+        TEMPO_BEAT,
+        BUTTON_HELD,
+        SAVING,
+        LOADING,
+        ERROR,
+        MIRROR_MODE
+    };
+    void triggerLEDPattern(LEDPattern pattern);
+
 private:
     Song* song_;
     HardwareInterface* hardware_;
@@ -63,10 +74,14 @@ private:
     uint32_t last_clock_time_;
     uint32_t clock_interval_ms_;
 
-    // LED tempo indicator
+    // LED tempo indicator with patterns
+    LEDPattern led_pattern_;
     bool led_on_;
-    uint32_t led_on_time_;
-    static constexpr uint32_t LED_BLINK_DURATION_MS = 50;  // LED stays on for 50ms
+    uint32_t led_state_start_time_;
+    uint32_t led_phase_start_time_;
+    int led_blink_count_;
+
+    static constexpr uint32_t LED_TEMPO_DURATION_MS = 50;  // LED stays on for 50ms
 
     // Debounced Lua reinit when tempo changes
     bool lua_reinit_pending_;
