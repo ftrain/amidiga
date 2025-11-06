@@ -19,6 +19,10 @@ find_package(Lua REQUIRED)
 message(STATUS "Using bundled RtMidi from external/rtmidi")
 add_subdirectory(external/rtmidi)
 
+# Use bundled Dear ImGui for GUI
+message(STATUS "Using bundled Dear ImGui from external/imgui")
+add_subdirectory(external/imgui)
+
 # Add subdirectories
 add_subdirectory(src/core)
 add_subdirectory(src/hardware)
@@ -29,7 +33,8 @@ add_subdirectory(src/desktop)
 message(STATUS "=== GRUVBOK Configuration ===")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
-message(STATUS "Lua include: ${LUA_INCLUDE_DIR}")
-message(STATUS "Lua library: ${LUA_LIBRARIES}")
-message(STATUS "RtMidi: bundled (external/rtmidi)")
+message(STATUS "Lua: ${LUA_LIBRARIES}")
+message(STATUS "SDL2: ${SDL2_LIBRARIES}")
+message(STATUS "RtMidi: bundled")
+message(STATUS "Dear ImGui: bundled")
 message(STATUS "=============================")

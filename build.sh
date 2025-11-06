@@ -17,8 +17,14 @@ if ! command -v lua &> /dev/null; then
     exit 1
 fi
 
+# Check for SDL2
+if ! brew list sdl2 &> /dev/null && ! pkg-config --exists sdl2 2>/dev/null; then
+    echo "ERROR: SDL2 not found. Install with: brew install sdl2"
+    exit 1
+fi
+
 echo "✓ All dependencies found"
-echo "  (RtMidi is bundled in external/rtmidi)"
+echo "  (RtMidi and Dear ImGui are bundled)"
 echo
 
 # Create build directory
