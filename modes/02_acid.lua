@@ -49,11 +49,9 @@ end
 -- ============================================================================
 
 function process_event(track, event)
-  local midi = {}
-
   -- Only play if switch is on
   if not event.switch then
-    return midi
+    return {}
   end
 
   -- Map S1 (0-127) to note pitch across 3 octaves of the pentatonic scale
@@ -81,26 +79,26 @@ function process_event(track, event)
   -- Get note length from S2 (map 0-127 to 10-500ms)
   local note_length = 10 + math.floor((event.pots[2] / 127.0) * 490)
 
-  -- Send note on
-  table.insert(midi, note(pitch, velocity, 0))
+  -- Send MIDI events (these directly add to internal buffer)
+  note(pitch, velocity, 0)
 
   -- Send filter cutoff CC (74 = brightness/cutoff)
   local filter_cutoff = event.pots[4]
-  table.insert(midi, cc(74, filter_cutoff, 0))
+  cc(74, filter_cutoff, 0)
 
   -- Send portamento/slide CC (5 = portamento time, 65 = portamento on/off)
   local portamento_amount = event.pots[3]
   if portamento_amount > 20 then
     -- Enable portamento
-    table.insert(midi, cc(65, 127, 0))  -- Portamento on
-    table.insert(midi, cc(5, portamento_amount, 0))  -- Portamento time
+    cc(65, 127, 0)  -- Portamento on
+    cc(5, portamento_amount, 0)  -- Portamento time
   else
     -- Disable portamento
-    table.insert(midi, cc(65, 0, 0))  -- Portamento off
+    cc(65, 0, 0)  -- Portamento off
   end
 
   -- Send note off after specified length
-  table.insert(midi, off(pitch, note_length))
+  off(pitch, note_length)
 
-  return midi
+  return {}  -- Return value is ignored; events are in internal buffer
 end

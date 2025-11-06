@@ -10,8 +10,14 @@
 
 #include <iostream>
 #include <memory>
+#include <algorithm>
+#include <cmath>
 
 using namespace gruvbok;
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 // Helper function to draw a circular knob widget
 bool Knob(const char* label, int* value, int min_val, int max_val, float radius = 30.0f) {
@@ -30,13 +36,13 @@ bool Knob(const char* label, int* value, int min_val, int max_val, float radius 
 
     if (is_active && io.MouseDelta.y != 0.0f) {
         float delta = -io.MouseDelta.y * (max_val - min_val) / 200.0f;
-        *value = ImClamp(*value + (int)delta, min_val, max_val);
+        *value = std::clamp(*value + (int)delta, min_val, max_val);
         value_changed = true;
     }
 
     // Calculate angle for current value (-135 to +135 degrees)
     float t = (float)(*value - min_val) / (float)(max_val - min_val);
-    float angle = (t * 270.0f - 135.0f) * (IM_PI / 180.0f);
+    float angle = (t * 270.0f - 135.0f) * (M_PI / 180.0f);
 
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
@@ -365,8 +371,8 @@ int main(int argc, char* argv[]) {
 
             // Pattern grid visualization
             ImGui::Text("Pattern Grid (Track %d)", engine->getCurrentTrack());
-            Mode& current_mode = song->getMode(engine->getCurrentMode());
-            Pattern& current_pattern = current_mode.getPattern(engine->getCurrentPattern());
+            Mode& editing_mode = song->getMode(engine->getCurrentMode());
+            Pattern& current_pattern = editing_mode.getPattern(engine->getCurrentPattern());
             Track& current_track = current_pattern.getTrack(engine->getCurrentTrack());
 
             for (int step = 0; step < 16; step++) {
