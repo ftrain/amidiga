@@ -1681,9 +1681,10 @@ void MidiOutCore :: sendMessage( const unsigned char *message, size_t size )
   CoreMidiData *data = static_cast<CoreMidiData *> (apiData_);
   OSStatus result;
 
-  ByteCount bufsize = nBytes > 65535 ? 65535 : nBytes;
-  Byte buffer[bufsize+16]; // pad for other struct members
-  ByteCount listSize = sizeof( buffer );
+  // Use fixed-size buffer for MIDI packet (max 64KB + padding for packet list overhead)
+  const ByteCount kMaxBufferSize = 65535 + 16;
+  Byte buffer[kMaxBufferSize];
+  ByteCount listSize = kMaxBufferSize;
   MIDIPacketList *packetList = (MIDIPacketList*)buffer;
 
   ByteCount remainingBytes = nBytes;
