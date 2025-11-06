@@ -13,6 +13,9 @@ extern "C" {
 
 namespace gruvbok {
 
+// Forward declaration
+class Engine;
+
 /**
  * Context passed to Lua init() function
  */
@@ -48,6 +51,9 @@ public:
 
     // Set MIDI channel for this mode
     void setChannel(uint8_t channel);
+
+    // Set Engine instance for LED control
+    void setEngine(Engine* engine);
 
     // Get mode name (from MODE_NAME global variable in Lua)
     std::string getModeName() const;

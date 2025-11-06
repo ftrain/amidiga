@@ -90,4 +90,13 @@ int ModeLoader::loadModesFromDirectory(const std::string& directory, int tempo) 
     return loaded_count;
 }
 
+void ModeLoader::setEngine(Engine* engine) {
+    // Propagate Engine pointer to all loaded modes
+    for (auto& mode : modes_) {
+        if (mode && mode->isValid()) {
+            mode->setEngine(engine);
+        }
+    }
+}
+
 } // namespace gruvbok

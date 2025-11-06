@@ -160,6 +160,38 @@ Send "All Notes Off" message (CC 123).
 stopall(0)  -- Panic! Stop all notes immediately
 ```
 
+### `led(pattern_name, [brightness])`
+
+Trigger an LED pattern for visual feedback. This controls the hardware LED (single LED on Teensy, simulated in desktop GUI).
+
+**Parameters:**
+- `pattern_name` (string): Name of the LED pattern to trigger
+  - `"tempo"` - Default tempo beat (50ms pulse on beat)
+  - `"held"` - Button held (fast double-blink)
+  - `"saving"` - Saving operation (5 rapid blinks)
+  - `"loading"` - Loading operation (slow pulse)
+  - `"error"` - Error occurred (3 fast blinks)
+  - `"mirror"` - Mirror mode (alternating pattern)
+- `brightness` (number, optional): LED brightness (0-255, default: 255)
+
+**Notes:**
+- One-shot patterns (saving, loading, error) automatically return to `"tempo"` pattern when complete
+- Brightness parameter is for future PWM hardware support; desktop GUI shows full brightness
+- Use sparingly - frequent LED changes can be distracting during performance
+
+**Example:**
+```lua
+function process_event(track, event)
+    if event.switch then
+        if track == 0 then
+            led("saving", 255)  -- Flash LED when track 0 triggers
+        elseif track == 7 then
+            led("error", 128)   -- Dim flash on track 7
+        end
+    end
+end
+```
+
 ## Event Data Structure (C++)
 
 For reference, here's how Events are stored in C++:

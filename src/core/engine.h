@@ -49,7 +49,10 @@ public:
         ERROR,
         MIRROR_MODE
     };
-    void triggerLEDPattern(LEDPattern pattern);
+    void triggerLEDPattern(LEDPattern pattern, uint8_t brightness = 255);
+
+    // Trigger LED pattern by name (for Lua API)
+    void triggerLEDByName(const std::string& pattern_name, uint8_t brightness = 255);
 
 private:
     Song* song_;
@@ -77,6 +80,7 @@ private:
     // LED tempo indicator with patterns
     LEDPattern led_pattern_;
     bool led_on_;
+    uint8_t led_brightness_;  // 0-255 (for PWM hardware support)
     uint32_t led_state_start_time_;
     uint32_t led_phase_start_time_;
     int led_blink_count_;

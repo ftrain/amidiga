@@ -21,6 +21,7 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , clock_interval_ms_(0)
     , led_pattern_(LEDPattern::TEMPO_BEAT)
     , led_on_(false)
+    , led_brightness_(255)
     , led_state_start_time_(0)
     , led_phase_start_time_(0)
     , led_blink_count_(0)
@@ -30,6 +31,11 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     scheduler_ = std::make_unique<MidiScheduler>(hardware);
     calculateStepInterval();
     calculateClockInterval();
+
+    // Set Engine instance on all loaded Lua modes for LED control
+    if (mode_loader_) {
+        mode_loader_->setEngine(this);
+    }
 }
 
 void Engine::start() {
@@ -273,13 +279,27 @@ void Engine::handleInput() {
     // Slider values are only saved when you press a button to create an event.
 }
 
-void Engine::triggerLEDPattern(LEDPattern pattern) {
+void Engine::triggerLEDPattern(LEDPattern pattern, uint8_t brightness) {
     led_pattern_ = pattern;
+    led_brightness_ = brightness;
     led_state_start_time_ = hardware_->getMillis();
     led_phase_start_time_ = led_state_start_time_;
     led_blink_count_ = 0;
     led_on_ = true;
     hardware_->setLED(true);
+}
+
+void Engine::triggerLEDByName(const std::string& pattern_name, uint8_t brightness) {
+    LEDPattern pattern = LEDPattern::TEMPO_BEAT;
+
+    if (pattern_name == "tempo") pattern = LEDPattern::TEMPO_BEAT;
+    else if (pattern_name == "held") pattern = LEDPattern::BUTTON_HELD;
+    else if (pattern_name == "saving") pattern = LEDPattern::SAVING;
+    else if (pattern_name == "loading") pattern = LEDPattern::LOADING;
+    else if (pattern_name == "error") pattern = LEDPattern::ERROR;
+    else if (pattern_name == "mirror") pattern = LEDPattern::MIRROR_MODE;
+
+    triggerLEDPattern(pattern, brightness);
 }
 
 void Engine::updateLED() {
