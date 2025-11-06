@@ -137,9 +137,11 @@ int main(int argc, char* argv[]) {
             // Status display
             ImGui::Text("Status: %s", engine->isPlaying() ? "PLAYING" : "STOPPED");
             ImGui::SameLine();
-            ImGui::Text("| Tempo: %d BPM", engine->getTempo());
+            ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "(All 15 modes playing on MIDI channels 0-14)");
+
+            ImGui::Text("Tempo: %d BPM", engine->getTempo());
             ImGui::SameLine();
-            ImGui::Text("| Mode: %d", engine->getCurrentMode());
+            ImGui::Text("| Editing Mode: %d", engine->getCurrentMode());
             ImGui::SameLine();
             ImGui::Text("| Pattern: %d", engine->getCurrentPattern());
             ImGui::SameLine();

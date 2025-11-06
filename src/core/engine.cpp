@@ -25,13 +25,11 @@ void Engine::start() {
     is_playing_ = true;
     current_step_ = 0;
     last_step_time_ = hardware_->getMillis();
-    std::cout << "Engine started" << std::endl;
 }
 
 void Engine::stop() {
     is_playing_ = false;
     scheduler_->clear();
-    std::cout << "Engine stopped" << std::endl;
 }
 
 void Engine::update() {
@@ -59,27 +57,23 @@ void Engine::update() {
 void Engine::setTempo(int bpm) {
     tempo_ = std::clamp(bpm, 1, 1000);
     calculateStepInterval();
-    std::cout << "Tempo: " << tempo_ << " BPM" << std::endl;
 }
 
 void Engine::setMode(int mode) {
     if (mode >= 0 && mode < Song::NUM_MODES) {
         current_mode_ = mode;
-        std::cout << "Mode: " << current_mode_ << std::endl;
     }
 }
 
 void Engine::setPattern(int pattern) {
     if (pattern >= 0 && pattern < Mode::NUM_PATTERNS) {
         current_pattern_ = pattern;
-        std::cout << "Pattern: " << current_pattern_ << std::endl;
     }
 }
 
 void Engine::setTrack(int track) {
     if (track >= 0 && track < Pattern::NUM_TRACKS) {
         current_track_ = track;
-        std::cout << "Track: " << current_track_ << std::endl;
     }
 }
 
@@ -89,10 +83,7 @@ void Engine::toggleCurrentSwitch() {
     Event& event = pattern.getEvent(current_track_, current_step_);
 
     event.setSwitch(!event.getSwitch());
-
-    std::cout << "Toggle [M" << current_mode_ << " P" << current_pattern_
-              << " T" << current_track_ << " S" << current_step_ << "] = "
-              << (event.getSwitch() ? "ON" : "OFF") << std::endl;
+    // No console spam
 }
 
 void Engine::setCurrentPot(int pot, uint8_t value) {
@@ -103,10 +94,7 @@ void Engine::setCurrentPot(int pot, uint8_t value) {
     Event& event = pattern.getEvent(current_track_, current_step_);
 
     event.setPot(pot, value);
-
-    std::cout << "Pot" << pot << " [M" << current_mode_ << " P" << current_pattern_
-              << " T" << current_track_ << " S" << current_step_ << "] = "
-              << (int)value << std::endl;
+    // No console spam
 }
 
 void Engine::calculateStepInterval() {
@@ -117,26 +105,28 @@ void Engine::calculateStepInterval() {
 }
 
 void Engine::processStep() {
-    // Get current pattern
-    Mode& mode = song_->getMode(current_mode_);
-    Pattern& pattern = mode.getPattern(current_pattern_);
+    // Process ALL 15 modes simultaneously (each on its own MIDI channel!)
+    for (int mode_num = 0; mode_num < Song::NUM_MODES; ++mode_num) {
+        Mode& mode = song_->getMode(mode_num);
+        Pattern& pattern = mode.getPattern(current_pattern_);
 
-    // Process all tracks for this step
-    LuaContext* lua_mode = mode_loader_->getMode(current_mode_);
+        LuaContext* lua_mode = mode_loader_->getMode(mode_num);
 
-    if (lua_mode && lua_mode->isValid()) {
-        for (int track = 0; track < Pattern::NUM_TRACKS; ++track) {
-            const Event& event = pattern.getEvent(track, current_step_);
+        if (lua_mode && lua_mode->isValid()) {
+            // Process all tracks for this mode
+            for (int track = 0; track < Pattern::NUM_TRACKS; ++track) {
+                const Event& event = pattern.getEvent(track, current_step_);
 
-            // Call Lua to process event
-            auto midi_events = lua_mode->callProcessEvent(track, event);
+                // Call Lua to process event
+                auto midi_events = lua_mode->callProcessEvent(track, event);
 
-            // Schedule returned MIDI events
-            scheduler_->schedule(midi_events);
+                // Schedule returned MIDI events
+                scheduler_->schedule(midi_events);
+            }
         }
     }
 
-    // Visual feedback
+    // Visual feedback on current mode only
     if (current_step_ % 4 == 0) {
         hardware_->setLED(true);
     }
