@@ -1,0 +1,83 @@
+# Build directories
+build/
+bin/
+lib/
+out/
+cmake-build-*/
+
+# Compiled files
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.hex
+*.elf
+*.bin
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.code-workspace
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Teensy/Arduino
+*.eep
+*.lss
+*.map
+*.sym
+*.tmp
+.pioenvs/
+.piolibdeps/
+
+# JUCE
+JuceLibraryCode/
+*.jucer.bak
+
+# Lua compiled
+*.luac
+
+# Song/data files (user-generated)
+songs/
+*.song
+*.dat
+
+# Debug files
+*.log
+*.pdb
+*.ilk
+core
+core.*
+
+# Package managers
+.ccls-cache/
+compile_commands.json
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
