@@ -422,6 +422,33 @@ int main(int argc, char* argv[]) {
                 }
             }
 
+            // Save/Load buttons
+            ImGui::SameLine();
+            ImGui::Spacing();
+            ImGui::SameLine();
+
+            if (ImGui::Button("Save Song")) {
+                std::string filename = "/tmp/gruvbok_song_" + std::to_string(hardware->getMillis()) + ".json";
+                if (song->save(filename)) {
+                    hardware->addLog("Song saved to: " + filename);
+                } else {
+                    hardware->addLog("ERROR: Failed to save song");
+                }
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Load Song")) {
+                // For now, load from a default path
+                // TODO: Add file browser dialog
+                std::string filename = "/tmp/gruvbok_song_latest.json";
+                if (song->load(filename)) {
+                    hardware->addLog("Song loaded from: " + filename);
+                } else {
+                    hardware->addLog("ERROR: Failed to load song from " + filename);
+                }
+            }
+
             ImGui::Separator();
 
             // LED tempo indicator

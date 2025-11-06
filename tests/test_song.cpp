@@ -9,6 +9,7 @@
 #include "../src/core/song.h"
 #include <iostream>
 #include <cassert>
+#include <fstream>
 
 // Simple test framework (same as other tests)
 int test_count = 0;
@@ -288,6 +289,146 @@ TEST(song_full_hierarchy) {
 }
 
 // ============================================================================
+// Save/Load Tests
+// ============================================================================
+
+TEST(song_save_empty) {
+    // Test saving an empty song
+    Song song;
+    ASSERT_TRUE(song.save("/tmp/test_empty.json"));
+}
+
+TEST(song_save_load_roundtrip) {
+    // Create a song with some events
+    Song song1;
+
+    // Mode 0, Pattern 0, Track 0
+    Event evt1;
+    evt1.setSwitch(true);
+    evt1.setPot(0, 60);
+    evt1.setPot(1, 100);
+    evt1.setPot(2, 50);
+    evt1.setPot(3, 80);
+    song1.getMode(0).getPattern(0).setEvent(0, 5, evt1);
+
+    // Mode 1, Pattern 2, Track 3, different step
+    Event evt2;
+    evt2.setSwitch(true);
+    evt2.setPot(0, 127);
+    evt2.setPot(1, 0);
+    evt2.setPot(2, 64);
+    evt2.setPot(3, 32);
+    song1.getMode(1).getPattern(2).setEvent(3, 10, evt2);
+
+    // Mode 14, Pattern 31 (boundaries)
+    Event evt3;
+    evt3.setSwitch(true);
+    evt3.setPot(0, 1);
+    evt3.setPot(1, 2);
+    evt3.setPot(2, 3);
+    evt3.setPot(3, 4);
+    song1.getMode(14).getPattern(31).setEvent(7, 15, evt3);
+
+    // Save to file
+    const char* filepath = "/tmp/test_roundtrip.json";
+    ASSERT_TRUE(song1.save(filepath));
+
+    // Load into new song
+    Song song2;
+    ASSERT_TRUE(song2.load(filepath));
+
+    // Verify first event
+    const Event& loaded1 = song2.getMode(0).getPattern(0).getEvent(0, 5);
+    ASSERT_TRUE(loaded1.getSwitch());
+    ASSERT_EQ(loaded1.getPot(0), 60);
+    ASSERT_EQ(loaded1.getPot(1), 100);
+    ASSERT_EQ(loaded1.getPot(2), 50);
+    ASSERT_EQ(loaded1.getPot(3), 80);
+
+    // Verify second event
+    const Event& loaded2 = song2.getMode(1).getPattern(2).getEvent(3, 10);
+    ASSERT_TRUE(loaded2.getSwitch());
+    ASSERT_EQ(loaded2.getPot(0), 127);
+    ASSERT_EQ(loaded2.getPot(1), 0);
+    ASSERT_EQ(loaded2.getPot(2), 64);
+    ASSERT_EQ(loaded2.getPot(3), 32);
+
+    // Verify third event (boundaries)
+    const Event& loaded3 = song2.getMode(14).getPattern(31).getEvent(7, 15);
+    ASSERT_TRUE(loaded3.getSwitch());
+    ASSERT_EQ(loaded3.getPot(0), 1);
+    ASSERT_EQ(loaded3.getPot(1), 2);
+    ASSERT_EQ(loaded3.getPot(2), 3);
+    ASSERT_EQ(loaded3.getPot(3), 4);
+
+    // Verify other events are empty
+    const Event& empty = song2.getMode(0).getPattern(0).getEvent(0, 0);
+    ASSERT_FALSE(empty.getSwitch());
+}
+
+TEST(song_load_nonexistent) {
+    // Test loading a file that doesn't exist
+    Song song;
+    ASSERT_FALSE(song.load("/tmp/nonexistent_file.json"));
+}
+
+TEST(song_load_invalid_json) {
+    // Create an invalid JSON file
+    std::ofstream file("/tmp/test_invalid.json");
+    file << "{ this is not valid JSON }";
+    file.close();
+
+    Song song;
+    ASSERT_FALSE(song.load("/tmp/test_invalid.json"));
+}
+
+TEST(song_load_wrong_version) {
+    // Create a JSON file with wrong version
+    std::ofstream file("/tmp/test_wrong_version.json");
+    file << R"({
+        "version": "2.0",
+        "events": []
+    })";
+    file.close();
+
+    Song song;
+    ASSERT_FALSE(song.load("/tmp/test_wrong_version.json"));
+}
+
+TEST(song_sparse_format) {
+    // Test that sparse format only saves active events
+    Song song;
+
+    // Add just a few events out of 61,440 possible
+    Event evt;
+    evt.setSwitch(true);
+    evt.setPot(0, 99);
+    song.getMode(0).getPattern(0).setEvent(0, 0, evt);
+    song.getMode(5).getPattern(10).setEvent(3, 7, evt);
+
+    const char* filepath = "/tmp/test_sparse.json";
+    ASSERT_TRUE(song.save(filepath));
+
+    // Read file and verify it's small (not full dump)
+    std::ifstream file(filepath);
+    std::string content((std::istreambuf_iterator<char>(file)),
+                        std::istreambuf_iterator<char>());
+    file.close();
+
+    // File should be small (< 1KB for 2 events)
+    ASSERT_TRUE(content.size() < 1024);
+
+    // Should contain exactly 2 events in the events array
+    size_t event_count = 0;
+    size_t pos = 0;
+    while ((pos = content.find("\"mode\"", pos)) != std::string::npos) {
+        event_count++;
+        pos++;
+    }
+    ASSERT_EQ(event_count, 2u);
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
@@ -311,6 +452,14 @@ int main() {
     run_test_song_num_modes_constant();
     run_test_song_memory_footprint();
     run_test_song_full_hierarchy();
+
+    // Save/Load tests
+    run_test_song_save_empty();
+    run_test_song_save_load_roundtrip();
+    run_test_song_load_nonexistent();
+    run_test_song_load_invalid_json();
+    run_test_song_load_wrong_version();
+    run_test_song_sparse_format();
 
     // Summary
     std::cout << std::endl;
