@@ -79,6 +79,9 @@ const char* GetSliderLabel(int slider_index, int mode_number) {
     } else if (mode_number == 2) {  // Acid
         const char* labels[] = {"Pitch", "Length", "Slide", "Filter"};
         return labels[slider_index];
+    } else if (mode_number == 3) {  // Chords
+        const char* labels[] = {"Root", "Type", "Velocity", "Length"};
+        return labels[slider_index];
     } else {
         const char* labels[] = {"S1", "S2", "S3", "S4"};
         return labels[slider_index];
@@ -245,7 +248,42 @@ int main(int argc, char* argv[]) {
     acid_pattern.getEvent(0, 14).setPot(2, 0);   // S3: No slide
     acid_pattern.getEvent(0, 14).setPot(3, 40);  // S4: Low filter (bass)
 
-    hardware->addLog("Demo pattern created (drums on ch1, acid bass on ch2)");
+    // Chord progression on mode 3 - Track 0
+    Mode& mode3 = song->getMode(3);
+    Pattern& chord_pattern = mode3.getPattern(0);
+
+    // Simple I-IV-V-I progression in C major
+    // S2 chord types: 0-7 = Major, 8-15 = Minor, etc.
+
+    // Step 0: C Major (root = C4 = 60, type = major)
+    chord_pattern.getEvent(0, 0).setSwitch(true);
+    chord_pattern.getEvent(0, 0).setPot(0, 60);   // S1: Root = C4
+    chord_pattern.getEvent(0, 0).setPot(1, 0);    // S2: Major chord
+    chord_pattern.getEvent(0, 0).setPot(2, 90);   // S3: Velocity
+    chord_pattern.getEvent(0, 0).setPot(3, 80);   // S4: Length
+
+    // Step 4: F Major (root = F4 = 65)
+    chord_pattern.getEvent(0, 4).setSwitch(true);
+    chord_pattern.getEvent(0, 4).setPot(0, 65);   // S1: Root = F4
+    chord_pattern.getEvent(0, 4).setPot(1, 0);    // S2: Major chord
+    chord_pattern.getEvent(0, 4).setPot(2, 85);   // S3: Velocity
+    chord_pattern.getEvent(0, 4).setPot(3, 80);   // S4: Length
+
+    // Step 8: G Major (root = G4 = 67)
+    chord_pattern.getEvent(0, 8).setSwitch(true);
+    chord_pattern.getEvent(0, 8).setPot(0, 67);   // S1: Root = G4
+    chord_pattern.getEvent(0, 8).setPot(1, 0);    // S2: Major chord
+    chord_pattern.getEvent(0, 8).setPot(2, 95);   // S3: Velocity
+    chord_pattern.getEvent(0, 8).setPot(3, 80);   // S4: Length
+
+    // Step 12: C Major (back to root)
+    chord_pattern.getEvent(0, 12).setSwitch(true);
+    chord_pattern.getEvent(0, 12).setPot(0, 60);  // S1: Root = C4
+    chord_pattern.getEvent(0, 12).setPot(1, 0);   // S2: Major chord
+    chord_pattern.getEvent(0, 12).setPot(2, 100); // S3: Velocity
+    chord_pattern.getEvent(0, 12).setPot(3, 100); // S4: Longer length
+
+    hardware->addLog("Demo pattern created (drums ch1, acid ch2, chords ch3)");
     engine->start();
     hardware->addLog("Engine started - playback running");
 
