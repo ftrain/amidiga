@@ -4,33 +4,53 @@
 
 ```bash
 # 1. Install dependencies (one-time setup)
-brew install cmake lua
+brew install cmake lua sdl2
 
 # 2. Build
 ./build.sh
 
-# 3. Run (from project root)
+# 3. Run the GUI simulator (from project root)
 ./build/bin/gruvbok
 ```
 
-**Note:** RtMidi is bundled - no need to install it separately!
+**Note:** RtMidi and Dear ImGui are bundled - you only need to install cmake, lua, and sdl2!
 
 Press `Ctrl+C` to quit.
 
 ## What You'll See
 
-GRUVBOK will start playing a demo drum pattern:
-- Kick on beats 1, 2, 3, 4 (every quarter note)
+GRUVBOK opens a **GUI window** showing a hardware simulator:
+
+**Top Section - Status:**
+- Current playback status, tempo, mode, pattern, track, step
+
+**Global Controls (R1-R4):**
+- R1: Mode selector (0-14)
+- R2: Tempo (60-240 BPM)
+- R3: Pattern selector (0-31)
+- R4: Track selector (0-7)
+
+**Step Buttons (B1-B16):**
+- 16 checkboxes representing hardware buttons
+- Toggle beats on/off for the current track
+- Click to program steps
+
+**Slider Pots (S1-S4):**
+- 4 vertical sliders
+- S1: Velocity (for drums)
+- S2: Note length
+- S3-S4: Mode-specific parameters
+
+**Pattern Grid:**
+- Visual representation of the current track
+- Green = active step
+- Red = currently playing step
+- Click to toggle steps on/off
+
+The GUI plays a demo drum pattern automatically:
+- Kick on beats 1, 2, 3, 4
 - Snare on beats 2 and 4
 - Hi-hat on every 8th note
-
-You should see MIDI messages printed to the console:
-```
-[MIDI] 91 24 64    # Note on: Kick
-[MIDI] 81 24 40    # Note off: Kick
-[MIDI] 91 2a 46    # Note on: Hi-hat
-...
-```
 
 ## Hearing Sound
 
