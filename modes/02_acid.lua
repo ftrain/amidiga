@@ -9,19 +9,19 @@
 
   Description:
   Classic acid bassline sequencer inspired by the Roland TB-303.
-  Each track can play a different note with slide and accent.
+  Single-track melodic sequencer where each step's pitch is set by S1.
 
   Track Usage:
-  Tracks 1-8: Different notes in the scale (C, D, E, F, G, A, B, C)
+  Track 1 (or any single track): Main acid bassline
 
   Slider Mappings:
-  S1 (event.pots[1]): Octave (0-127 mapped to octaves 1-4)
+  S1 (event.pots[1]): Note pitch (0-127 mapped across 3 octaves of scale)
   S2 (event.pots[2]): Note length (10-500ms)
   S3 (event.pots[3]): CC Portamento/Slide (0-127)
   S4 (event.pots[4]): CC Filter Cutoff (0-127)
 
   Button Interaction:
-  B1-B16: Toggle note on/off for current track
+  B1-B16: Toggle note on/off for each step
 ]]--
 
 -- ============================================================================
@@ -56,12 +56,18 @@ function process_event(track, event)
     return midi
   end
 
-  -- Map track to scale degree (0-7 tracks, we'll use first 5 notes repeatedly)
-  local scale_degree = (track % #scale) + 1
-  local note_offset = scale[scale_degree]
+  -- Map S1 (0-127) to note pitch across 3 octaves of the pentatonic scale
+  -- Each unit of scale spans ~25 values, giving us about 5 steps per octave
+  local s1_value = event.pots[1]
 
-  -- Map octave from S1 (0-127 -> octaves 1-4)
-  local octave_shift = math.floor(event.pots[1] / 32) * 12  -- 0, 12, 24, or 36
+  -- Determine which scale degree (0-4 for pentatonic)
+  local scale_index = math.floor((s1_value % 42) / 8.4)  -- Maps 0-42 to 0-4
+  scale_index = math.max(1, math.min(#scale, scale_index + 1))
+  local note_offset = scale[scale_index]
+
+  -- Determine octave (0-127 gives us 3 octaves)
+  local octave = math.floor(s1_value / 42)  -- 0, 1, or 2
+  local octave_shift = octave * 12
 
   -- Calculate final pitch
   local pitch = base_note + note_offset + octave_shift
