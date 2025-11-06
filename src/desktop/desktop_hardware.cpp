@@ -8,7 +8,8 @@ namespace gruvbok {
 DesktopHardware::DesktopHardware()
     : midi_out_(nullptr)
     , led_state_(false)
-    , midi_initialized_(false) {
+    , midi_initialized_(false)
+    , current_port_(-1) {
 
     buttons_.fill(false);
     rotary_pots_.fill(64);  // Default to middle value
@@ -26,29 +27,23 @@ bool DesktopHardware::init() {
     try {
         midi_out_ = std::make_unique<RtMidiOut>();
 
-        // List available MIDI ports
         unsigned int port_count = midi_out_->getPortCount();
-        std::cout << "Available MIDI ports:" << std::endl;
 
         if (port_count == 0) {
-            std::cout << "  No MIDI ports available. Creating virtual port." << std::endl;
+            addLog("No MIDI ports available. Creating virtual port.");
             midi_out_->openVirtualPort("GRUVBOK Output");
+            current_port_ = -1;  // Virtual port
         } else {
-            for (unsigned int i = 0; i < port_count; i++) {
-                std::cout << "  " << i << ": " << midi_out_->getPortName(i) << std::endl;
-            }
-
-            // Open first available port
-            std::cout << "Opening MIDI port 0" << std::endl;
-            midi_out_->openPort(0);
+            addLog("Found " + std::to_string(port_count) + " MIDI port(s)");
+            // Don't auto-open - let user select in GUI
         }
 
         midi_initialized_ = true;
-        std::cout << "Desktop hardware initialized" << std::endl;
+        addLog("Hardware initialized successfully");
         return true;
 
     } catch (RtMidiError& error) {
-        std::cerr << "RtMidi error: " << error.getMessage() << std::endl;
+        addLog("RtMidi error: " + error.getMessage());
         midi_initialized_ = false;
         return false;
     }
@@ -88,24 +83,16 @@ void DesktopHardware::sendMidiMessage(const MidiMessage& msg) {
 
     try {
         midi_out_->sendMessage(&msg.data);
-
-        // Debug print MIDI messages
-        std::cout << "[MIDI] ";
-        for (uint8_t byte : msg.data) {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";
-        }
-        std::cout << std::dec << std::endl;
+        // No console spam!
 
     } catch (RtMidiError& error) {
-        std::cerr << "Error sending MIDI: " << error.getMessage() << std::endl;
+        addLog("Error sending MIDI: " + error.getMessage());
     }
 }
 
 void DesktopHardware::setLED(bool on) {
     led_state_ = on;
-    if (on) {
-        std::cout << "[LED] ON" << std::endl;
-    }
+    // No console spam for LED!
 }
 
 uint32_t DesktopHardware::getMillis() {
@@ -134,6 +121,68 @@ void DesktopHardware::simulateSliderPot(int pot, uint8_t value) {
     if (pot >= 0 && pot < 4) {
         slider_pots_[pot] = std::min(value, static_cast<uint8_t>(127));
     }
+}
+
+// MIDI port management
+int DesktopHardware::getMidiPortCount() {
+    if (!midi_out_) return 0;
+    return static_cast<int>(midi_out_->getPortCount());
+}
+
+std::string DesktopHardware::getMidiPortName(int port) {
+    if (!midi_out_ || port < 0 || port >= getMidiPortCount()) {
+        return "";
+    }
+    try {
+        return midi_out_->getPortName(static_cast<unsigned int>(port));
+    } catch (RtMidiError&) {
+        return "";
+    }
+}
+
+bool DesktopHardware::selectMidiPort(int port) {
+    if (!midi_out_) return false;
+
+    try {
+        // Close existing port if open
+        if (midi_initialized_ && current_port_ >= 0) {
+            midi_out_->closePort();
+        }
+
+        if (port < 0) {
+            // Virtual port
+            midi_out_->openVirtualPort("GRUVBOK Output");
+            current_port_ = -1;
+            addLog("Opened virtual MIDI port");
+        } else if (port < getMidiPortCount()) {
+            midi_out_->openPort(static_cast<unsigned int>(port));
+            current_port_ = port;
+            addLog("Opened MIDI port: " + getMidiPortName(port));
+        } else {
+            return false;
+        }
+
+        midi_initialized_ = true;
+        return true;
+
+    } catch (RtMidiError& error) {
+        addLog("Error selecting MIDI port: " + error.getMessage());
+        return false;
+    }
+}
+
+// Logging
+void DesktopHardware::addLog(const std::string& message) {
+    log_messages_.push_back(message);
+    if (log_messages_.size() > MAX_LOG_MESSAGES) {
+        log_messages_.pop_front();
+    }
+    // Also print to console for debugging
+    std::cout << "[LOG] " << message << std::endl;
+}
+
+void DesktopHardware::clearLog() {
+    log_messages_.clear();
 }
 
 } // namespace gruvbok
