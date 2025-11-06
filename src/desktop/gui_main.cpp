@@ -59,8 +59,6 @@ int main(int argc, char* argv[]) {
     ImGui_ImplSDLRenderer2_Init(renderer);
 
     // Initialize GRUVBOK
-    std::cout << "=== GRUVBOK GUI Simulator ===" << std::endl;
-
     auto hardware = std::make_unique<DesktopHardware>();
     if (!hardware->init()) {
         std::cerr << "Failed to initialize hardware" << std::endl;
@@ -70,16 +68,14 @@ int main(int argc, char* argv[]) {
     auto song = std::make_unique<Song>();
     auto mode_loader = std::make_unique<ModeLoader>();
 
-    std::cout << "Loading modes..." << std::endl;
     int loaded = mode_loader->loadModesFromDirectory("modes", 120);
-    if (loaded == 0) {
-        std::cerr << "Warning: No modes loaded" << std::endl;
+    if (loaded > 0) {
+        hardware->addLog("Loaded " + std::to_string(loaded) + " mode(s) from modes/ directory");
+    } else {
+        hardware->addLog("Warning: No modes loaded");
     }
 
     auto engine = std::make_unique<Engine>(song.get(), hardware.get(), mode_loader.get());
-
-    // Create test pattern
-    std::cout << "Creating test pattern..." << std::endl;
     Mode& mode1 = song->getMode(1);
     Pattern& pattern0 = mode1.getPattern(0);
 
@@ -107,8 +103,9 @@ int main(int argc, char* argv[]) {
         event.setPot(1, 20);
     }
 
+    hardware->addLog("Demo pattern created (kick, snare, hi-hat)");
     engine->start();
-    std::cout << "Engine started!" << std::endl;
+    hardware->addLog("Engine started - playback running");
 
     // Main loop
     bool running = true;
@@ -149,6 +146,34 @@ int main(int argc, char* argv[]) {
             ImGui::Text("| Track: %d", engine->getCurrentTrack());
             ImGui::SameLine();
             ImGui::Text("| Step: %d", engine->getCurrentStep());
+
+            ImGui::Separator();
+
+            // MIDI Port Selector
+            ImGui::Text("MIDI Output:");
+            ImGui::SameLine();
+
+            int port_count = hardware->getMidiPortCount();
+            int current_port = hardware->getCurrentMidiPort();
+
+            std::string preview = current_port < 0 ? "Virtual Port" : hardware->getMidiPortName(current_port);
+            if (ImGui::BeginCombo("##MIDIPort", preview.c_str())) {
+                // Virtual port option
+                bool is_selected = (current_port < 0);
+                if (ImGui::Selectable("Virtual Port", is_selected)) {
+                    hardware->selectMidiPort(-1);
+                }
+
+                // Real ports
+                for (int i = 0; i < port_count; i++) {
+                    is_selected = (current_port == i);
+                    std::string port_name = hardware->getMidiPortName(i);
+                    if (ImGui::Selectable(port_name.c_str(), is_selected)) {
+                        hardware->selectMidiPort(i);
+                    }
+                }
+                ImGui::EndCombo();
+            }
 
             ImGui::Separator();
 
@@ -245,6 +270,34 @@ int main(int argc, char* argv[]) {
             ImGui::End();
         }
 
+        // Log window
+        {
+            ImGui::SetNextWindowPos(ImVec2(0, 530), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(1280, 190), ImGuiCond_FirstUseEver);
+            ImGui::Begin("System Log", nullptr, ImGuiWindowFlags_NoCollapse);
+
+            if (ImGui::Button("Clear Log")) {
+                hardware->clearLog();
+            }
+
+            ImGui::Separator();
+
+            // Scrollable log area
+            ImGui::BeginChild("LogScroll", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+
+            const auto& log_messages = hardware->getLogMessages();
+            for (const auto& message : log_messages) {
+                ImGui::TextUnformatted(message.c_str());
+            }
+
+            // Auto-scroll to bottom
+            if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+                ImGui::SetScrollHereY(1.0f);
+
+            ImGui::EndChild();
+            ImGui::End();
+        }
+
         // Rendering
         ImGui::Render();
         SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
@@ -258,7 +311,6 @@ int main(int argc, char* argv[]) {
     }
 
     // Cleanup
-    std::cout << "\nShutting down..." << std::endl;
     engine->stop();
     hardware->shutdown();
 
