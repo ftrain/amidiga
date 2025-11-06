@@ -5,6 +5,7 @@ namespace gruvbok {
 
 TeensyHardware::TeensyHardware()
     : led_state_(false)
+    , led_brightness_(255)
     , start_time_ms_(0) {
 
     button_states_.fill(false);
@@ -124,7 +125,19 @@ void TeensyHardware::sendMidiMessage(const MidiMessage& msg) {
 
 void TeensyHardware::setLED(bool on) {
     led_state_ = on;
-    digitalWrite(LED_PIN, on ? HIGH : LOW);
+    if (on) {
+        analogWrite(LED_PIN, led_brightness_);  // PWM with current brightness
+    } else {
+        analogWrite(LED_PIN, 0);  // Off
+    }
+}
+
+void TeensyHardware::setLEDBrightness(uint8_t brightness) {
+    led_brightness_ = brightness;
+    // If LED is currently on, update brightness immediately
+    if (led_state_) {
+        analogWrite(LED_PIN, led_brightness_);
+    }
 }
 
 uint32_t TeensyHardware::getMillis() {

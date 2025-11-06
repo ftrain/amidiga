@@ -47,6 +47,7 @@ public:
 
     void sendMidiMessage(const MidiMessage& msg) override;
     void setLED(bool on) override;
+    void setLEDBrightness(uint8_t brightness);  // Set PWM brightness 0-255
     bool getLED() const override { return led_state_; }
     uint32_t getMillis() override;
 
@@ -91,6 +92,7 @@ private:
     std::array<uint16_t, 4> slider_pot_values_;  // Raw ADC values
 
     bool led_state_;
+    uint8_t led_brightness_;  // 0-255 for PWM (analogWrite)
     uint32_t start_time_ms_;
 
     // Helper functions

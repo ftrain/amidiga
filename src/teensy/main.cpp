@@ -45,12 +45,13 @@ void setup() {
 
     // Load Lua modes
     Serial.println("Loading Lua modes...");
-    mode_loader = new ModeLoader("modes");  // Note: SD card support needed
+    mode_loader = new ModeLoader();
 
     // For now, we'll skip Lua loading on Teensy until SD card is set up
-    // TODO: Implement SD card mode loading
+    // TODO: Implement SD card mode loading from /modes directory
     Serial.println("WARNING: Lua mode loading not yet implemented for Teensy");
     Serial.println("         Using placeholder modes (will output no MIDI)");
+    Serial.println("         To enable: Add SD card support and call mode_loader->loadModesFromDirectory(\"/modes\", 120)");
 
     // Create and start engine
     Serial.println("Creating engine...");
