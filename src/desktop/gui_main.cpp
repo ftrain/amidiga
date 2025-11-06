@@ -365,7 +365,7 @@ int main(int argc, char* argv[]) {
             ImGui::SetNextWindowSize(ImVec2(1280, 720), ImGuiCond_FirstUseEver);
             ImGui::Begin("GRUVBOK Hardware Simulator", nullptr, ImGuiWindowFlags_NoCollapse);
 
-            // MIDI Port Selector
+            // MIDI Output Port Selector
             ImGui::Text("MIDI Output:");
             ImGui::SameLine();
 
@@ -389,6 +389,37 @@ int main(int argc, char* argv[]) {
                     }
                 }
                 ImGui::EndCombo();
+            }
+
+            // Mirror Mode (MIDI Input)
+            ImGui::SameLine();
+            ImGui::Spacing();
+            ImGui::SameLine();
+
+            bool mirror_mode = hardware->isMirrorModeEnabled();
+            if (ImGui::Checkbox("Mirror Mode", &mirror_mode)) {
+                hardware->setMirrorMode(mirror_mode);
+            }
+
+            // MIDI Input Port Selector (only show if mirror mode enabled)
+            if (mirror_mode) {
+                ImGui::Text("MIDI Input:");
+                ImGui::SameLine();
+
+                int input_port_count = hardware->getMidiInputPortCount();
+                int current_input_port = hardware->getCurrentMidiInputPort();
+
+                std::string input_preview = current_input_port < 0 ? "Select Input..." : hardware->getMidiInputPortName(current_input_port);
+                if (ImGui::BeginCombo("##MIDIInputPort", input_preview.c_str())) {
+                    for (int i = 0; i < input_port_count; i++) {
+                        bool is_selected = (current_input_port == i);
+                        std::string port_name = hardware->getMidiInputPortName(i);
+                        if (ImGui::Selectable(port_name.c_str(), is_selected)) {
+                            hardware->selectMidiInputPort(i);
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
             }
 
             ImGui::Separator();
@@ -503,42 +534,79 @@ int main(int argc, char* argv[]) {
 
             float step_width = 50.0f;
 
+            // Track which button is being held for live editing
+            static int held_button = -1;
+
             for (int step = 0; step < 16; step++) {
-                const Event& evt = current_track.getEvent(step);
+                Event& evt = current_track.getEvent(step);
                 bool has_event = evt.getSwitch();
 
-                ImVec4 color = has_event ? ImVec4(0.0f, 1.0f, 0.0f, 1.0f) : ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
-                if (step == engine->getCurrentStep()) {
+                // Color: yellow if held, red if playing, green if active, gray if empty
+                ImVec4 color;
+                if (held_button == step) {
+                    color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow for held button
+                } else if (step == engine->getCurrentStep()) {
                     color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f); // Red for current step
+                } else if (has_event) {
+                    color = ImVec4(0.0f, 1.0f, 0.0f, 1.0f); // Green for active
+                } else {
+                    color = ImVec4(0.3f, 0.3f, 0.3f, 1.0f); // Gray for empty
                 }
 
                 ImGui::PushStyleColor(ImGuiCol_Button, color);
                 char btn_label[8];
                 snprintf(btn_label, sizeof(btn_label), "%d", step + 1);
 
-                if (ImGui::Button(btn_label, ImVec2(40, 40))) {
-                    // Click to toggle event
-                    Event& evt_mut = current_track.getEvent(step);
-                    bool new_state = !evt_mut.getSwitch();
-                    evt_mut.setSwitch(new_state);
+                ImGui::Button(btn_label, ImVec2(40, 40));
+                bool is_held = ImGui::IsItemActive();
 
-                    // If we just turned it ON, parameter-lock current slider values to this event
+                // Button clicked (just pressed)
+                if (ImGui::IsItemActivated()) {
+                    held_button = step;
+
+                    // Toggle event on first press
+                    bool new_state = !evt.getSwitch();
+                    evt.setSwitch(new_state);
+
+                    // If turning ON, lock current slider values
                     if (new_state) {
-                        evt_mut.setPot(0, hardware->readSliderPot(0));
-                        evt_mut.setPot(1, hardware->readSliderPot(1));
-                        evt_mut.setPot(2, hardware->readSliderPot(2));
-                        evt_mut.setPot(3, hardware->readSliderPot(3));
+                        evt.setPot(0, hardware->readSliderPot(0));
+                        evt.setPot(1, hardware->readSliderPot(1));
+                        evt.setPot(2, hardware->readSliderPot(2));
+                        evt.setPot(3, hardware->readSliderPot(3));
                     }
 
-                    // Log the change with the parameter-locked values
                     char log_msg[128];
                     snprintf(log_msg, sizeof(log_msg),
-                             "Mode %d, Track %d, Step %d: Switch %s (S1=%d S2=%d S3=%d S4=%d)",
-                             engine->getCurrentMode(), engine->getCurrentTrack(), step + 1,
-                             new_state ? "ON" : "OFF",
-                             evt_mut.getPot(0), evt_mut.getPot(1), evt_mut.getPot(2), evt_mut.getPot(3));
+                             "Step %d: %s (S1=%d S2=%d S3=%d S4=%d)",
+                             step + 1, new_state ? "ON" : "OFF",
+                             evt.getPot(0), evt.getPot(1), evt.getPot(2), evt.getPot(3));
                     hardware->addLog(log_msg);
                 }
+
+                // Button being held - continuously update pot values
+                if (is_held && held_button == step && evt.getSwitch()) {
+                    evt.setPot(0, hardware->readSliderPot(0));
+                    evt.setPot(1, hardware->readSliderPot(1));
+                    evt.setPot(2, hardware->readSliderPot(2));
+                    evt.setPot(3, hardware->readSliderPot(3));
+                }
+
+                // Button released
+                if (!is_held && held_button == step) {
+                    held_button = -1;
+
+                    // Log final values on release
+                    if (evt.getSwitch()) {
+                        char log_msg[128];
+                        snprintf(log_msg, sizeof(log_msg),
+                                 "Step %d locked: S1=%d S2=%d S3=%d S4=%d",
+                                 step + 1,
+                                 evt.getPot(0), evt.getPot(1), evt.getPot(2), evt.getPot(3));
+                        hardware->addLog(log_msg);
+                    }
+                }
+
                 ImGui::PopStyleColor();
 
                 if (step < 15) {
