@@ -103,7 +103,42 @@ int main(int argc, char* argv[]) {
         event.setPot(1, 20);
     }
 
-    hardware->addLog("Demo pattern created (kick, snare, hi-hat)");
+    // Acid bassline on mode 2
+    Mode& mode2 = song->getMode(2);
+    Pattern& acid_pattern = mode2.getPattern(0);
+
+    // Classic acid pattern - running 16ths with variation
+    // Track 0: Root notes (C)
+    for (int step : {0, 3, 6, 9, 12, 15}) {
+        Event& event = acid_pattern.getEvent(0, step);
+        event.setSwitch(true);
+        event.setPot(0, 32);   // S1: Octave 2
+        event.setPot(1, 40);   // S2: Short note length
+        event.setPot(2, 10);   // S3: Minimal slide
+        event.setPot(3, 60);   // S4: Filter at 60
+    }
+
+    // Track 1: Fifth notes (G) for some variation
+    for (int step : {2, 5, 8, 11, 14}) {
+        Event& event = acid_pattern.getEvent(3, step);
+        event.setSwitch(true);
+        event.setPot(0, 32);   // S1: Octave 2
+        event.setPot(1, 30);   // S2: Shorter note
+        event.setPot(2, 80);   // S3: More slide
+        event.setPot(3, 90);   // S4: Higher filter (accent)
+    }
+
+    // Track 2: Lower octave root on step 7 for depth
+    {
+        Event& event = acid_pattern.getEvent(0, 7);
+        event.setSwitch(true);
+        event.setPot(0, 0);    // S1: Octave 1 (lower)
+        event.setPot(1, 60);   // S2: Longer note
+        event.setPot(2, 5);    // S3: No slide
+        event.setPot(3, 40);   // S4: Lower filter
+    }
+
+    hardware->addLog("Demo pattern created (drums on ch1, acid bass on ch2)");
     engine->start();
     hardware->addLog("Engine started - playback running");
 
