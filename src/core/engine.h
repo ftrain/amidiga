@@ -53,6 +53,9 @@ private:
     int current_track_;
     int current_step_;  // 0-15
 
+    // Song mode (mode 0) - cycles through all patterns
+    int song_mode_pattern_;  // Current pattern in song mode
+
     uint32_t last_step_time_;
     uint32_t step_interval_ms_;
 

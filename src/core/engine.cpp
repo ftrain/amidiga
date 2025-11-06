@@ -14,6 +14,7 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , current_pattern_(0)
     , current_track_(0)
     , current_step_(0)
+    , song_mode_pattern_(0)
     , last_step_time_(0)
     , step_interval_ms_(0)
     , last_clock_time_(0)
@@ -68,6 +69,11 @@ void Engine::update() {
 
         // Advance step
         current_step_ = (current_step_ + 1) % 16;
+
+        // In song mode (mode 0), advance pattern when we loop back to step 0
+        if (current_mode_ == 0 && current_step_ == 0) {
+            song_mode_pattern_ = (song_mode_pattern_ + 1) % Mode::NUM_PATTERNS;
+        }
     }
 }
 
@@ -135,10 +141,23 @@ void Engine::sendMidiClock() {
 }
 
 void Engine::processStep() {
+    // Determine which pattern to play
+    // Mode 0 = "song mode" - cycles through all 32 patterns
+    // Modes 1-14 = play the current_pattern_ across all modes
+    int pattern_to_play;
+
+    if (current_mode_ == 0) {
+        // Song mode: cycle through all patterns
+        pattern_to_play = song_mode_pattern_;
+    } else {
+        // Edit mode: play the same pattern across all modes
+        pattern_to_play = current_pattern_;
+    }
+
     // Process ALL 15 modes simultaneously (each on its own MIDI channel!)
     for (int mode_num = 0; mode_num < Song::NUM_MODES; ++mode_num) {
         Mode& mode = song_->getMode(mode_num);
-        Pattern& pattern = mode.getPattern(current_pattern_);
+        Pattern& pattern = mode.getPattern(pattern_to_play);
 
         LuaContext* lua_mode = mode_loader_->getMode(mode_num);
 
