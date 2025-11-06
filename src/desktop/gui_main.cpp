@@ -13,6 +13,69 @@
 
 using namespace gruvbok;
 
+// Helper function to draw a circular knob widget
+bool Knob(const char* label, int* value, int min_val, int max_val, float radius = 30.0f) {
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    float line_height = ImGui::GetTextLineHeight();
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    ImVec2 center = ImVec2(pos.x + radius, pos.y + radius);
+    float gamma = ImGui::GetColorU32(ImGuiCol_ButtonActive);
+
+    ImGui::InvisibleButton(label, ImVec2(radius * 2.0f, radius * 2.0f + line_height + style.ItemInnerSpacing.y));
+    bool is_active = ImGui::IsItemActive();
+    bool is_hovered = ImGui::IsItemHovered();
+    bool value_changed = false;
+
+    if (is_active && io.MouseDelta.y != 0.0f) {
+        float delta = -io.MouseDelta.y * (max_val - min_val) / 200.0f;
+        *value = ImClamp(*value + (int)delta, min_val, max_val);
+        value_changed = true;
+    }
+
+    // Calculate angle for current value (-135 to +135 degrees)
+    float t = (float)(*value - min_val) / (float)(max_val - min_val);
+    float angle = (t * 270.0f - 135.0f) * (IM_PI / 180.0f);
+
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    // Draw outer circle
+    draw_list->AddCircleFilled(center, radius, ImGui::GetColorU32(ImGuiCol_FrameBg), 32);
+    draw_list->AddCircle(center, radius, ImGui::GetColorU32(is_active ? ImGuiCol_FrameBgActive : is_hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_Border), 32, 2.0f);
+
+    // Draw value indicator line
+    float indicator_x = center.x + cosf(angle) * (radius * 0.7f);
+    float indicator_y = center.y + sinf(angle) * (radius * 0.7f);
+    draw_list->AddLine(center, ImVec2(indicator_x, indicator_y), ImGui::GetColorU32(ImGuiCol_SliderGrabActive), 3.0f);
+
+    // Draw center dot
+    draw_list->AddCircleFilled(center, radius * 0.15f, ImGui::GetColorU32(ImGuiCol_Button), 12);
+
+    // Draw label and value
+    char display_text[64];
+    snprintf(display_text, sizeof(display_text), "%s: %d", label, *value);
+    ImVec2 text_size = ImGui::CalcTextSize(display_text);
+    draw_list->AddText(ImVec2(center.x - text_size.x * 0.5f, pos.y + radius * 2.0f + style.ItemInnerSpacing.y),
+                      ImGui::GetColorU32(ImGuiCol_Text), display_text);
+
+    return value_changed;
+}
+
+// Get slider labels for current mode
+const char* GetSliderLabel(int slider_index, int mode_number) {
+    if (mode_number == 1) {  // Drums
+        const char* labels[] = {"Velocity", "Length", "S3", "S4"};
+        return labels[slider_index];
+    } else if (mode_number == 2) {  // Acid
+        const char* labels[] = {"Pitch", "Length", "Slide", "Filter"};
+        return labels[slider_index];
+    } else {
+        const char* labels[] = {"S1", "S2", "S3", "S4"};
+        return labels[slider_index];
+    }
+}
+
 int main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
@@ -64,6 +127,12 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to initialize hardware" << std::endl;
         return 1;
     }
+
+    // Set default rotary pot values
+    hardware->simulateRotaryPot(0, 0);    // R1: Mode 0
+    hardware->simulateRotaryPot(1, 64);   // R2: 120 BPM (middle of range)
+    hardware->simulateRotaryPot(2, 0);    // R3: Pattern 0
+    hardware->simulateRotaryPot(3, 0);    // R4: Track 0
 
     auto song = std::make_unique<Song>();
     auto mode_loader = std::make_unique<ModeLoader>();
@@ -243,61 +312,52 @@ int main(int argc, char* argv[]) {
 
             ImGui::Separator();
 
-            // Global controls (R1-R4)
-            ImGui::Text("Global Controls (Rotary Pots)");
+            // Global controls (R1-R4) as knobs
+            ImGui::Text("Global Controls");
 
             int r1 = hardware->readRotaryPot(0);
             int r2 = hardware->readRotaryPot(1);
             int r3 = hardware->readRotaryPot(2);
             int r4 = hardware->readRotaryPot(3);
 
-            if (ImGui::SliderInt("R1 Mode", &r1, 0, 127)) hardware->simulateRotaryPot(0, r1);
-            if (ImGui::SliderInt("R2 Tempo", &r2, 0, 127)) hardware->simulateRotaryPot(1, r2);
-            if (ImGui::SliderInt("R3 Pattern", &r3, 0, 127)) hardware->simulateRotaryPot(2, r3);
-            if (ImGui::SliderInt("R4 Track", &r4, 0, 127)) hardware->simulateRotaryPot(3, r4);
+            if (Knob("Mode", &r1, 0, 127, 35.0f)) hardware->simulateRotaryPot(0, r1);
+            ImGui::SameLine(0, 20);
+            if (Knob("Tempo", &r2, 0, 127, 35.0f)) hardware->simulateRotaryPot(1, r2);
+            ImGui::SameLine(0, 20);
+            if (Knob("Pattern", &r3, 0, 127, 35.0f)) hardware->simulateRotaryPot(2, r3);
+            ImGui::SameLine(0, 20);
+            if (Knob("Track", &r4, 0, 127, 35.0f)) hardware->simulateRotaryPot(3, r4);
 
             ImGui::Separator();
 
-            // Button grid (B1-B16)
-            ImGui::Text("Step Buttons (B1-B16)");
-            for (int row = 0; row < 2; row++) {
-                for (int col = 0; col < 8; col++) {
-                    int btn = row * 8 + col;
-                    char label[16];
-                    snprintf(label, sizeof(label), "B%d", btn + 1);
-
-                    bool pressed = hardware->readButton(btn);
-                    if (ImGui::Checkbox(label, &pressed)) {
-                        hardware->simulateButton(btn, pressed);
-                    }
-
-                    if (col < 7) ImGui::SameLine();
-                }
-            }
-
-            ImGui::Separator();
-
-            // Slider pots (S1-S4)
-            ImGui::Text("Slider Pots (S1-S4)");
+            // Slider pots (S1-S4) with mode-specific labels
+            int current_mode = engine->getCurrentMode();
+            ImGui::Text("Slider Pots (Mode %d)", current_mode);
 
             int s1 = hardware->readSliderPot(0);
             int s2 = hardware->readSliderPot(1);
             int s3 = hardware->readSliderPot(2);
             int s4 = hardware->readSliderPot(3);
 
-            if (ImGui::VSliderInt("##S1", ImVec2(40, 160), &s1, 0, 127, "S1\n%d")) {
+            char s1_label[64], s2_label[64], s3_label[64], s4_label[64];
+            snprintf(s1_label, sizeof(s1_label), "%s\n%d", GetSliderLabel(0, current_mode), s1);
+            snprintf(s2_label, sizeof(s2_label), "%s\n%d", GetSliderLabel(1, current_mode), s2);
+            snprintf(s3_label, sizeof(s3_label), "%s\n%d", GetSliderLabel(2, current_mode), s3);
+            snprintf(s4_label, sizeof(s4_label), "%s\n%d", GetSliderLabel(3, current_mode), s4);
+
+            if (ImGui::VSliderInt("##S1", ImVec2(50, 180), &s1, 0, 127, s1_label)) {
                 hardware->simulateSliderPot(0, s1);
             }
             ImGui::SameLine();
-            if (ImGui::VSliderInt("##S2", ImVec2(40, 160), &s2, 0, 127, "S2\n%d")) {
+            if (ImGui::VSliderInt("##S2", ImVec2(50, 180), &s2, 0, 127, s2_label)) {
                 hardware->simulateSliderPot(1, s2);
             }
             ImGui::SameLine();
-            if (ImGui::VSliderInt("##S3", ImVec2(40, 160), &s3, 0, 127, "S3\n%d")) {
+            if (ImGui::VSliderInt("##S3", ImVec2(50, 180), &s3, 0, 127, s3_label)) {
                 hardware->simulateSliderPot(2, s3);
             }
             ImGui::SameLine();
-            if (ImGui::VSliderInt("##S4", ImVec2(40, 160), &s4, 0, 127, "S4\n%d")) {
+            if (ImGui::VSliderInt("##S4", ImVec2(50, 180), &s4, 0, 127, s4_label)) {
                 hardware->simulateSliderPot(3, s4);
             }
 
