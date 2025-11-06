@@ -71,7 +71,12 @@ public:
     }
 
     uint8_t readRotaryPot(int pot) override {
-        (void)pot;
+        // Return values matching Engine defaults to prevent handleInput() from changing state
+        // Engine starts at: mode=1, tempo=120 BPM, pattern=0, track=0
+        if (pot == 0) return 9;   // R1: Mode 1 (9 * 15 / 128 = 1.05 ≈ 1)
+        if (pot == 1) return 42;  // R2: 120 BPM (60 + 42*180/127 = 119.5 ≈ 120)
+        if (pot == 2) return 0;   // R3: Pattern 0
+        if (pot == 3) return 0;   // R4: Track 0
         return 0;
     }
 
@@ -278,7 +283,11 @@ TEST(engine_led_tempo_beat) {
 
     hw.clearLEDChanges();
     engine.start();
-    engine.update();  // Initial update triggers LED on step 0
+
+    // Advance time and update to trigger first step (step 0 is a beat)
+    // At 120 BPM, step interval is 125ms
+    hw.advanceTime(126);
+    engine.update();
 
     // Check that LED was turned on (step 0 is a beat)
     const auto& led_changes = hw.getLEDChanges();
