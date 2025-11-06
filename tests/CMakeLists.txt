@@ -39,3 +39,12 @@ set_target_properties(test_midi_scheduler
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/tests"
 )
+
+add_executable(test_engine test_engine.cpp)
+target_link_libraries(test_engine PRIVATE gruvbok_core gruvbok_hardware gruvbok_lua ${LUA_LIBRARIES})
+target_include_directories(test_engine PRIVATE ${CMAKE_SOURCE_DIR}/src ${LUA_INCLUDE_DIR})
+add_test(NAME EngineTests COMMAND test_engine)
+set_target_properties(test_engine
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/tests"
+)
