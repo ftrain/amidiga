@@ -68,12 +68,18 @@ private:
     uint32_t led_on_time_;
     static constexpr uint32_t LED_BLINK_DURATION_MS = 50;  // LED stays on for 50ms
 
+    // Debounced Lua reinit when tempo changes
+    bool lua_reinit_pending_;
+    uint32_t last_tempo_change_time_;
+    static constexpr uint32_t TEMPO_DEBOUNCE_MS = 1000;  // Wait 1 second after last tempo change
+
     void calculateStepInterval();
     void calculateClockInterval();
     void sendMidiClock();
     void processStep();
     void handleInput();
     void updateLED();
+    void reinitLuaModes();  // Reinitialize all Lua modes with current tempo
 };
 
 } // namespace gruvbok

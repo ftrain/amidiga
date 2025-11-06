@@ -20,7 +20,9 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , last_clock_time_(0)
     , clock_interval_ms_(0)
     , led_on_(false)
-    , led_on_time_(0) {
+    , led_on_time_(0)
+    , lua_reinit_pending_(false)
+    , last_tempo_change_time_(0) {
 
     scheduler_ = std::make_unique<MidiScheduler>(hardware);
     calculateStepInterval();
@@ -51,6 +53,15 @@ void Engine::update() {
 
     // Update LED tempo indicator
     updateLED();
+
+    // Check for debounced Lua reinit
+    if (lua_reinit_pending_) {
+        uint32_t current_time = hardware_->getMillis();
+        if (current_time - last_tempo_change_time_ >= TEMPO_DEBOUNCE_MS) {
+            reinitLuaModes();
+            lua_reinit_pending_ = false;
+        }
+    }
 
     // Handle input
     handleInput();
@@ -86,6 +97,10 @@ void Engine::setTempo(int bpm) {
     tempo_ = std::clamp(bpm, 1, 1000);
     calculateStepInterval();
     calculateClockInterval();
+
+    // Mark Lua reinit as pending (debounced)
+    lua_reinit_pending_ = true;
+    last_tempo_change_time_ = hardware_->getMillis();
 }
 
 void Engine::setMode(int mode) {
@@ -264,6 +279,24 @@ void Engine::updateLED() {
         if (current_time - led_on_time_ >= LED_BLINK_DURATION_MS) {
             hardware_->setLED(false);
             led_on_ = false;
+        }
+    }
+}
+
+void Engine::reinitLuaModes() {
+    // Reinitialize all Lua modes with current tempo
+    // This is called after tempo changes (debounced)
+    std::cout << "Reinitializing Lua modes with tempo=" << tempo_ << " BPM" << std::endl;
+
+    LuaInitContext context;
+    context.tempo = tempo_;
+
+    for (int mode_num = 0; mode_num < Song::NUM_MODES; ++mode_num) {
+        LuaContext* lua_mode = mode_loader_->getMode(mode_num);
+        if (lua_mode && lua_mode->isValid()) {
+            context.mode_number = mode_num;
+            context.midi_channel = mode_num;  // Each mode on its own channel
+            lua_mode->callInit(context);
         }
     }
 }
