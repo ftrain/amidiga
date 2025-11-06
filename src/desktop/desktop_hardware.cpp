@@ -35,7 +35,11 @@ bool DesktopHardware::init() {
             current_port_ = -1;  // Virtual port
         } else {
             addLog("Found " + std::to_string(port_count) + " MIDI port(s)");
-            // Don't auto-open - let user select in GUI
+            // Auto-open first port by default
+            std::string port_name = midi_out_->getPortName(0);
+            midi_out_->openPort(0);
+            current_port_ = 0;
+            addLog("Opened MIDI port 0: " + port_name);
         }
 
         midi_initialized_ = true;
