@@ -752,7 +752,7 @@ int main(int argc, char* argv[]) {
                     ImGui::Text("%d", step + 1);
 
                     ImGui::TableNextColumn();
-                    ImGui::Text("%s", evt.getSwitch() ? "•" : "");
+                    ImGui::Text("%s", evt.getSwitch() ? "X" : "");
 
                     ImGui::TableNextColumn();
                     ImGui::Text("%d", evt.getPot(0));
