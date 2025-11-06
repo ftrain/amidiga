@@ -22,10 +22,9 @@ brew install cmake
 
 # Install Lua
 brew install lua
-
-# Install RtMidi (for MIDI I/O)
-brew install rtmidi
 ```
+
+**Note:** RtMidi is bundled in `external/rtmidi/` - you don't need to install it!
 
 ### 3. Verify Installation
 
@@ -128,17 +127,16 @@ brew info lua
 cmake .. -DLUA_INCLUDE_DIR=/opt/homebrew/include/lua -DLUA_LIBRARIES=/opt/homebrew/lib/liblua.dylib
 ```
 
-### CMake can't find RtMidi
+### Build errors with RtMidi
 
-If CMake says "RtMidi is required":
+RtMidi is bundled in the project, so you shouldn't see these errors. If you do:
 
 ```bash
-# Install RtMidi
-brew install rtmidi
+# Verify the bundled library exists
+ls external/rtmidi/RtMidi.h
+ls external/rtmidi/RtMidi.cpp
 
-# Verify it's installed
-ls /opt/homebrew/lib/librtmidi.*
-ls /opt/homebrew/include/RtMidi.h
+# If missing, re-clone the repository
 ```
 
 ### No MIDI output
