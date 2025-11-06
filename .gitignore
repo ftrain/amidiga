@@ -2,6 +2,9 @@
 build/
 bin/
 lib/
+!lib/lua/  # Allow Lua configuration
+lib/lua/*.c  # But ignore Lua source files (users download these)
+lib/lua/*.h
 out/
 cmake-build-*/
 
