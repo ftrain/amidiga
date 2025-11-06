@@ -23,6 +23,9 @@
   B1-B16: Toggle beats on/off for current track
 ]]--
 
+-- Mode metadata
+MODE_NAME = "Drums"
+
 -- MIDI note assignments for drum sounds (General MIDI Drum Map)
 local drum_map = {
   36,  -- Track 1: Kick (C1)

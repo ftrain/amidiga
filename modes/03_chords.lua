@@ -1,3 +1,6 @@
+MODE_NAME = "Chords"
+
+
 --[[
   Mode 3: Chord Sequencer
 

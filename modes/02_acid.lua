@@ -1,3 +1,6 @@
+MODE_NAME = "Acid"
+
+
 --[[
   Mode 2: Acid Sequencer
 

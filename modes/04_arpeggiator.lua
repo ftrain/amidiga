@@ -1,3 +1,6 @@
+MODE_NAME = "Arp"
+
+
 --[[
   Mode 4: Arpeggiator
 

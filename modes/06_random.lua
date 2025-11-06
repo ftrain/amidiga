@@ -1,3 +1,6 @@
+MODE_NAME = "Random"
+
+
 --[[
   Mode 6: Random/Generative
 

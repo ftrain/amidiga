@@ -481,7 +481,9 @@ int main(int argc, char* argv[]) {
 
             // Slider pots (S1-S4) with mode-specific labels
             int current_mode = engine->getCurrentMode();
-            ImGui::Text("Slider Pots (Mode %d)", current_mode);
+            LuaContext* lua_mode = mode_loader->getMode(current_mode);
+            std::string mode_name = lua_mode && lua_mode->isValid() ? lua_mode->getModeName() : "Unknown";
+            ImGui::Text("Mode %d: %s", current_mode, mode_name.c_str());
             ImGui::BeginGroup();
 
             int s1 = hardware->readSliderPot(0);

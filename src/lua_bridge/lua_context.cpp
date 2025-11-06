@@ -141,4 +141,22 @@ void LuaContext::setError(const std::string& error) {
     std::cerr << "LuaContext error: " << error << std::endl;
 }
 
+std::string LuaContext::getModeName() const {
+    if (!is_valid_) {
+        return "Invalid";
+    }
+
+    // Try to read MODE_NAME global variable
+    lua_getglobal(L_, "MODE_NAME");
+
+    if (lua_isstring(L_, -1)) {
+        std::string name = lua_tostring(L_, -1);
+        lua_pop(L_, 1);
+        return name;
+    }
+
+    lua_pop(L_, 1);
+    return "Unnamed";  // Default if MODE_NAME not defined
+}
+
 } // namespace gruvbok

@@ -1,3 +1,6 @@
+MODE_NAME = "Glitch"
+
+
 --[[
   Mode 7: Sample & Hold / Glitch
 

@@ -1,3 +1,5 @@
+MODE_NAME = "Song"
+
 --[[
   Mode 0: Song/Pattern Sequencer
 

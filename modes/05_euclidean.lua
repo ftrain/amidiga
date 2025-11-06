@@ -1,3 +1,6 @@
+MODE_NAME = "Euclidean"
+
+
 --[[
   Mode 5: Euclidean Rhythm Generator
 
