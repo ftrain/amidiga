@@ -31,6 +31,7 @@ public:
 
     void sendMidiMessage(const MidiMessage& msg) override;
     void setLED(bool on) override;
+    bool getLED() const override { return led_state_; }
     uint32_t getMillis() override;
 
     void update() override;

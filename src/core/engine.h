@@ -63,11 +63,17 @@ private:
     uint32_t last_clock_time_;
     uint32_t clock_interval_ms_;
 
+    // LED tempo indicator
+    bool led_on_;
+    uint32_t led_on_time_;
+    static constexpr uint32_t LED_BLINK_DURATION_MS = 50;  // LED stays on for 50ms
+
     void calculateStepInterval();
     void calculateClockInterval();
     void sendMidiClock();
     void processStep();
     void handleInput();
+    void updateLED();
 };
 
 } // namespace gruvbok

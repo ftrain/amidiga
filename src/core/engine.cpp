@@ -18,7 +18,9 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , last_step_time_(0)
     , step_interval_ms_(0)
     , last_clock_time_(0)
-    , clock_interval_ms_(0) {
+    , clock_interval_ms_(0)
+    , led_on_(false)
+    , led_on_time_(0) {
 
     scheduler_ = std::make_unique<MidiScheduler>(hardware);
     calculateStepInterval();
@@ -46,6 +48,9 @@ void Engine::stop() {
 void Engine::update() {
     // Update MIDI scheduler
     scheduler_->update();
+
+    // Update LED tempo indicator
+    updateLED();
 
     // Handle input
     handleInput();
@@ -187,9 +192,11 @@ void Engine::processStep() {
         }
     }
 
-    // Visual feedback on current mode only
+    // LED tempo indicator: blink on every beat (every 4 steps)
     if (current_step_ % 4 == 0) {
         hardware_->setLED(true);
+        led_on_ = true;
+        led_on_time_ = hardware_->getMillis();
     }
 }
 
@@ -248,6 +255,17 @@ void Engine::handleInput() {
 
     // NOTE: We no longer continuously write slider values to the current step.
     // Slider values are only saved when you press a button to create an event.
+}
+
+void Engine::updateLED() {
+    // Turn off LED after blink duration
+    if (led_on_) {
+        uint32_t current_time = hardware_->getMillis();
+        if (current_time - led_on_time_ >= LED_BLINK_DURATION_MS) {
+            hardware_->setLED(false);
+            led_on_ = false;
+        }
+    }
 }
 
 } // namespace gruvbok

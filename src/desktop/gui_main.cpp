@@ -381,6 +381,21 @@ int main(int argc, char* argv[]) {
 
             ImGui::Separator();
 
+            // LED tempo indicator
+            bool led_state = hardware->getLED();
+            ImVec4 led_color = led_state ? ImVec4(0.0f, 1.0f, 0.0f, 1.0f) : ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
+            ImGui::Text("Tempo LED:");
+            ImGui::SameLine();
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            ImVec2 led_pos = ImGui::GetCursorScreenPos();
+            float led_radius = 8.0f;
+            draw_list->AddCircleFilled(ImVec2(led_pos.x + led_radius, led_pos.y + led_radius),
+                                      led_radius,
+                                      ImGui::GetColorU32(led_color), 16);
+            ImGui::Dummy(ImVec2(led_radius * 2, led_radius * 2));
+
+            ImGui::Separator();
+
             // Global controls (R1-R4) as knobs
             ImGui::Text("Global Controls");
             ImGui::BeginGroup();
@@ -523,6 +538,97 @@ int main(int argc, char* argv[]) {
             }
 
             ImGui::EndGroup();
+            ImGui::End();
+        }
+
+        // Song Data Explorer window
+        {
+            ImGui::SetNextWindowPos(ImVec2(850, 0), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(430, 520), ImGuiCond_FirstUseEver);
+            ImGui::Begin("Song Data Explorer", nullptr, ImGuiWindowFlags_NoCollapse);
+
+            ImGui::Text("Navigate the entire song structure");
+            ImGui::Separator();
+
+            // Mode/Pattern/Track selector for focused view
+            static int explorer_mode = 0;
+            static int explorer_pattern = 0;
+            static int explorer_track = 0;
+
+            ImGui::PushItemWidth(100);
+            ImGui::DragInt("Mode", &explorer_mode, 0.1f, 0, 14);
+            ImGui::SameLine();
+            ImGui::DragInt("Pattern", &explorer_pattern, 0.1f, 0, 31);
+            ImGui::SameLine();
+            ImGui::DragInt("Track", &explorer_track, 0.1f, 0, 7);
+            ImGui::PopItemWidth();
+
+            ImGui::Separator();
+
+            // Show events for selected mode/pattern/track in a table
+            Mode& exp_mode = song->getMode(explorer_mode);
+            Pattern& exp_pattern = exp_mode.getPattern(explorer_pattern);
+            Track& exp_track = exp_pattern.getTrack(explorer_track);
+
+            ImGui::Text("Events: Mode %d, Pattern %d, Track %d", explorer_mode, explorer_pattern, explorer_track);
+
+            // Table with event data
+            if (ImGui::BeginTable("EventTable", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
+                ImGui::TableSetupColumn("Step", ImGuiTableColumnFlags_WidthFixed, 40.0f);
+                ImGui::TableSetupColumn("ON", ImGuiTableColumnFlags_WidthFixed, 35.0f);
+                ImGui::TableSetupColumn("S1", ImGuiTableColumnFlags_WidthFixed, 50.0f);
+                ImGui::TableSetupColumn("S2", ImGuiTableColumnFlags_WidthFixed, 50.0f);
+                ImGui::TableSetupColumn("S3", ImGuiTableColumnFlags_WidthFixed, 50.0f);
+                ImGui::TableSetupColumn("S4", ImGuiTableColumnFlags_WidthFixed, 50.0f);
+                ImGui::TableHeadersRow();
+
+                for (int step = 0; step < 16; step++) {
+                    const Event& evt = exp_track.getEvent(step);
+                    ImGui::TableNextRow();
+
+                    // Highlight current step if viewing current mode/pattern/track
+                    bool is_current = (explorer_mode == engine->getCurrentMode() &&
+                                      explorer_pattern == engine->getCurrentPattern() &&
+                                      explorer_track == engine->getCurrentTrack() &&
+                                      step == engine->getCurrentStep());
+                    if (is_current) {
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.6f, 0.3f)));
+                    }
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", step + 1);
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", evt.getSwitch() ? "•" : "");
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", evt.getPot(0));
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", evt.getPot(1));
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", evt.getPot(2));
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", evt.getPot(3));
+                }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::Separator();
+
+            // Quick stats
+            ImGui::Text("Song Overview:");
+            ImGui::BulletText("15 Modes (0-14)");
+            ImGui::BulletText("32 Patterns per Mode");
+            ImGui::BulletText("8 Tracks per Pattern");
+            ImGui::BulletText("16 Events per Track");
+
+            int total_events = 15 * 32 * 8 * 16;
+            ImGui::Text("Total capacity: %d events", total_events);
+
             ImGui::End();
         }
 
