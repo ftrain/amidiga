@@ -194,21 +194,29 @@ void Engine::handleInput() {
     }
 
     // Read buttons (B1-B16) to toggle steps
+    // When a button is pressed, parameter-lock the current slider values to that event
     for (int btn = 0; btn < 16; ++btn) {
         if (hardware_->readButton(btn)) {
             // Button pressed - toggle the switch for this step
-            int old_step = current_step_;
-            current_step_ = btn;
-            toggleCurrentSwitch();
-            current_step_ = old_step;
+            Mode& mode = song_->getMode(current_mode_);
+            Pattern& pattern = mode.getPattern(current_pattern_);
+            Event& event = pattern.getEvent(current_track_, btn);
+
+            // Toggle switch
+            event.setSwitch(!event.getSwitch());
+
+            // If we just turned it ON, parameter-lock current slider values to this event
+            if (event.getSwitch()) {
+                for (int pot = 0; pot < 4; ++pot) {
+                    uint8_t value = hardware_->readSliderPot(pot);
+                    event.setPot(pot, value);
+                }
+            }
         }
     }
 
-    // Read sliders for pot values
-    for (int pot = 0; pot < 4; ++pot) {
-        uint8_t value = hardware_->readSliderPot(pot);
-        setCurrentPot(pot, value);
-    }
+    // NOTE: We no longer continuously write slider values to the current step.
+    // Slider values are only saved when you press a button to create an event.
 }
 
 } // namespace gruvbok

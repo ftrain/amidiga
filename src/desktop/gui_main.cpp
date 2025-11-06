@@ -27,7 +27,6 @@ bool Knob(const char* label, int* value, int min_val, int max_val, float radius 
     float line_height = ImGui::GetTextLineHeight();
     ImVec2 pos = ImGui::GetCursorScreenPos();
     ImVec2 center = ImVec2(pos.x + radius, pos.y + radius);
-    float gamma = ImGui::GetColorU32(ImGuiCol_ButtonActive);
 
     ImGui::InvisibleButton(label, ImVec2(radius * 2.0f, radius * 2.0f + line_height + style.ItemInnerSpacing.y));
     bool is_active = ImGui::IsItemActive();
@@ -351,55 +350,22 @@ int main(int argc, char* argv[]) {
             snprintf(s3_label, sizeof(s3_label), "%s\n%d", GetSliderLabel(2, current_mode), s3);
             snprintf(s4_label, sizeof(s4_label), "%s\n%d", GetSliderLabel(3, current_mode), s4);
 
-            // Track previous slider values for change detection
-            static int prev_s1 = -1, prev_s2 = -1, prev_s3 = -1, prev_s4 = -1;
-
+            // Sliders now only set values when you press a button (parameter lock)
+            // Just update the hardware values for display/readback
             if (ImGui::VSliderInt("##S1", ImVec2(50, 180), &s1, 0, 127, s1_label)) {
                 hardware->simulateSliderPot(0, s1);
-                if (prev_s1 != s1) {
-                    char log_msg[128];
-                    snprintf(log_msg, sizeof(log_msg), "Mode %d, Track %d, Step %d: %s changed to %d",
-                             engine->getCurrentMode(), engine->getCurrentTrack(), engine->getCurrentStep() + 1,
-                             GetSliderLabel(0, current_mode), s1);
-                    hardware->addLog(log_msg);
-                    prev_s1 = s1;
-                }
             }
             ImGui::SameLine();
             if (ImGui::VSliderInt("##S2", ImVec2(50, 180), &s2, 0, 127, s2_label)) {
                 hardware->simulateSliderPot(1, s2);
-                if (prev_s2 != s2) {
-                    char log_msg[128];
-                    snprintf(log_msg, sizeof(log_msg), "Mode %d, Track %d, Step %d: %s changed to %d",
-                             engine->getCurrentMode(), engine->getCurrentTrack(), engine->getCurrentStep() + 1,
-                             GetSliderLabel(1, current_mode), s2);
-                    hardware->addLog(log_msg);
-                    prev_s2 = s2;
-                }
             }
             ImGui::SameLine();
             if (ImGui::VSliderInt("##S3", ImVec2(50, 180), &s3, 0, 127, s3_label)) {
                 hardware->simulateSliderPot(2, s3);
-                if (prev_s3 != s3) {
-                    char log_msg[128];
-                    snprintf(log_msg, sizeof(log_msg), "Mode %d, Track %d, Step %d: %s changed to %d",
-                             engine->getCurrentMode(), engine->getCurrentTrack(), engine->getCurrentStep() + 1,
-                             GetSliderLabel(2, current_mode), s3);
-                    hardware->addLog(log_msg);
-                    prev_s3 = s3;
-                }
             }
             ImGui::SameLine();
             if (ImGui::VSliderInt("##S4", ImVec2(50, 180), &s4, 0, 127, s4_label)) {
                 hardware->simulateSliderPot(3, s4);
-                if (prev_s4 != s4) {
-                    char log_msg[128];
-                    snprintf(log_msg, sizeof(log_msg), "Mode %d, Track %d, Step %d: %s changed to %d",
-                             engine->getCurrentMode(), engine->getCurrentTrack(), engine->getCurrentStep() + 1,
-                             GetSliderLabel(3, current_mode), s4);
-                    hardware->addLog(log_msg);
-                    prev_s4 = s4;
-                }
             }
 
             ImGui::Separator();
@@ -429,7 +395,15 @@ int main(int argc, char* argv[]) {
                     bool new_state = !evt_mut.getSwitch();
                     evt_mut.setSwitch(new_state);
 
-                    // Log the change
+                    // If we just turned it ON, parameter-lock current slider values to this event
+                    if (new_state) {
+                        evt_mut.setPot(0, hardware->readSliderPot(0));
+                        evt_mut.setPot(1, hardware->readSliderPot(1));
+                        evt_mut.setPot(2, hardware->readSliderPot(2));
+                        evt_mut.setPot(3, hardware->readSliderPot(3));
+                    }
+
+                    // Log the change with the parameter-locked values
                     char log_msg[128];
                     snprintf(log_msg, sizeof(log_msg),
                              "Mode %d, Track %d, Step %d: Switch %s (S1=%d S2=%d S3=%d S4=%d)",
