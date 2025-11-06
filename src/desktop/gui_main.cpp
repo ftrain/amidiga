@@ -20,7 +20,7 @@ using namespace gruvbok;
 #endif
 
 // Helper function to draw a circular knob widget
-bool Knob(const char* label, int* value, int min_val, int max_val, float radius = 30.0f) {
+bool Knob(const char* label, int* value, int min_val, int max_val, const char* display_value = nullptr, float radius = 30.0f) {
     ImGuiIO& io = ImGui::GetIO();
     ImGuiStyle& style = ImGui::GetStyle();
 
@@ -28,7 +28,7 @@ bool Knob(const char* label, int* value, int min_val, int max_val, float radius 
     ImVec2 pos = ImGui::GetCursorScreenPos();
     ImVec2 center = ImVec2(pos.x + radius, pos.y + radius);
 
-    ImGui::InvisibleButton(label, ImVec2(radius * 2.0f, radius * 2.0f + line_height + style.ItemInnerSpacing.y));
+    ImGui::InvisibleButton(label, ImVec2(radius * 2.0f, radius * 2.0f + line_height * 2 + style.ItemInnerSpacing.y));
     bool is_active = ImGui::IsItemActive();
     bool is_hovered = ImGui::IsItemHovered();
     bool value_changed = false;
@@ -57,12 +57,16 @@ bool Knob(const char* label, int* value, int min_val, int max_val, float radius 
     // Draw center dot
     draw_list->AddCircleFilled(center, radius * 0.15f, ImGui::GetColorU32(ImGuiCol_Button), 12);
 
-    // Draw label and value
-    char display_text[64];
-    snprintf(display_text, sizeof(display_text), "%s: %d", label, *value);
-    ImVec2 text_size = ImGui::CalcTextSize(display_text);
-    draw_list->AddText(ImVec2(center.x - text_size.x * 0.5f, pos.y + radius * 2.0f + style.ItemInnerSpacing.y),
-                      ImGui::GetColorU32(ImGuiCol_Text), display_text);
+    // Draw label
+    ImVec2 label_size = ImGui::CalcTextSize(label);
+    draw_list->AddText(ImVec2(center.x - label_size.x * 0.5f, pos.y + radius * 2.0f + style.ItemInnerSpacing.y),
+                      ImGui::GetColorU32(ImGuiCol_Text), label);
+
+    // Draw converted value below label
+    const char* value_text = display_value ? display_value : "";
+    ImVec2 value_size = ImGui::CalcTextSize(value_text);
+    draw_list->AddText(ImVec2(center.x - value_size.x * 0.5f, pos.y + radius * 2.0f + line_height + style.ItemInnerSpacing.y),
+                      ImGui::GetColorU32(ImGuiCol_TextDisabled), value_text);
 
     return value_changed;
 }
@@ -272,23 +276,6 @@ int main(int argc, char* argv[]) {
             ImGui::SetNextWindowSize(ImVec2(1280, 720), ImGuiCond_FirstUseEver);
             ImGui::Begin("GRUVBOK Hardware Simulator", nullptr, ImGuiWindowFlags_NoCollapse);
 
-            // Status display
-            ImGui::Text("Status: %s", engine->isPlaying() ? "PLAYING" : "STOPPED");
-            ImGui::SameLine();
-            ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "(All 15 modes playing on MIDI channels 0-14)");
-
-            ImGui::Text("Tempo: %d BPM", engine->getTempo());
-            ImGui::SameLine();
-            ImGui::Text("| Editing Mode: %d", engine->getCurrentMode());
-            ImGui::SameLine();
-            ImGui::Text("| Pattern: %d", engine->getCurrentPattern());
-            ImGui::SameLine();
-            ImGui::Text("| Track: %d", engine->getCurrentTrack());
-            ImGui::SameLine();
-            ImGui::Text("| Step: %d", engine->getCurrentStep());
-
-            ImGui::Separator();
-
             // MIDI Port Selector
             ImGui::Text("MIDI Output:");
             ImGui::SameLine();
@@ -319,25 +306,48 @@ int main(int argc, char* argv[]) {
 
             // Global controls (R1-R4) as knobs
             ImGui::Text("Global Controls");
+            ImGui::BeginGroup();
 
             int r1 = hardware->readRotaryPot(0);
             int r2 = hardware->readRotaryPot(1);
             int r3 = hardware->readRotaryPot(2);
             int r4 = hardware->readRotaryPot(3);
 
-            if (Knob("Mode", &r1, 0, 127, 35.0f)) hardware->simulateRotaryPot(0, r1);
-            ImGui::SameLine(0, 20);
-            if (Knob("Tempo", &r2, 0, 127, 35.0f)) hardware->simulateRotaryPot(1, r2);
-            ImGui::SameLine(0, 20);
-            if (Knob("Pattern", &r3, 0, 127, 35.0f)) hardware->simulateRotaryPot(2, r3);
-            ImGui::SameLine(0, 20);
-            if (Knob("Track", &r4, 0, 127, 35.0f)) hardware->simulateRotaryPot(3, r4);
+            // Calculate converted values for display
+            int mode_val = (r1 * 15) / 128;
+            int tempo_val = 60 + (r2 * 180) / 127;
+            int pattern_val = (r3 * 32) / 128;
+            int track_val = (r4 * 8) / 128;
 
+            char mode_str[16], tempo_str[16], pattern_str[16], track_str[16];
+            snprintf(mode_str, sizeof(mode_str), "%d", mode_val);
+            snprintf(tempo_str, sizeof(tempo_str), "%d BPM", tempo_val);
+            snprintf(pattern_str, sizeof(pattern_str), "%d", pattern_val);
+            snprintf(track_str, sizeof(track_str), "%d", track_val);
+
+            float knob_width = 100.0f;
+
+            if (Knob("Mode", &r1, 0, 127, mode_str, 35.0f)) hardware->simulateRotaryPot(0, r1);
+            ImGui::SameLine(0, 0);
+            ImGui::Dummy(ImVec2(knob_width - 70, 0));
+            ImGui::SameLine(0, 0);
+            if (Knob("Tempo", &r2, 0, 127, tempo_str, 35.0f)) hardware->simulateRotaryPot(1, r2);
+            ImGui::SameLine(0, 0);
+            ImGui::Dummy(ImVec2(knob_width - 70, 0));
+            ImGui::SameLine(0, 0);
+            if (Knob("Pattern", &r3, 0, 127, pattern_str, 35.0f)) hardware->simulateRotaryPot(2, r3);
+            ImGui::SameLine(0, 0);
+            ImGui::Dummy(ImVec2(knob_width - 70, 0));
+            ImGui::SameLine(0, 0);
+            if (Knob("Track", &r4, 0, 127, track_str, 35.0f)) hardware->simulateRotaryPot(3, r4);
+
+            ImGui::EndGroup();
             ImGui::Separator();
 
             // Slider pots (S1-S4) with mode-specific labels
             int current_mode = engine->getCurrentMode();
             ImGui::Text("Slider Pots (Mode %d)", current_mode);
+            ImGui::BeginGroup();
 
             int s1 = hardware->readSliderPot(0);
             int s2 = hardware->readSliderPot(1);
@@ -350,31 +360,44 @@ int main(int argc, char* argv[]) {
             snprintf(s3_label, sizeof(s3_label), "%s\n%d", GetSliderLabel(2, current_mode), s3);
             snprintf(s4_label, sizeof(s4_label), "%s\n%d", GetSliderLabel(3, current_mode), s4);
 
+            float slider_width = 100.0f;
+
             // Sliders now only set values when you press a button (parameter lock)
             // Just update the hardware values for display/readback
             if (ImGui::VSliderInt("##S1", ImVec2(50, 180), &s1, 0, 127, s1_label)) {
                 hardware->simulateSliderPot(0, s1);
             }
-            ImGui::SameLine();
+            ImGui::SameLine(0, 0);
+            ImGui::Dummy(ImVec2(slider_width - 50, 0));
+            ImGui::SameLine(0, 0);
             if (ImGui::VSliderInt("##S2", ImVec2(50, 180), &s2, 0, 127, s2_label)) {
                 hardware->simulateSliderPot(1, s2);
             }
-            ImGui::SameLine();
+            ImGui::SameLine(0, 0);
+            ImGui::Dummy(ImVec2(slider_width - 50, 0));
+            ImGui::SameLine(0, 0);
             if (ImGui::VSliderInt("##S3", ImVec2(50, 180), &s3, 0, 127, s3_label)) {
                 hardware->simulateSliderPot(2, s3);
             }
-            ImGui::SameLine();
+            ImGui::SameLine(0, 0);
+            ImGui::Dummy(ImVec2(slider_width - 50, 0));
+            ImGui::SameLine(0, 0);
             if (ImGui::VSliderInt("##S4", ImVec2(50, 180), &s4, 0, 127, s4_label)) {
                 hardware->simulateSliderPot(3, s4);
             }
 
+            ImGui::EndGroup();
             ImGui::Separator();
 
             // Pattern grid visualization
             ImGui::Text("Pattern Grid (Track %d)", engine->getCurrentTrack());
+            ImGui::BeginGroup();
+
             Mode& editing_mode = song->getMode(engine->getCurrentMode());
             Pattern& current_pattern = editing_mode.getPattern(engine->getCurrentPattern());
             Track& current_track = current_pattern.getTrack(engine->getCurrentTrack());
+
+            float step_width = 50.0f;
 
             for (int step = 0; step < 16; step++) {
                 const Event& evt = current_track.getEvent(step);
@@ -414,10 +437,15 @@ int main(int argc, char* argv[]) {
                 }
                 ImGui::PopStyleColor();
 
-                if (step < 15) ImGui::SameLine();
+                if (step < 15) {
+                    ImGui::SameLine(0, 0);
+                    ImGui::Dummy(ImVec2(step_width - 40, 0));
+                    ImGui::SameLine(0, 0);
+                }
                 if (step == 7) ImGui::NewLine();
             }
 
+            ImGui::EndGroup();
             ImGui::End();
         }
 
