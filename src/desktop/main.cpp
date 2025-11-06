@@ -13,7 +13,7 @@ using namespace gruvbok;
 
 std::atomic<bool> running(true);
 
-void signalHandler(int signal) {
+void signalHandler(int /* signal */) {
     std::cout << "\nShutting down..." << std::endl;
     running = false;
 }
@@ -42,7 +42,7 @@ void printStatus(const Engine& engine) {
               << std::flush;
 }
 
-int main(int argc, char* argv[]) {
+int main(int /* argc */, char* /* argv */[]) {
     std::cout << "=== GRUVBOK Desktop ===" << std::endl;
     std::cout << "Initializing..." << std::endl;
 
