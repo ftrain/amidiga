@@ -707,18 +707,14 @@ int main(int argc, char* argv[]) {
             ImGui::Text("Navigate the entire song structure");
             ImGui::Separator();
 
-            // Mode/Pattern/Track selector for focused view
-            static int explorer_mode = 0;
-            static int explorer_pattern = 0;
-            static int explorer_track = 0;
+            // Sync explorer position with engine's current position
+            int explorer_mode = engine->getCurrentMode();
+            int explorer_pattern = engine->getCurrentPattern();
+            int explorer_track = engine->getCurrentTrack();
 
-            ImGui::PushItemWidth(100);
-            ImGui::DragInt("Mode", &explorer_mode, 0.1f, 0, 14);
-            ImGui::SameLine();
-            ImGui::DragInt("Pattern", &explorer_pattern, 0.1f, 0, 31);
-            ImGui::SameLine();
-            ImGui::DragInt("Track", &explorer_track, 0.1f, 0, 7);
-            ImGui::PopItemWidth();
+            ImGui::Text("Current Position (updates with knobs):");
+            ImGui::TextColored(ImVec4(0.4f, 0.8f, 0.4f, 1.0f), "Mode: %d  Pattern: %d  Track: %d",
+                             explorer_mode, explorer_pattern, explorer_track);
 
             ImGui::Separator();
 
