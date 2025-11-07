@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient for background -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f0f1e;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background with rounded corners -->
+  <rect width="1024" height="1024" rx="180" fill="url(#bgGradient)"/>
+
+  <!-- Circuit board traces (cyan) -->
+  <g stroke="#00d9ff" stroke-width="3" fill="none" opacity="0.6">
+    <!-- Horizontal traces -->
+    <line x1="100" y1="200" x2="400" y2="200"/>
+    <line x1="624" y1="200" x2="924" y2="200"/>
+    <line x1="100" y1="350" x2="300" y2="350"/>
+    <line x1="724" y1="350" x2="924" y2="350"/>
+    <line x1="100" y1="674" x2="300" y2="674"/>
+    <line x1="724" y1="674" x2="924" y2="674"/>
+    <line x1="100" y1="824" x2="400" y2="824"/>
+    <line x1="624" y1="824" x2="924" y2="824"/>
+
+    <!-- Vertical traces -->
+    <line x1="200" y1="100" x2="200" y2="300"/>
+    <line x1="512" y1="100" x2="512" y2="250"/>
+    <line x1="824" y1="100" x2="824" y2="300"/>
+    <line x1="200" y1="724" x2="200" y2="924"/>
+    <line x1="824" y1="724" x2="824" y2="924"/>
+
+    <!-- Connection points (small circles) -->
+    <circle cx="400" cy="200" r="8"/>
+    <circle cx="624" cy="200" r="8"/>
+    <circle cx="300" cy="350" r="8"/>
+    <circle cx="724" cy="350" r="8"/>
+    <circle cx="300" cy="674" r="8"/>
+    <circle cx="724" cy="674" r="8"/>
+    <circle cx="400" cy="824" r="8"/>
+    <circle cx="624" cy="824" r="8"/>
+  </g>
+
+  <!-- 16-step grid (representing the sequencer) -->
+  <g fill="none" stroke="#0aff9d" stroke-width="2" opacity="0.3">
+    <!-- 4x4 grid -->
+    <rect x="300" y="300" width="424" height="424"/>
+    <line x1="406" y1="300" x2="406" y2="724"/>
+    <line x1="512" y1="300" x2="512" y2="724"/>
+    <line x1="618" y1="300" x2="618" y2="724"/>
+    <line x1="300" y1="406" x2="724" y2="406"/>
+    <line x1="300" y1="512" x2="724" y2="512"/>
+    <line x1="300" y1="618" x2="724" y2="618"/>
+  </g>
+
+  <!-- Active steps (glowing green dots on grid) -->
+  <g fill="#0aff9d" filter="url(#glow)">
+    <circle cx="353" cy="353" r="16"/>
+    <circle cx="459" cy="353" r="16"/>
+    <circle cx="671" cy="353" r="16"/>
+    <circle cx="353" cy="459" r="16"/>
+    <circle cx="565" cy="459" r="16"/>
+    <circle cx="671" cy="459" r="16"/>
+    <circle cx="353" cy="565" r="16"/>
+    <circle cx="459" cy="565" r="16"/>
+    <circle cx="565" cy="565" r="16"/>
+    <circle cx="353" cy="671" r="16"/>
+    <circle cx="671" cy="671" r="16"/>
+  </g>
+
+  <!-- Waveform (neon cyan, stylized) -->
+  <g stroke="#00d9ff" stroke-width="6" fill="none" filter="url(#glow)" stroke-linecap="round">
+    <path d="M 150,512 L 200,512 L 225,400 L 250,624 L 275,512 L 300,512"/>
+    <path d="M 724,512 L 774,512 L 799,400 L 824,624 L 849,512 L 874,512"/>
+  </g>
+
+  <!-- GRUVBOK text (stylized, bold) -->
+  <g fill="#0aff9d" filter="url(#glow)" font-family="Arial Black, sans-serif" font-weight="900">
+    <text x="512" y="880" font-size="80" text-anchor="middle">GRUVBOK</text>
+  </g>
+
+  <!-- Corner accents (circuit board pads) -->
+  <g fill="#00d9ff" opacity="0.8">
+    <circle cx="120" cy="120" r="12"/>
+    <circle cx="904" cy="120" r="12"/>
+    <circle cx="120" cy="904" r="12"/>
+    <circle cx="904" cy="904" r="12"/>
+  </g>
+
+  <!-- Inner corner accents -->
+  <g fill="none" stroke="#0aff9d" stroke-width="2" opacity="0.4">
+    <path d="M 120,180 L 120,120 L 180,120"/>
+    <path d="M 844,120 L 904,120 L 904,180"/>
+    <path d="M 904,844 L 904,904 L 844,904"/>
+    <path d="M 180,904 L 120,904 L 120,844"/>
+  </g>
+</svg>
