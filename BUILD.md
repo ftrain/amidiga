@@ -1,167 +1,108 @@
-# Building GRUVBOK on macOS
+# Building GRUVBOK
 
-This guide explains how to build and run GRUVBOK on your Mac.
+This guide explains how to build and run GRUVBOK on macOS and Linux.
 
 ## Prerequisites
 
-You'll need the following tools and libraries installed:
-
-### 1. Install Homebrew
-
-If you don't have Homebrew, install it:
+### macOS
 
 ```bash
+# Install Homebrew (if not already installed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install dependencies
+brew install cmake lua sdl2
 ```
 
-### 2. Install Dependencies
+### Linux (Debian/Ubuntu)
 
 ```bash
-# Install build tools
-brew install cmake
-
-# Install Lua
-brew install lua
+# Install dependencies
+sudo apt install cmake lua5.4 liblua5.4-dev libsdl2-dev libasound2-dev
 ```
 
-**Note:** RtMidi is bundled in `external/rtmidi/` - you don't need to install it!
-
-### 3. Verify Installation
-
-```bash
-lua -v          # Should show Lua 5.4.x
-cmake --version # Should show CMake 3.15 or higher
-```
+**Note:** RtMidi and Dear ImGui are bundled in `external/` - no installation needed!
 
 ## Building
 
-### 1. Clone or Navigate to the Project
+### Quick Build
 
 ```bash
-cd /path/to/gruvbok
+# From project root
+cmake -B build && cmake --build build
+
+# Run the GUI
+bin/gruvbok
 ```
 
-### 2. Create Build Directory
+### Step-by-Step
 
 ```bash
-mkdir build
+# 1. Create build directory
+mkdir -p build
 cd build
-```
 
-### 3. Configure with CMake
-
-```bash
+# 2. Configure with CMake
 cmake ..
+
+# 3. Build
+make -j$(nproc)  # Linux
+# or
+make -j$(sysctl -n hw.ncpu)  # macOS
+
+# 4. Run (from project root)
+cd ..
+bin/gruvbok
 ```
 
-You should see output like:
-```
--- Found Lua: /opt/homebrew/lib/liblua.dylib
--- Found RtMidi: /opt/homebrew/lib/librtmidi.dylib
--- Configuring done
--- Generating done
-```
-
-### 4. Build
-
-```bash
-make -j$(sysctl -n hw.ncpu)
-```
-
-This will compile all source files. The executable will be in `build/bin/gruvbok`.
-
-### 5. Run
-
-From the **project root directory** (not from build/), run:
-
-```bash
-./build/bin/gruvbok
-```
-
-**Important:** You must run from the project root so that the program can find the `modes/` directory with Lua scripts.
+The executable will be in `bin/gruvbok`.
 
 ## Expected Output
 
-When you run GRUVBOK, you should see:
+GRUVBOK opens a GUI window with:
+- **Main Window:** Pattern grid, step buttons, rotary/slider controls
+- **Song Data Explorer:** Hierarchical view of all event data
+- **System Log:** MIDI messages and system events
 
-```
-=== GRUVBOK Desktop ===
-Initializing...
-Available MIDI ports:
-  0: IAC Driver Bus 1
-  ...
-Opening MIDI port 0
-Desktop hardware initialized
-Loaded mode 0 from modes/00_boot.lua
-Loaded mode 1 from modes/01_drums.lua
-Loaded 2 modes from modes
-
-Creating test pattern...
-
-=== GRUVBOK Desktop ===
-
-Commands:
-  Space   - Start/Stop playback
-  ...
-
-Running main loop (press Ctrl+C to quit)...
-[Mode:1 Pat:0 Trk:0 Step:0 Tempo:120bpm PLAYING]
-[MIDI] 91 24 64
-[MIDI] 81 24 40
-...
-```
-
-You should hear drum beats if you have a MIDI synthesizer connected!
+You should see MIDI clock messages immediately if connected to a DAW/synthesizer.
 
 ## Troubleshooting
 
 ### CMake can't find Lua
 
-If CMake says "Could not find Lua":
-
+**macOS:**
 ```bash
-# Check where Homebrew installed Lua
-brew info lua
-
-# Set the path manually
-cmake .. -DLUA_INCLUDE_DIR=/opt/homebrew/include/lua -DLUA_LIBRARIES=/opt/homebrew/lib/liblua.dylib
+brew info lua  # Check installation path
+cmake -B build -DLUA_INCLUDE_DIR=/opt/homebrew/include/lua -DLUA_LIBRARIES=/opt/homebrew/lib/liblua.dylib
 ```
 
-### Build errors with RtMidi
-
-RtMidi is bundled in the project, so you shouldn't see these errors. If you do:
-
+**Linux:**
 ```bash
-# Verify the bundled library exists
-ls external/rtmidi/RtMidi.h
-ls external/rtmidi/RtMidi.cpp
-
-# If missing, re-clone the repository
+sudo apt install liblua5.4-dev lua5.4
 ```
 
-### No MIDI output
+### CMake can't find SDL2
 
-If you don't see any MIDI ports:
-
-1. Open **Audio MIDI Setup** (in `/Applications/Utilities/`)
-2. Go to **Window → Show MIDI Studio**
-3. Double-click **IAC Driver**
-4. Check **Device is online**
-5. Make sure there's at least one port (e.g., "Bus 1")
-
-### Program crashes or doesn't run
-
-Make sure you're running from the project root:
-
+**macOS:**
 ```bash
-# Wrong (from build directory)
-cd build
-./bin/gruvbok  # Won't find modes/ directory!
-
-# Correct (from project root)
-cd /path/to/gruvbok
-./build/bin/gruvbok
+brew install sdl2
 ```
+
+**Linux:**
+```bash
+sudo apt install libsdl2-dev
+```
+
+### No MIDI Output
+
+**macOS:** Enable IAC Driver
+1. Open **Audio MIDI Setup** (`/Applications/Utilities/`)
+2. **Window → Show MIDI Studio**
+3. Double-click **IAC Driver**, check "**Device is online**"
+
+**Linux:** ALSA MIDI should work automatically
+
+**Test:** Install MIDI Monitor (macOS) or `aseqdump` (Linux) to verify MIDI output
 
 ## Testing MIDI Output
 
@@ -187,49 +128,45 @@ fluidsynth -a coreaudio MuseScore_General.sf3
 # Run GRUVBOK and you should hear sounds!
 ```
 
-## Development Build
+## Build Types
 
-For development with better error messages:
-
+**Debug (default):**
 ```bash
-cmake .. -DCMAKE_BUILD_TYPE=Debug
-make -j$(sysctl -n hw.ncpu)
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
 ```
 
-For optimized release build:
-
+**Release (optimized):**
 ```bash
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(sysctl -n hw.ncpu)
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 ```
 
-## Cleaning Up
+## Clean Rebuild
 
-To clean and rebuild from scratch:
+```bash
+rm -rf build bin
+cmake -B build && cmake --build build
+```
+
+## Running Tests
 
 ```bash
 cd build
-rm -rf *
-cmake ..
-make -j$(sysctl -n hw.ncpu)
+ctest --verbose
 ```
+
+All 56 tests should pass ✅
 
 ## Next Steps
 
-Once you have it building and running:
+- **QUICKSTART.md** - Get up and running quickly
+- **CLAUDE.md** - Understand the architecture
+- **docs/LUA_API.md** - Create custom modes
+- **DEVELOPMENT_ROADMAP.md** - See project status
 
-1. **Read CLAUDE.md** - Understand the architecture
-2. **Modify the test pattern** - Edit `src/desktop/main.cpp` to create different patterns
-3. **Create new modes** - Copy `modes/TEMPLATE.lua` and implement your own
-4. **Add interactive keyboard input** - Currently it just plays the test pattern
-
-## Getting Help
-
-If you encounter issues:
-
-1. Check that all dependencies are installed: `brew list lua rtmidi cmake`
-2. Make sure you're running from the project root directory
-3. Look at the console output for error messages
-4. Check `CLAUDE.md` for architecture details
+**Create patterns:** Use the GUI to click step buttons and adjust sliders
+**Save songs:** Click "Save Song" button (saves to `/tmp/gruvbok_song_*.json`)
+**Load songs:** Click "Load Song" button
 
 Happy music making! 🎵
