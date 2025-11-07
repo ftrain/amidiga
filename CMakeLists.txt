@@ -14,9 +14,42 @@ endif()
 
 # Find dependencies
 find_package(Lua REQUIRED)
+
+# Find FluidSynth (optional)
 find_package(PkgConfig)
 if(PKG_CONFIG_FOUND)
     pkg_check_modules(FLUIDSYNTH fluidsynth)
+endif()
+
+# If pkg-config didn't find it, try Homebrew paths on macOS
+if(NOT FLUIDSYNTH_FOUND AND APPLE)
+    find_library(FLUIDSYNTH_LIBRARY
+        NAMES fluidsynth
+        PATHS /opt/homebrew/lib /usr/local/lib
+        NO_DEFAULT_PATH
+    )
+    find_path(FLUIDSYNTH_INCLUDE_DIR
+        NAMES fluidsynth.h
+        PATHS /opt/homebrew/include /usr/local/include
+        NO_DEFAULT_PATH
+    )
+
+    if(FLUIDSYNTH_LIBRARY AND FLUIDSYNTH_INCLUDE_DIR)
+        set(FLUIDSYNTH_FOUND TRUE)
+        set(FLUIDSYNTH_LIBRARIES ${FLUIDSYNTH_LIBRARY})
+        set(FLUIDSYNTH_INCLUDE_DIRS ${FLUIDSYNTH_INCLUDE_DIR})
+
+        # Get version from header if possible
+        if(EXISTS "${FLUIDSYNTH_INCLUDE_DIR}/fluidsynth/version.h")
+            file(STRINGS "${FLUIDSYNTH_INCLUDE_DIR}/fluidsynth/version.h"
+                 FLUIDSYNTH_VERSION_LINE
+                 REGEX "^#define[ \t]+FLUIDSYNTH_VERSION[ \t]+\"[^\"]*\"")
+            string(REGEX REPLACE "^#define[ \t]+FLUIDSYNTH_VERSION[ \t]+\"([^\"]*)\".*" "\\1"
+                   FLUIDSYNTH_VERSION "${FLUIDSYNTH_VERSION_LINE}")
+        endif()
+
+        message(STATUS "Found FluidSynth via Homebrew: ${FLUIDSYNTH_LIBRARY}")
+    endif()
 endif()
 
 # Use bundled RtMidi (no external dependency needed!)
