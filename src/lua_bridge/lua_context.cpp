@@ -2,6 +2,29 @@
 #include "lua_api.h"
 #include <iostream>
 
+// ============================================================================
+// Lua Version Compatibility Checks
+// ============================================================================
+
+// Ensure LUA_OK is defined (Lua 5.4 has it, Lua 5.1 doesn't)
+#ifndef LUA_OK
+    #warning "LUA_OK not defined - add -DLUA_OK=0 to build flags for Lua 5.1 compatibility"
+    #define LUA_OK 0
+#endif
+
+// Detect Lua version and warn if unexpected
+#if defined(LUA_VERSION_NUM)
+    #if LUA_VERSION_NUM == 501
+        #pragma message("Compiling with Lua 5.1 (e.g., LuaArduino)")
+    #elif LUA_VERSION_NUM == 504
+        #pragma message("Compiling with Lua 5.4")
+    #else
+        #warning "Unknown Lua version - expected 5.1 or 5.4"
+    #endif
+#else
+    #warning "Could not detect Lua version"
+#endif
+
 namespace gruvbok {
 
 LuaContext::LuaContext()

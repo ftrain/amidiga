@@ -58,6 +58,9 @@ public:
     // Get mode name (from MODE_NAME global variable in Lua)
     std::string getModeName() const;
 
+    // Get Lua state (for testing only)
+    lua_State* getState() const { return L_; }
+
 private:
     lua_State* L_;
     bool is_valid_;

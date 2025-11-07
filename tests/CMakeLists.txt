@@ -48,3 +48,12 @@ set_target_properties(test_engine
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/tests"
 )
+
+add_executable(test_lua_integration test_lua_integration.cpp)
+target_link_libraries(test_lua_integration PRIVATE gruvbok_core gruvbok_lua ${LUA_LIBRARIES})
+target_include_directories(test_lua_integration PRIVATE ${CMAKE_SOURCE_DIR}/src ${LUA_INCLUDE_DIR})
+add_test(NAME LuaIntegrationTests COMMAND test_lua_integration)
+set_target_properties(test_lua_integration
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/tests"
+)

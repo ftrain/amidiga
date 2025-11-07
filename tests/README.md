@@ -26,7 +26,7 @@ ctest --verbose
 
 ## Current Tests
 
-All tests pass: **56/56** ✅
+All tests pass: **73/73** ✅
 
 ### Test Suites
 
@@ -59,6 +59,15 @@ All tests pass: **56/56** ✅
 - LED tempo beat pattern
 - MIDI clock generation (24 PPQN)
 - Start/Stop behavior
+
+**test_lua_integration** (17 tests) - Lua bridge ⭐ NEW
+- Lua version detection (5.1 or 5.4)
+- LUA_OK constant compatibility
+- Lua state creation and API registration
+- Script loading with error handling
+- Init context parameter passing
+- Event processing and MIDI generation
+- Lua 5.1 compatibility (no //, &, |, ~ operators)
 
 ## Adding New Tests
 
@@ -103,9 +112,11 @@ All tests pass: **56/56** ✅
 ## Future Tests
 
 Potential additions:
-- [ ] `test_lua_integration.cpp` - End-to-end Lua mode loading and execution
+- [x] `test_lua_integration.cpp` - End-to-end Lua mode loading and execution ✅ **ADDED**
 - [ ] `test_hardware_abstraction.cpp` - Hardware interface implementations
+- [ ] `test_mode_scripts.cpp` - Validate all 15 mode Lua scripts
 - [ ] Performance/stress tests for real-time constraints
+- [ ] Memory leak tests (valgrind integration)
 
 ## CI/CD Integration
 
