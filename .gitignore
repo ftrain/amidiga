@@ -84,3 +84,16 @@ Desktop.ini
 tmp/
 temp/
 *.tmp
+external/rtmidi/android/.gradle/8.0/gc.properties
+external/rtmidi/android/.gradle/8.0/checksums/checksums.lock
+external/rtmidi/android/.gradle/8.0/fileHashes/fileHashes.lock
+external/rtmidi/android/.gradle/8.9/gc.properties
+external/rtmidi/android/.gradle/8.9/checksums/checksums.lock
+external/rtmidi/android/.gradle/8.9/dependencies-accessors/gc.properties
+external/rtmidi/android/.gradle/8.9/fileHashes/fileHashes.lock
+external/rtmidi/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+external/rtmidi/android/.gradle/buildOutputCleanup/cache.properties
+external/rtmidi/android/.gradle/vcs-1/gc.properties
+external/rtmidi/android/gradle/wrapper/gradle-wrapper.properties
+imgui.ini
+external/rtmidi/android/gradle/wrapper/gradle-wrapper.properties
