@@ -3,6 +3,7 @@
 #include "song.h"
 #include "../hardware/hardware_interface.h"
 #include "../hardware/midi_scheduler.h"
+#include "../hardware/audio_output.h"
 #include "../lua_bridge/mode_loader.h"
 #include <memory>
 
@@ -55,11 +56,22 @@ public:
     // Trigger LED pattern by name (for Lua API)
     void triggerLEDByName(const std::string& pattern_name, uint8_t brightness = 255);
 
+    // Audio output control
+    bool initAudioOutput(const std::string& soundfont_path = "");
+    void setUseInternalAudio(bool use_internal);
+    void setUseExternalMIDI(bool use_external);
+    bool isUsingInternalAudio() const;
+    bool isUsingExternalMIDI() const;
+    bool isAudioOutputReady() const;
+    void setAudioGain(float gain);
+    float getAudioGain() const;
+
 private:
     Song* song_;
     HardwareInterface* hardware_;
     ModeLoader* mode_loader_;
     std::unique_ptr<MidiScheduler> scheduler_;
+    std::unique_ptr<AudioOutput> audio_output_;
 
     bool is_playing_;
     int tempo_;  // BPM

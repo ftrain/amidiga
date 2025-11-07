@@ -442,4 +442,74 @@ void Engine::reinitLuaModes() {
     }
 }
 
+// ============================================================================
+// Audio Output Control
+// ============================================================================
+
+bool Engine::initAudioOutput(const std::string& soundfont_path) {
+    // Create AudioOutput if not already created
+    if (!audio_output_) {
+        audio_output_ = std::make_unique<AudioOutput>();
+    }
+
+    // Initialize FluidSynth
+    if (!audio_output_->init()) {
+        std::cerr << "[Engine] Failed to initialize audio output\n";
+        return false;
+    }
+
+    // Load SoundFont if provided
+    if (!soundfont_path.empty()) {
+        if (!audio_output_->loadSoundFont(soundfont_path)) {
+            std::cerr << "[Engine] Failed to load SoundFont: " << soundfont_path << "\n";
+            return false;
+        }
+    }
+
+    // Connect to scheduler
+    scheduler_->setAudioOutput(audio_output_.get());
+
+    std::cout << "[Engine] Audio output initialized successfully\n";
+    return true;
+}
+
+void Engine::setUseInternalAudio(bool use_internal) {
+    scheduler_->setUseInternalAudio(use_internal);
+    if (use_internal && audio_output_ && audio_output_->isReady()) {
+        std::cout << "[Engine] Using internal audio (FluidSynth)\n";
+    }
+}
+
+void Engine::setUseExternalMIDI(bool use_external) {
+    scheduler_->setUseExternalMIDI(use_external);
+    if (use_external) {
+        std::cout << "[Engine] Using external MIDI\n";
+    }
+}
+
+bool Engine::isUsingInternalAudio() const {
+    return scheduler_->isUsingInternalAudio();
+}
+
+bool Engine::isUsingExternalMIDI() const {
+    return scheduler_->isUsingExternalMIDI();
+}
+
+bool Engine::isAudioOutputReady() const {
+    return audio_output_ && audio_output_->isReady();
+}
+
+void Engine::setAudioGain(float gain) {
+    if (audio_output_) {
+        audio_output_->setGain(gain);
+    }
+}
+
+float Engine::getAudioGain() const {
+    if (audio_output_) {
+        return audio_output_->getGain();
+    }
+    return 0.0f;
+}
+
 } // namespace gruvbok

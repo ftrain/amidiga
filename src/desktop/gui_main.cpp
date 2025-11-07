@@ -12,6 +12,8 @@
 #include <memory>
 #include <algorithm>
 #include <cmath>
+#include <vector>
+#include <string>
 
 using namespace gruvbok;
 
@@ -420,6 +422,72 @@ int main(int argc, char* argv[]) {
                     }
                     ImGui::EndCombo();
                 }
+            }
+
+            // Audio Output Section
+            ImGui::Separator();
+            ImGui::Text("Audio Output");
+
+            // Internal Audio checkbox
+            static bool internal_audio_enabled = false;
+            static bool audio_initialized = false;
+
+            if (ImGui::Checkbox("Internal Audio (FluidSynth)", &internal_audio_enabled)) {
+                if (internal_audio_enabled && !audio_initialized) {
+                    // Try to initialize audio on first enable
+                    // Look for SoundFont in common locations
+                    std::vector<std::string> soundfont_paths = {
+                        "/usr/share/soundfonts/FluidR3_GM.sf2",
+                        "/usr/share/sounds/sf2/FluidR3_GM.sf2",
+                        "/usr/local/share/soundfonts/FluidR3_GM.sf2",
+                        "FluidR3_GM.sf2",  // Current directory
+                    };
+
+                    bool found = false;
+                    for (const auto& path : soundfont_paths) {
+                        if (engine.initAudioOutput(path)) {
+                            audio_initialized = true;
+                            found = true;
+                            system_log.push_back("[Audio] Initialized with SoundFont: " + path);
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        // Try without SoundFont (will fail but give better error)
+                        if (engine.initAudioOutput()) {
+                            audio_initialized = true;
+                            system_log.push_back("[Audio] Initialized (no SoundFont loaded - add .sf2 file)");
+                        } else {
+                            system_log.push_back("[Audio] Failed to initialize (FluidSynth not available?)");
+                            internal_audio_enabled = false;
+                        }
+                    }
+                }
+
+                engine.setUseInternalAudio(internal_audio_enabled);
+            }
+
+            if (engine.isAudioOutputReady()) {
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "[READY]");
+
+                // Gain control
+                ImGui::PushItemWidth(200);
+                static float gain = 0.5f;
+                if (ImGui::SliderFloat("Volume", &gain, 0.0f, 2.0f, "%.2f")) {
+                    engine.setAudioGain(gain);
+                }
+                ImGui::PopItemWidth();
+            }
+
+            // External MIDI checkbox
+            ImGui::SameLine();
+            ImGui::Spacing();
+            ImGui::SameLine();
+            static bool external_midi_enabled = true;  // Default ON
+            if (ImGui::Checkbox("External MIDI", &external_midi_enabled)) {
+                engine.setUseExternalMIDI(external_midi_enabled);
             }
 
             // Save/Load Section

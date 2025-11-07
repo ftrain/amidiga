@@ -3,7 +3,10 @@
 namespace gruvbok {
 
 MidiScheduler::MidiScheduler(HardwareInterface* hardware)
-    : hardware_(hardware) {
+    : hardware_(hardware)
+    , audio_output_(nullptr)
+    , use_internal_audio_(false)
+    , use_external_midi_(true) {  // Default to external MIDI
 }
 
 void MidiScheduler::schedule(const std::vector<ScheduledMidiEvent>& events) {
@@ -37,7 +40,16 @@ void MidiScheduler::update() {
         const auto& next_event = event_queue_.top();
 
         if (next_event.absolute_time_ms <= current_time) {
-            hardware_->sendMidiMessage(next_event.message);
+            // Send to external MIDI
+            if (use_external_midi_) {
+                hardware_->sendMidiMessage(next_event.message);
+            }
+
+            // Send to internal audio (FluidSynth)
+            if (use_internal_audio_ && audio_output_ && audio_output_->isReady()) {
+                audio_output_->sendMidiMessage(next_event.message.data.data(), next_event.message.data.size());
+            }
+
             event_queue_.pop();
         } else {
             break;  // No more events ready
@@ -116,6 +128,22 @@ void MidiScheduler::sendContinue() {
     std::vector<uint8_t> data = {0xFB};
     MidiMessage msg(data, hardware_->getMillis());
     hardware_->sendMidiMessage(msg);
+}
+
+// ============================================================================
+// Audio Output Control
+// ============================================================================
+
+void MidiScheduler::setAudioOutput(AudioOutput* audio_output) {
+    audio_output_ = audio_output;
+}
+
+void MidiScheduler::setUseInternalAudio(bool use_internal) {
+    use_internal_audio_ = use_internal;
+}
+
+void MidiScheduler::setUseExternalMIDI(bool use_external) {
+    use_external_midi_ = use_external;
 }
 
 } // namespace gruvbok

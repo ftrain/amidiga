@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hardware_interface.h"
+#include "audio_output.h"
 #include <queue>
 #include <vector>
 #include <functional>
@@ -34,6 +35,7 @@ struct AbsoluteMidiEvent {
 /**
  * MIDI Scheduler handles delta-timed MIDI events
  * Converts relative timing to absolute and sends at precise times
+ * Supports routing to external MIDI and/or internal audio (FluidSynth)
  */
 class MidiScheduler {
 public:
@@ -49,6 +51,13 @@ public:
     // Clear all scheduled events
     void clear();
 
+    // Audio output control
+    void setAudioOutput(AudioOutput* audio_output);
+    void setUseInternalAudio(bool use_internal);
+    void setUseExternalMIDI(bool use_external);
+    bool isUsingInternalAudio() const { return use_internal_audio_; }
+    bool isUsingExternalMIDI() const { return use_external_midi_; }
+
     // Utility: Create common MIDI messages
     static ScheduledMidiEvent noteOn(uint8_t pitch, uint8_t velocity, uint8_t channel, uint32_t delta = 0);
     static ScheduledMidiEvent noteOff(uint8_t pitch, uint8_t channel, uint32_t delta = 0);
@@ -63,6 +72,9 @@ public:
 
 private:
     HardwareInterface* hardware_;
+    AudioOutput* audio_output_;
+    bool use_internal_audio_;
+    bool use_external_midi_;
     std::priority_queue<AbsoluteMidiEvent, std::vector<AbsoluteMidiEvent>, std::greater<AbsoluteMidiEvent>> event_queue_;
 };
 

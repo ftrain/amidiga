@@ -1,6 +1,7 @@
 # Hardware library
 add_library(gruvbok_hardware STATIC
     midi_scheduler.cpp
+    audio_output.cpp
 )
 
 target_include_directories(gruvbok_hardware PUBLIC
@@ -10,3 +11,10 @@ target_include_directories(gruvbok_hardware PUBLIC
 target_link_libraries(gruvbok_hardware PUBLIC
     gruvbok_core
 )
+
+# Optional FluidSynth support
+if(FLUIDSYNTH_FOUND)
+    target_compile_definitions(gruvbok_hardware PUBLIC HAVE_FLUIDSYNTH)
+    target_include_directories(gruvbok_hardware PUBLIC ${FLUIDSYNTH_INCLUDE_DIRS})
+    target_link_libraries(gruvbok_hardware PUBLIC ${FLUIDSYNTH_LIBRARIES})
+endif()
