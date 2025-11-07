@@ -35,6 +35,7 @@ public:
     int getCurrentPattern() const { return current_pattern_; }
     int getCurrentTrack() const { return current_track_; }
     int getCurrentStep() const { return current_step_; }
+    int getSongModeStep() const { return song_mode_step_; }  // For Mode 0 visualization
 
     // Edit current event
     void toggleCurrentSwitch();
