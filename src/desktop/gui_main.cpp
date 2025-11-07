@@ -620,9 +620,13 @@ int main(int argc, char* argv[]) {
 
                 // Color: yellow if held, red if playing, green if active, gray if empty
                 ImVec4 color;
+
+                // Mode 0 runs at 1/16th speed, so show song_mode_step_ instead of current_step_
+                int display_step = (engine->getCurrentMode() == 0) ? engine->getSongModeStep() : engine->getCurrentStep();
+
                 if (held_button == step) {
                     color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow for held button
-                } else if (step == engine->getCurrentStep()) {
+                } else if (step == display_step) {
                     color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f); // Red for current step
                 } else if (has_event) {
                     color = ImVec4(0.0f, 1.0f, 0.0f, 1.0f); // Green for active
@@ -740,10 +744,13 @@ int main(int argc, char* argv[]) {
                     ImGui::TableNextRow();
 
                     // Highlight current step if viewing current mode/pattern/track
+                    // Mode 0 runs at 1/16th speed, so compare with song_mode_step_ instead of current_step_
+                    int explorer_display_step = (explorer_mode == 0) ? engine->getSongModeStep() : engine->getCurrentStep();
+
                     bool is_current = (explorer_mode == engine->getCurrentMode() &&
                                       explorer_pattern == engine->getCurrentPattern() &&
                                       explorer_track == engine->getCurrentTrack() &&
-                                      step == engine->getCurrentStep());
+                                      step == explorer_display_step);
                     if (is_current) {
                         ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.6f, 0.3f)));
                     }
