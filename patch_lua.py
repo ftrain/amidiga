@@ -66,5 +66,6 @@ def remove_lua_duplicates(lib_dir):
                 print(f"⚠️  Could not remove {filename}: {e}")
 
 
-# Register the callback to run before building
-env.AddPreAction("$BUILD_DIR/src/lua_bridge/lua_api.cpp.o", patch_lua_config)
+# Register the callback to run before building any library
+# This ensures Lua is patched before the library build starts
+env.AddPreAction("buildprog", patch_lua_config)
