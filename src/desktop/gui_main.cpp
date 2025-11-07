@@ -14,6 +14,8 @@
 #include <cmath>
 #include <vector>
 #include <string>
+#include <fstream>
+#include <sstream>
 
 using namespace gruvbok;
 
@@ -897,6 +899,158 @@ int main(int argc, char* argv[]) {
                 ImGui::SetScrollHereY(1.0f);
 
             ImGui::EndChild();
+            ImGui::End();
+        }
+
+        // Lua Mode Editor window
+        {
+            ImGui::SetNextWindowPos(ImVec2(1300, 0), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(700, 900), ImGuiCond_FirstUseEver);
+            ImGui::Begin("Lua Mode Editor", nullptr, ImGuiWindowFlags_NoCollapse);
+
+            // Static state for editor
+            static int selected_mode = 1;  // Default to mode 1 (drums)
+            static char lua_code_buffer[32768] = "";  // 32KB buffer for Lua code
+            static bool file_loaded = false;
+            static std::string current_filename = "";
+            static std::string last_saved_filename = "";
+
+            // Mode selector
+            ImGui::Text("Edit Mode:");
+            ImGui::SameLine();
+            ImGui::PushItemWidth(150);
+            if (ImGui::Combo("##ModeSelect", &selected_mode,
+                "Mode 0 (Song)\0Mode 1 (Drums)\0Mode 2 (Acid)\0Mode 3 (Chords)\0Mode 4\0Mode 5\0Mode 6\0Mode 7\0"
+                "Mode 8\0Mode 9\0Mode 10\0Mode 11\0Mode 12\0Mode 13\0Mode 14\0\0")) {
+                // Mode changed - load new file
+                file_loaded = false;
+            }
+            ImGui::PopItemWidth();
+
+            // Show current filename
+            char mode_filename[64];
+            snprintf(mode_filename, sizeof(mode_filename), "modes/%02d_*.lua", selected_mode);
+            current_filename = mode_filename;
+
+            // Load button
+            ImGui::SameLine();
+            if (ImGui::Button("Load from Disk") || !file_loaded) {
+                // Find the mode file
+                std::string mode_path;
+
+                // Try to find the actual file (handle different naming patterns)
+                const char* mode_names[] = {
+                    "song", "drums", "acid", "chords", "mode4", "mode5", "mode6", "mode7",
+                    "mode8", "mode9", "mode10", "mode11", "mode12", "mode13", "mode14"
+                };
+
+                char filename_buf[256];
+                snprintf(filename_buf, sizeof(filename_buf), "modes/%02d_%s.lua",
+                         selected_mode, mode_names[selected_mode]);
+                mode_path = filename_buf;
+
+                // Try to open and read the file
+                std::ifstream file(mode_path);
+                if (file.is_open()) {
+                    std::stringstream buffer;
+                    buffer << file.rdbuf();
+                    std::string content = buffer.str();
+
+                    // Copy to buffer (with safety check)
+                    size_t copy_size = std::min(content.size(), sizeof(lua_code_buffer) - 1);
+                    memcpy(lua_code_buffer, content.c_str(), copy_size);
+                    lua_code_buffer[copy_size] = '\0';
+
+                    file_loaded = true;
+                    current_filename = mode_path;
+                    last_saved_filename = mode_path;
+                    system_log.push_back("[Editor] Loaded: " + mode_path);
+                } else {
+                    // File doesn't exist - create template
+                    const char* template_code =
+                        "-- GRUVBOK Lua Mode Template\n"
+                        "-- Mode: %d\n\n"
+                        "function init(context)\n"
+                        "    -- Called once when mode loads\n"
+                        "    -- context.tempo = BPM\n"
+                        "    -- context.mode_number = 0-14\n"
+                        "    -- context.midi_channel = 0-14\n"
+                        "end\n\n"
+                        "function process_event(track, event)\n"
+                        "    -- Called for each event during playback\n"
+                        "    -- track: 0-7\n"
+                        "    -- event.switch: true/false\n"
+                        "    -- event.pots: {s1, s2, s3, s4} (0-127 each)\n\n"
+                        "    if event.switch then\n"
+                        "        -- Send MIDI note\n"
+                        "        note(60, 100)  -- Middle C, velocity 100\n"
+                        "        off(60, 100)   -- Note off after 100ms\n"
+                        "    end\n"
+                        "end\n";
+
+                    snprintf(lua_code_buffer, sizeof(lua_code_buffer), template_code, selected_mode);
+                    file_loaded = true;
+                    current_filename = mode_path;
+                    system_log.push_back("[Editor] Created template for mode " + std::to_string(selected_mode));
+                }
+            }
+
+            // Save button
+            ImGui::SameLine();
+            if (ImGui::Button("Save to Disk")) {
+                // Write buffer to file
+                std::ofstream file(current_filename);
+                if (file.is_open()) {
+                    file << lua_code_buffer;
+                    file.close();
+                    last_saved_filename = current_filename;
+                    system_log.push_back("[Editor] Saved: " + current_filename);
+                } else {
+                    system_log.push_back("[Editor] ERROR: Failed to save " + current_filename);
+                }
+            }
+
+            // Hot-reload button
+            ImGui::SameLine();
+            if (ImGui::Button("Hot Reload Mode")) {
+                // Save first, then reload
+                std::ofstream file(current_filename);
+                if (file.is_open()) {
+                    file << lua_code_buffer;
+                    file.close();
+
+                    // Reload the mode
+                    LuaContext* lua_mode = mode_loader->getMode(selected_mode);
+                    if (lua_mode) {
+                        if (lua_mode->loadFile(current_filename)) {
+                            // Reinit with current tempo
+                            LuaInitContext context;
+                            context.tempo = engine->getTempo();
+                            context.mode_number = selected_mode;
+                            context.midi_channel = selected_mode;
+                            lua_mode->callInit(context);
+
+                            system_log.push_back("[Editor] Hot-reloaded mode " + std::to_string(selected_mode));
+                        } else {
+                            system_log.push_back("[Editor] ERROR: Failed to reload mode " + std::to_string(selected_mode));
+                        }
+                    }
+                } else {
+                    system_log.push_back("[Editor] ERROR: Failed to save before reload");
+                }
+            }
+
+            ImGui::Separator();
+            ImGui::Text("File: %s", current_filename.c_str());
+            ImGui::Separator();
+
+            // Lua code editor (monospace font, large text area)
+            ImGui::PushFont(io.Fonts->Fonts[0]);  // Use default monospace-ish font
+            ImGui::InputTextMultiline("##LuaCode", lua_code_buffer, sizeof(lua_code_buffer),
+                ImVec2(-1, -1),
+                ImGuiInputTextFlags_AllowTabInput);
+            ImGui::PopFont();
+
             ImGui::End();
         }
 
