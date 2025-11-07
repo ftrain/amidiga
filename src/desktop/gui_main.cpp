@@ -422,6 +422,81 @@ int main(int argc, char* argv[]) {
                 }
             }
 
+            // Save/Load Section
+            ImGui::Separator();
+            ImGui::Text("Song Persistence");
+
+            // Static state for UI persistence
+            static char song_name_buf[128] = "My GRUVBOK Song";
+            static char save_path_buf[256] = "/tmp/gruvbok_song.json";
+            static char load_path_buf[256] = "/tmp/gruvbok_song.json";
+
+            // Song name input
+            ImGui::PushItemWidth(300);
+            ImGui::InputText("Song Name", song_name_buf, sizeof(song_name_buf));
+            ImGui::PopItemWidth();
+
+            // Save section
+            ImGui::PushItemWidth(400);
+            ImGui::InputText("Save Path", save_path_buf, sizeof(save_path_buf));
+            ImGui::PopItemWidth();
+            ImGui::SameLine();
+            if (ImGui::Button("Save")) {
+                int current_tempo = engine->getTempo();
+                if (song->save(save_path_buf, song_name_buf, current_tempo)) {
+                    hardware->addLog("✓ Song saved: " + std::string(save_path_buf));
+                    engine->triggerLEDPattern(Engine::LEDPattern::SAVING);
+                } else {
+                    hardware->addLog("✗ ERROR: Failed to save song");
+                    engine->triggerLEDPattern(Engine::LEDPattern::ERROR);
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Quick Save")) {
+                // Use last path with timestamp
+                std::string quick_path = "/tmp/gruvbok_autosave_" + std::to_string(hardware->getMillis()) + ".json";
+                int current_tempo = engine->getTempo();
+                if (song->save(quick_path, song_name_buf, current_tempo)) {
+                    hardware->addLog("✓ Autosaved: " + quick_path);
+                    engine->triggerLEDPattern(Engine::LEDPattern::SAVING);
+                    // Update save path to autosave location
+                    snprintf(save_path_buf, sizeof(save_path_buf), "%s", quick_path.c_str());
+                } else {
+                    hardware->addLog("✗ ERROR: Autosave failed");
+                    engine->triggerLEDPattern(Engine::LEDPattern::ERROR);
+                }
+            }
+
+            // Load section
+            ImGui::PushItemWidth(400);
+            ImGui::InputText("Load Path", load_path_buf, sizeof(load_path_buf));
+            ImGui::PopItemWidth();
+            ImGui::SameLine();
+            if (ImGui::Button("Load")) {
+                engine->triggerLEDPattern(Engine::LEDPattern::LOADING);
+                std::string loaded_name;
+                int loaded_tempo = 120;
+                if (song->load(load_path_buf, &loaded_name, &loaded_tempo)) {
+                    hardware->addLog("✓ Song loaded: " + std::string(load_path_buf));
+                    hardware->addLog("  Name: " + loaded_name + ", Tempo: " + std::to_string(loaded_tempo) + " BPM");
+
+                    // Update UI with loaded metadata
+                    snprintf(song_name_buf, sizeof(song_name_buf), "%s", loaded_name.c_str());
+
+                    // Apply loaded tempo to engine
+                    engine->setTempo(loaded_tempo);
+
+                    // Update save path to match load path (for easy resave)
+                    snprintf(save_path_buf, sizeof(save_path_buf), "%s", load_path_buf);
+
+                    // Return to tempo beat pattern after successful load
+                    engine->triggerLEDPattern(Engine::LEDPattern::TEMPO_BEAT);
+                } else {
+                    hardware->addLog("✗ ERROR: Failed to load from " + std::string(load_path_buf));
+                    engine->triggerLEDPattern(Engine::LEDPattern::ERROR);
+                }
+            }
+
             ImGui::Separator();
 
             // LED tempo indicator
@@ -457,8 +532,8 @@ int main(int argc, char* argv[]) {
             char mode_str[16], tempo_str[16], pattern_str[16], track_str[16];
             snprintf(mode_str, sizeof(mode_str), "%d", mode_val);
             snprintf(tempo_str, sizeof(tempo_str), "%d BPM", tempo_val);
-            snprintf(pattern_str, sizeof(pattern_str), "%d", pattern_val);
-            snprintf(track_str, sizeof(track_str), "%d", track_val);
+            snprintf(pattern_str, sizeof(pattern_str), "%d", pattern_val + 1);  // Display as 1-32
+            snprintf(track_str, sizeof(track_str), "%d", track_val + 1);        // Display as 1-8
 
             float knob_width = 100.0f;
 
@@ -527,7 +602,7 @@ int main(int argc, char* argv[]) {
             ImGui::Separator();
 
             // Pattern grid visualization
-            ImGui::Text("Pattern Grid (Track %d)", engine->getCurrentTrack());
+            ImGui::Text("Pattern Grid (Track %d)", engine->getCurrentTrack() + 1);  // Display as 1-8
             ImGui::BeginGroup();
 
             Mode& editing_mode = song->getMode(engine->getCurrentMode());
@@ -632,18 +707,14 @@ int main(int argc, char* argv[]) {
             ImGui::Text("Navigate the entire song structure");
             ImGui::Separator();
 
-            // Mode/Pattern/Track selector for focused view
-            static int explorer_mode = 0;
-            static int explorer_pattern = 0;
-            static int explorer_track = 0;
+            // Sync explorer position with engine's current position
+            int explorer_mode = engine->getCurrentMode();
+            int explorer_pattern = engine->getCurrentPattern();
+            int explorer_track = engine->getCurrentTrack();
 
-            ImGui::PushItemWidth(100);
-            ImGui::DragInt("Mode", &explorer_mode, 0.1f, 0, 14);
-            ImGui::SameLine();
-            ImGui::DragInt("Pattern", &explorer_pattern, 0.1f, 0, 31);
-            ImGui::SameLine();
-            ImGui::DragInt("Track", &explorer_track, 0.1f, 0, 7);
-            ImGui::PopItemWidth();
+            ImGui::Text("Current Position (updates with knobs):");
+            ImGui::TextColored(ImVec4(0.4f, 0.8f, 0.4f, 1.0f), "Mode: %d  Pattern: %d  Track: %d",
+                             explorer_mode, explorer_pattern + 1, explorer_track + 1);  // Display patterns as 1-32, tracks as 1-8
 
             ImGui::Separator();
 
@@ -652,7 +723,7 @@ int main(int argc, char* argv[]) {
             Pattern& exp_pattern = exp_mode.getPattern(explorer_pattern);
             Track& exp_track = exp_pattern.getTrack(explorer_track);
 
-            ImGui::Text("Events: Mode %d, Pattern %d, Track %d", explorer_mode, explorer_pattern, explorer_track);
+            ImGui::Text("Events: Mode %d, Pattern %d, Track %d", explorer_mode, explorer_pattern + 1, explorer_track + 1);  // Display patterns as 1-32, tracks as 1-8
 
             // Table with event data
             if (ImGui::BeginTable("EventTable", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
@@ -681,7 +752,7 @@ int main(int argc, char* argv[]) {
                     ImGui::Text("%d", step + 1);
 
                     ImGui::TableNextColumn();
-                    ImGui::Text("%s", evt.getSwitch() ? "•" : "");
+                    ImGui::Text("%s", evt.getSwitch() ? "X" : "");
 
                     ImGui::TableNextColumn();
                     ImGui::Text("%d", evt.getPot(0));

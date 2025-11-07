@@ -128,6 +128,10 @@ void LuaContext::setChannel(uint8_t channel) {
     LuaAPI::setChannel(L_, channel);
 }
 
+void LuaContext::setEngine(Engine* engine) {
+    LuaAPI::setEngine(L_, engine);
+}
+
 bool LuaContext::functionExists(const char* name) {
     lua_getglobal(L_, name);
     bool exists = lua_isfunction(L_, -1);

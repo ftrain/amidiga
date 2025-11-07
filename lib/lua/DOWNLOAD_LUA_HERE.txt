@@ -1,0 +1,50 @@
+================================================================================
+                     LUA 5.4.6 SOURCE FILES GO HERE
+================================================================================
+
+This directory needs the Lua 5.4.6 source files to build GRUVBOK for Teensy.
+
+INSTRUCTIONS:
+-------------
+
+1. Download Lua 5.4.6:
+   http://www.lua.org/ftp/lua-5.4.6.tar.gz
+
+2. Extract the archive
+
+3. Copy all .c and .h files from lua-5.4.6/src/ to THIS directory
+   (EXCEPT lua.c, luac.c, and onelua.c)
+
+4. You should end up with approximately 80 files in this directory:
+   - lapi.c, lapi.h
+   - lauxlib.c, lauxlib.h
+   - lcode.c, lcode.h
+   - ... (and many more)
+
+5. Run: platformio run -e teensy41
+
+AUTOMATED SCRIPT:
+-----------------
+
+cd lib/lua
+curl -R -O http://www.lua.org/ftp/lua-5.4.6.tar.gz
+tar zxf lua-5.4.6.tar.gz
+cp lua-5.4.6/src/*.c .
+cp lua-5.4.6/src/*.h .
+rm -f lua.c luac.c onelua.c  # Remove standalone interpreters
+rm -rf lua-5.4.6 lua-5.4.6.tar.gz
+
+VERIFICATION:
+-------------
+
+After adding files, you should see:
+  lib/lua/lua.h
+  lib/lua/lapi.c
+  lib/lua/ltable.c
+  ... (about 80 files total)
+
+Then build with:
+  platformio run -e teensy41
+
+See README.md for more details and troubleshooting.
+================================================================================

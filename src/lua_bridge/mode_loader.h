@@ -27,6 +27,9 @@ public:
     // Load all modes from directory
     int loadModesFromDirectory(const std::string& directory, int tempo);
 
+    // Set Engine instance for LED control (propagates to all loaded modes)
+    void setEngine(Engine* engine);
+
     static constexpr int NUM_MODES = 15;
 
 private:

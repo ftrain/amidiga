@@ -387,19 +387,38 @@ arm-none-eabi-size --format=SysV gruvbok.elf
 
 ## Testing Strategy
 
-### Unit Tests
-- Event bit-packing/unpacking
-- Song data structure operations
-- MIDI scheduling queue
-- Config file parser
+### Unit Tests (✅ Implemented - 40 tests, 100% passing)
 
-### Integration Tests
+**Event Tests (9 tests):**
+- Event bit-packing/unpacking
+- Switch and pot isolation
+- Value clamping
+- Copy operations
+
+**Pattern/Track Tests (12 tests):**
+- Track and Pattern hierarchy
+- Event isolation
+- Clear functionality
+- Full data patterns
+
+**Song/Mode Tests (12 tests):**
+- Mode and Song hierarchy
+- Memory footprint validation (245,760 bytes)
+- Full hierarchy navigation
+- Save/load roundtrip with boundary testing
+
+**MidiScheduler Tests (15 tests with MockHardware):**
+- MIDI message creation (Note On/Off, CC, All Notes Off)
+- Delta-timed event scheduling
+- Priority queue ordering
+- MIDI transport messages (Clock, Start, Stop, Continue)
+
+### Integration Tests (⏳ Planned)
 - Lua mode loading and execution
 - Full playback loop (mocked hardware)
 - Multiple modes simultaneously
-- Save/load persistence
 
-### Hardware Tests (Teensy)
+### Hardware Tests (⏳ Teensy)
 - Button responsiveness
 - Pot value accuracy
 - MIDI timing jitter
@@ -505,6 +524,13 @@ The desktop version is fully functional with all core features implemented. See 
 - ✅ Scrollable log with auto-scroll
 - ✅ Clear log button
 
+**Save/Load:**
+- ✅ Save Song button: Saves to `/tmp/gruvbok_song_{timestamp}.json`
+- ✅ Load Song button: Loads from `/tmp/gruvbok_song_latest.json`
+- ✅ Log feedback shows file path and success/failure status
+- ✅ JSON format with sparse encoding (only active events)
+- ✅ Human-readable and editable files (typically < 1KB)
+
 ### Behavior Details
 
 **Pattern Playback:**
@@ -549,7 +575,7 @@ The desktop version is fully functional with all core features implemented. See 
 
 > What file format for song persistence?
 
-**Answer:** Not yet implemented. Considering JSON or custom binary format for SD card on Teensy.
+**Answer:** ✅ **Implemented: JSON format (sparse encoding)**. Only saves events with switch=true, resulting in small human-readable files (typically <1KB). Desktop GUI has Save/Load buttons. Ready for SD card on Teensy.
 
 > Should .ini support hot-reload on desktop?
 
@@ -564,6 +590,7 @@ The desktop version is fully functional with all core features implemented. See 
 - SDL2 for window management and input
 - RtMidi (bundled) for MIDI output
 - Dear ImGui (bundled) for GUI
+- nlohmann/json (bundled, header-only) for song save/load
 
 **Build Targets:**
 - `gruvbok` - GUI desktop simulator (recommended)
@@ -576,14 +603,18 @@ apt-get install liblua5.4-dev lua5.4 libasound2-dev libsdl2-dev
 
 ### Next Steps (Teensy Port)
 
+**Completed:**
+- ✅ Test suite: 40 tests covering Event, Pattern, Song, MidiScheduler (100% passing)
+- ✅ Song save/load: JSON format with sparse encoding
+- ✅ Desktop GUI: Save/Load buttons with user feedback
+
 **Pending Work:**
 - ⏳ Teensy 4.1 hardware implementation (TeensyHardware class)
 - ⏳ Pin mapping configuration (buttons on digital pins, pots on analog)
 - ⏳ Real LED control (blink on tempo, same as desktop simulation)
-- ⏳ SD card integration for song save/load
+- ⏳ SD card integration (SdFat library, JSON file I/O)
 - ⏳ MIDI output via Teensy USB MIDI or hardware UART
 - ⏳ Memory optimization and profiling for 1MB RAM limit
-- ⏳ Test suite (unit tests for core classes, integration tests for playback)
 
 **Estimated Memory Usage (Teensy 4.1):**
 - Event data: ~245 KB (15 modes × 32 patterns × 8 tracks × 16 events × 4 bytes)

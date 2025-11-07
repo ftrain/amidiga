@@ -26,19 +26,39 @@ ctest --verbose
 
 ## Current Tests
 
-### `test_event` - Event Bit-Packing Tests
-Tests the core Event class (29-bit packed structure):
-- ✅ Default constructor
-- ✅ Switch get/set operations
-- ✅ Pot (slider) get/set operations
-- ✅ Value clamping (0-127 range)
-- ✅ Bit isolation (setting one field doesn't affect others)
-- ✅ Switch and pots independence
-- ✅ Maximum values
-- ✅ Memory size (must fit in 32 bits)
-- ✅ Copy operations
+All tests pass: **56/56** ✅
 
-All tests pass: **9/9** ✅
+### Test Suites
+
+**test_event** (9 tests) - Event bit-packing
+- Switch and pot get/set operations
+- Value clamping (0-127)
+- Bit isolation and independence
+- Memory size validation (32 bits)
+
+**test_pattern** (12 tests) - Pattern/Track hierarchy
+- Track and Pattern containers
+- Event isolation
+- Clear functionality
+- Full data patterns
+
+**test_song** (12 tests) - Song/Mode hierarchy
+- Mode and Song structure
+- Memory footprint (245,760 bytes)
+- Full hierarchy navigation
+- Save/load roundtrip with boundaries
+
+**test_midi_scheduler** (15 tests) - MIDI timing
+- Note On/Off, CC, All Notes Off
+- Delta-timed event scheduling
+- Priority queue ordering
+- MIDI Clock, Start, Stop, Continue
+
+**test_engine** (8 tests) - Playback engine
+- Step progression and tempo
+- LED tempo beat pattern
+- MIDI clock generation (24 PPQN)
+- Start/Stop behavior
 
 ## Adding New Tests
 
@@ -82,12 +102,10 @@ All tests pass: **9/9** ✅
 
 ## Future Tests
 
-Planned test coverage:
-- [ ] `test_pattern.cpp` - Pattern/Track/Event container tests
-- [ ] `test_song.cpp` - Song data structure tests
-- [ ] `test_midi_scheduler.cpp` - MIDI timing and scheduling
-- [ ] `test_engine.cpp` - Engine playback logic (requires mocking)
-- [ ] `test_lua_integration.cpp` - Lua API and mode loading
+Potential additions:
+- [ ] `test_lua_integration.cpp` - End-to-end Lua mode loading and execution
+- [ ] `test_hardware_abstraction.cpp` - Hardware interface implementations
+- [ ] Performance/stress tests for real-time constraints
 
 ## CI/CD Integration
 

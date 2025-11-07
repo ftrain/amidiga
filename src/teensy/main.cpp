@@ -9,6 +9,7 @@
 #include "../core/song.h"
 #include "../core/engine.h"
 #include "../lua_bridge/mode_loader.h"
+#include <SD.h>
 
 using namespace gruvbok;
 
@@ -43,14 +44,32 @@ void setup() {
     song = new Song();
     Serial.println("Song created");
 
-    // Load Lua modes
-    Serial.println("Loading Lua modes...");
-    mode_loader = new ModeLoader("modes");  // Note: SD card support needed
+    // Initialize SD card
+    Serial.println("Initializing SD card...");
+    if (!SD.begin(BUILTIN_SDCARD)) {
+        Serial.println("WARNING: SD card initialization failed!");
+        Serial.println("         Insert microSD card with /modes directory");
+        Serial.println("         Continuing without Lua modes (no MIDI output)");
+        mode_loader = new ModeLoader();
+    } else {
+        Serial.println("SD card initialized successfully");
 
-    // For now, we'll skip Lua loading on Teensy until SD card is set up
-    // TODO: Implement SD card mode loading
-    Serial.println("WARNING: Lua mode loading not yet implemented for Teensy");
-    Serial.println("         Using placeholder modes (will output no MIDI)");
+        // Load Lua modes from SD card
+        Serial.println("Loading Lua modes from SD:/modes/...");
+        mode_loader = new ModeLoader();
+
+        int loaded_count = mode_loader->loadModesFromDirectory("/modes", 120);
+
+        if (loaded_count > 0) {
+            Serial.print("Successfully loaded ");
+            Serial.print(loaded_count);
+            Serial.println(" Lua modes");
+        } else {
+            Serial.println("WARNING: No Lua modes found on SD card");
+            Serial.println("         Create SD:/modes/ directory with .lua files");
+            Serial.println("         Example: 01_drums.lua, 02_acid.lua, etc.");
+        }
+    }
 
     // Create and start engine
     Serial.println("Creating engine...");
