@@ -10,9 +10,7 @@ target_include_directories(gruvbok-console PRIVATE
 )
 
 target_link_libraries(gruvbok-console PRIVATE
-    gruvbok_core
-    gruvbok_hardware
-    gruvbok_lua
+    gruvbok_lua  # Includes gruvbok_hardware and gruvbok_core transitively
     rtmidi
     ${LUA_LIBRARIES}
 )
@@ -70,9 +68,7 @@ target_include_directories(gruvbok PRIVATE
 )
 
 target_link_libraries(gruvbok PRIVATE
-    gruvbok_core
-    gruvbok_hardware
-    gruvbok_lua
+    gruvbok_lua  # Includes gruvbok_hardware and gruvbok_core transitively
     rtmidi
     imgui
     ${LUA_LIBRARIES}

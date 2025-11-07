@@ -11,7 +11,6 @@ target_include_directories(gruvbok_lua PUBLIC
 )
 
 target_link_libraries(gruvbok_lua PUBLIC
-    gruvbok_core
-    gruvbok_hardware
+    gruvbok_hardware  # Already includes gruvbok_core transitively
     ${LUA_LIBRARIES}
 )

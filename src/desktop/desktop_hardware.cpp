@@ -89,7 +89,8 @@ void DesktopHardware::sendMidiMessage(const MidiMessage& msg) {
     }
 
     try {
-        midi_out_->sendMessage(&msg.data);
+        // Use raw pointer overload to avoid uint8_t vs unsigned char type issues
+        midi_out_->sendMessage(msg.data.data(), msg.data.size());
         // No console spam!
 
     } catch (RtMidiError& error) {

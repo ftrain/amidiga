@@ -16,6 +16,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 using namespace gruvbok;
 
@@ -179,37 +180,21 @@ int main(int argc, char* argv[]) {
 
     auto engine = std::make_unique<Engine>(song.get(), hardware.get(), mode_loader.get());
 
+    // Enable external MIDI by default (matches GUI checkbox default)
+    engine->setUseExternalMIDI(true);
+
     // Mode 0: Song/Pattern Sequencer - Default pattern chain
     // Patterns 0-3 repeating 4 times each (steps 0-3, 4-7, 8-11, 12-15)
     Mode& mode0 = song->getMode(0);
     Pattern& song_pattern = mode0.getPattern(0);  // Mode 0 always uses pattern 0
 
-    // Steps 0-3: Pattern 1
-    for (int step = 0; step < 4; step++) {
+    // All steps: Pattern 0 (where we put the demo content)
+    // S1 encoding: value * 32 / 128 = pattern number (0-31)
+    // So S1 = 0 means pattern 0
+    for (int step = 0; step < 16; step++) {
         Event& event = song_pattern.getEvent(0, step);
         event.setSwitch(true);
-        event.setPot(0, 0);  // S1 = 0 -> Pattern 1 (displayed as 1-32)
-    }
-
-    // Steps 4-7: Pattern 2
-    for (int step = 4; step < 8; step++) {
-        Event& event = song_pattern.getEvent(0, step);
-        event.setSwitch(true);
-        event.setPot(0, 4);  // S1 = 4 -> Pattern 2 (displayed as 1-32)
-    }
-
-    // Steps 8-11: Pattern 3
-    for (int step = 8; step < 12; step++) {
-        Event& event = song_pattern.getEvent(0, step);
-        event.setSwitch(true);
-        event.setPot(0, 8);  // S1 = 8 -> Pattern 3 (displayed as 1-32)
-    }
-
-    // Steps 12-15: Pattern 4
-    for (int step = 12; step < 16; step++) {
-        Event& event = song_pattern.getEvent(0, step);
-        event.setSwitch(true);
-        event.setPot(0, 12);  // S1 = 12 -> Pattern 4 (displayed as 1-32)
+        event.setPot(0, 0);  // S1 = 0 -> Pattern 0 (displayed as pattern 1)
     }
 
     Mode& mode1 = song->getMode(1);
@@ -363,11 +348,15 @@ int main(int argc, char* argv[]) {
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        // Main GUI window
+        // Main GUI window with tabs
         {
             ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(1280, 720), ImGuiCond_FirstUseEver);
-            ImGui::Begin("GRUVBOK Hardware Simulator", nullptr, ImGuiWindowFlags_NoCollapse);
+            ImGui::Begin("GRUVBOK", nullptr, ImGuiWindowFlags_NoCollapse);
+
+            if (ImGui::BeginTabBar("MainTabs", ImGuiTabBarFlags_None)) {
+                // Tab 1: Hardware Controls
+                if (ImGui::BeginTabItem("Hardware")) {
 
             // MIDI Output Port Selector
             ImGui::Text("MIDI Output:");
@@ -376,7 +365,15 @@ int main(int argc, char* argv[]) {
             int port_count = hardware->getMidiPortCount();
             int current_port = hardware->getCurrentMidiPort();
 
-            std::string preview = current_port < 0 ? "Virtual Port" : hardware->getMidiPortName(current_port);
+            std::string preview;
+            if (current_port < 0) {
+                preview = "Virtual Port";
+            } else {
+                preview = hardware->getMidiPortName(current_port);
+                if (preview.empty()) {
+                    preview = "Port " + std::to_string(current_port);
+                }
+            }
             if (ImGui::BeginCombo("##MIDIPort", preview.c_str())) {
                 // Virtual port option
                 bool is_selected = (current_port < 0);
@@ -433,12 +430,15 @@ int main(int argc, char* argv[]) {
             // Internal Audio checkbox
             static bool internal_audio_enabled = false;
             static bool audio_initialized = false;
+            static std::string loaded_soundfont = "";
 
             if (ImGui::Checkbox("Internal Audio (FluidSynth)", &internal_audio_enabled)) {
                 if (internal_audio_enabled && !audio_initialized) {
                     // Try to initialize audio on first enable
                     // Look for SoundFont in common locations
                     std::vector<std::string> soundfont_paths = {
+                        "/opt/homebrew/Cellar/fluid-synth/2.5.1/share/soundfonts/default.sf2",  // Homebrew default
+                        "/opt/homebrew/share/soundfonts/default.sf2",  // Homebrew symlink
                         "/usr/share/soundfonts/FluidR3_GM.sf2",
                         "/usr/share/sounds/sf2/FluidR3_GM.sf2",
                         "/usr/local/share/soundfonts/FluidR3_GM.sf2",
@@ -447,40 +447,48 @@ int main(int argc, char* argv[]) {
 
                     bool found = false;
                     for (const auto& path : soundfont_paths) {
-                        if (engine.initAudioOutput(path)) {
+                        if (engine->initAudioOutput(path)) {
                             audio_initialized = true;
                             found = true;
-                            system_log.push_back("[Audio] Initialized with SoundFont: " + path);
+                            loaded_soundfont = path;
+                            hardware->addLog("[Audio] Initialized with SoundFont: " + path);
                             break;
                         }
                     }
 
                     if (!found) {
-                        // Try without SoundFont (will fail but give better error)
-                        if (engine.initAudioOutput()) {
-                            audio_initialized = true;
-                            system_log.push_back("[Audio] Initialized (no SoundFont loaded - add .sf2 file)");
-                        } else {
-                            system_log.push_back("[Audio] Failed to initialize (FluidSynth not available?)");
-                            internal_audio_enabled = false;
-                        }
+                        hardware->addLog("[Audio] ERROR: No SoundFont found in default locations");
+                        hardware->addLog("[Audio] Download a .sf2 file to the current directory or /opt/homebrew/share/soundfonts/");
+                        internal_audio_enabled = false;
                     }
                 }
 
-                engine.setUseInternalAudio(internal_audio_enabled);
+                engine->setUseInternalAudio(internal_audio_enabled);
             }
 
-            if (engine.isAudioOutputReady()) {
+            if (engine->isAudioOutputReady()) {
                 ImGui::SameLine();
                 ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "[READY]");
 
+                // Show loaded soundfont (just filename)
+                if (!loaded_soundfont.empty()) {
+                    size_t last_slash = loaded_soundfont.find_last_of("/\\");
+                    std::string sf_name = (last_slash != std::string::npos) ?
+                        loaded_soundfont.substr(last_slash + 1) : loaded_soundfont;
+                    ImGui::SameLine();
+                    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "(%s)", sf_name.c_str());
+                }
+
                 // Gain control
-                ImGui::PushItemWidth(200);
+                ImGui::PushItemWidth(150);
                 static float gain = 0.5f;
                 if (ImGui::SliderFloat("Volume", &gain, 0.0f, 2.0f, "%.2f")) {
-                    engine.setAudioGain(gain);
+                    engine->setAudioGain(gain);
                 }
                 ImGui::PopItemWidth();
+            } else if (internal_audio_enabled && !audio_initialized) {
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "[FAILED - check logs]");
             }
 
             // External MIDI checkbox
@@ -489,7 +497,7 @@ int main(int argc, char* argv[]) {
             ImGui::SameLine();
             static bool external_midi_enabled = true;  // Default ON
             if (ImGui::Checkbox("External MIDI", &external_midi_enabled)) {
-                engine.setUseExternalMIDI(external_midi_enabled);
+                engine->setUseExternalMIDI(external_midi_enabled);
             }
 
             // Save/Load Section
@@ -584,10 +592,11 @@ int main(int argc, char* argv[]) {
 
             ImGui::Separator();
 
-            // Global controls (R1-R4) as knobs
-            ImGui::Text("Global Controls");
+            // Controls section: 2x2 knobs on left, sliders on right
             ImGui::BeginGroup();
 
+            // Left side: Global controls (R1-R4) as 2x2 grid of knobs
+            ImGui::BeginGroup();
             int r1 = hardware->readRotaryPot(0);
             int r2 = hardware->readRotaryPot(1);
             int r3 = hardware->readRotaryPot(2);
@@ -605,31 +614,26 @@ int main(int argc, char* argv[]) {
             snprintf(pattern_str, sizeof(pattern_str), "%d", pattern_val + 1);  // Display as 1-32
             snprintf(track_str, sizeof(track_str), "%d", track_val + 1);        // Display as 1-8
 
-            float knob_width = 100.0f;
+            // Row 1: Mode and Tempo
+            if (Knob("Mode", &r1, 0, 127, mode_str, 30.0f)) hardware->simulateRotaryPot(0, r1);
+            ImGui::SameLine(0, 10);
+            if (Knob("Tempo", &r2, 0, 127, tempo_str, 30.0f)) hardware->simulateRotaryPot(1, r2);
 
-            if (Knob("Mode", &r1, 0, 127, mode_str, 35.0f)) hardware->simulateRotaryPot(0, r1);
-            ImGui::SameLine(0, 0);
-            ImGui::Dummy(ImVec2(knob_width - 70, 0));
-            ImGui::SameLine(0, 0);
-            if (Knob("Tempo", &r2, 0, 127, tempo_str, 35.0f)) hardware->simulateRotaryPot(1, r2);
-            ImGui::SameLine(0, 0);
-            ImGui::Dummy(ImVec2(knob_width - 70, 0));
-            ImGui::SameLine(0, 0);
-            if (Knob("Pattern", &r3, 0, 127, pattern_str, 35.0f)) hardware->simulateRotaryPot(2, r3);
-            ImGui::SameLine(0, 0);
-            ImGui::Dummy(ImVec2(knob_width - 70, 0));
-            ImGui::SameLine(0, 0);
-            if (Knob("Track", &r4, 0, 127, track_str, 35.0f)) hardware->simulateRotaryPot(3, r4);
+            // Row 2: Pattern and Track
+            if (Knob("Pattern", &r3, 0, 127, pattern_str, 30.0f)) hardware->simulateRotaryPot(2, r3);
+            ImGui::SameLine(0, 10);
+            if (Knob("Track", &r4, 0, 127, track_str, 30.0f)) hardware->simulateRotaryPot(3, r4);
 
             ImGui::EndGroup();
-            ImGui::Separator();
 
-            // Slider pots (S1-S4) with mode-specific labels
+            // Right side: Slider pots (S1-S4) with mode-specific labels
+            ImGui::SameLine(0, 20);
+            ImGui::BeginGroup();
+
             int current_mode = engine->getCurrentMode();
             LuaContext* lua_mode = mode_loader->getMode(current_mode);
             std::string mode_name = lua_mode && lua_mode->isValid() ? lua_mode->getModeName() : "Unknown";
             ImGui::Text("Mode %d: %s", current_mode, mode_name.c_str());
-            ImGui::BeginGroup();
 
             int s1 = hardware->readSliderPot(0);
             int s2 = hardware->readSliderPot(1);
@@ -648,32 +652,24 @@ int main(int argc, char* argv[]) {
             snprintf(s3_label, sizeof(s3_label), "%s\n%d", GetSliderLabel(2, current_mode), s3);
             snprintf(s4_label, sizeof(s4_label), "%s\n%d", GetSliderLabel(3, current_mode), s4);
 
-            float slider_width = 100.0f;
-
             // Sliders now only set values when you press a button (parameter lock)
-            // Just update the hardware values for display/readback
-            if (ImGui::VSliderInt("##S1", ImVec2(50, 180), &s1, 0, 127, s1_label)) {
+            if (ImGui::VSliderInt("##S1", ImVec2(40, 140), &s1, 0, 127, s1_label)) {
                 hardware->simulateSliderPot(0, s1);
             }
-            ImGui::SameLine(0, 0);
-            ImGui::Dummy(ImVec2(slider_width - 50, 0));
-            ImGui::SameLine(0, 0);
-            if (ImGui::VSliderInt("##S2", ImVec2(50, 180), &s2, 0, 127, s2_label)) {
+            ImGui::SameLine(0, 8);
+            if (ImGui::VSliderInt("##S2", ImVec2(40, 140), &s2, 0, 127, s2_label)) {
                 hardware->simulateSliderPot(1, s2);
             }
-            ImGui::SameLine(0, 0);
-            ImGui::Dummy(ImVec2(slider_width - 50, 0));
-            ImGui::SameLine(0, 0);
-            if (ImGui::VSliderInt("##S3", ImVec2(50, 180), &s3, 0, 127, s3_label)) {
+            ImGui::SameLine(0, 8);
+            if (ImGui::VSliderInt("##S3", ImVec2(40, 140), &s3, 0, 127, s3_label)) {
                 hardware->simulateSliderPot(2, s3);
             }
-            ImGui::SameLine(0, 0);
-            ImGui::Dummy(ImVec2(slider_width - 50, 0));
-            ImGui::SameLine(0, 0);
-            if (ImGui::VSliderInt("##S4", ImVec2(50, 180), &s4, 0, 127, s4_label)) {
+            ImGui::SameLine(0, 8);
+            if (ImGui::VSliderInt("##S4", ImVec2(40, 140), &s4, 0, 127, s4_label)) {
                 hardware->simulateSliderPot(3, s4);
             }
 
+            ImGui::EndGroup();
             ImGui::EndGroup();
             ImGui::Separator();
 
@@ -775,14 +771,11 @@ int main(int argc, char* argv[]) {
             }
 
             ImGui::EndGroup();
-            ImGui::End();
-        }
+                    ImGui::EndTabItem();
+                }
 
-        // Song Data Explorer window
-        {
-            ImGui::SetNextWindowPos(ImVec2(850, 0), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(430, 520), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Song Data Explorer", nullptr, ImGuiWindowFlags_NoCollapse);
+                // Tab 2: Song Data Explorer
+                if (ImGui::BeginTabItem("Song Data")) {
 
             ImGui::Text("Navigate the entire song structure");
             ImGui::Separator();
@@ -871,14 +864,11 @@ int main(int argc, char* argv[]) {
             int total_events = 15 * 32 * 8 * 16;
             ImGui::Text("Total capacity: %d events", total_events);
 
-            ImGui::End();
-        }
+                    ImGui::EndTabItem();
+                }
 
-        // Log window
-        {
-            ImGui::SetNextWindowPos(ImVec2(0, 530), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(1280, 190), ImGuiCond_FirstUseEver);
-            ImGui::Begin("System Log", nullptr, ImGuiWindowFlags_NoCollapse);
+                // Tab 3: System Log
+                if (ImGui::BeginTabItem("Log")) {
 
             if (ImGui::Button("Clear Log")) {
                 hardware->clearLog();
@@ -899,14 +889,11 @@ int main(int argc, char* argv[]) {
                 ImGui::SetScrollHereY(1.0f);
 
             ImGui::EndChild();
-            ImGui::End();
-        }
+                    ImGui::EndTabItem();
+                }
 
-        // Lua Mode Editor window
-        {
-            ImGui::SetNextWindowPos(ImVec2(1300, 0), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(700, 900), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Lua Mode Editor", nullptr, ImGuiWindowFlags_NoCollapse);
+                // Tab 4: Lua Mode Editor
+                if (ImGui::BeginTabItem("Editor")) {
 
             // Static state for editor
             static int selected_mode = 1;  // Default to mode 1 (drums)
@@ -935,46 +922,59 @@ int main(int argc, char* argv[]) {
             // Load button
             ImGui::SameLine();
             if (ImGui::Button("Load from Disk") || !file_loaded) {
-                // Find the mode file
+                // Find any mode file matching NN_*.lua pattern
                 std::string mode_path;
+                bool found_file = false;
 
-                // Try to find the actual file (handle different naming patterns)
-                const char* mode_names[] = {
-                    "song", "drums", "acid", "chords", "mode4", "mode5", "mode6", "mode7",
-                    "mode8", "mode9", "mode10", "mode11", "mode12", "mode13", "mode14"
-                };
+                // Search for files matching the pattern
+                char pattern[64];
+                snprintf(pattern, sizeof(pattern), "modes/%02d_", selected_mode);
+                std::string pattern_str(pattern);
 
-                char filename_buf[256];
-                snprintf(filename_buf, sizeof(filename_buf), "modes/%02d_%s.lua",
-                         selected_mode, mode_names[selected_mode]);
-                mode_path = filename_buf;
+                // Use filesystem to find matching files
+                namespace fs = std::filesystem;
+                if (fs::exists("modes") && fs::is_directory("modes")) {
+                    for (const auto& entry : fs::directory_iterator("modes")) {
+                        if (entry.is_regular_file()) {
+                            std::string filename = entry.path().filename().string();
+                            // Check if filename starts with "NN_" and ends with ".lua"
+                            if (filename.find(pattern_str.substr(6)) == 0 &&
+                                filename.size() >= 4 && filename.substr(filename.size() - 4) == ".lua") {
+                                mode_path = entry.path().string();
+                                found_file = true;
+                                break;  // Use first matching file
+                            }
+                        }
+                    }
+                }
 
-                // Try to open and read the file
-                std::ifstream file(mode_path);
-                if (file.is_open()) {
-                    std::stringstream buffer;
-                    buffer << file.rdbuf();
-                    std::string content = buffer.str();
+                if (found_file) {
+                    // Try to open and read the file
+                    std::ifstream file(mode_path);
+                    if (file.is_open()) {
+                        std::stringstream buffer;
+                        buffer << file.rdbuf();
+                        std::string content = buffer.str();
 
-                    // Copy to buffer (with safety check)
-                    size_t copy_size = std::min(content.size(), sizeof(lua_code_buffer) - 1);
-                    memcpy(lua_code_buffer, content.c_str(), copy_size);
-                    lua_code_buffer[copy_size] = '\0';
+                        // Copy to buffer (with safety check)
+                        size_t copy_size = std::min(content.size(), sizeof(lua_code_buffer) - 1);
+                        memcpy(lua_code_buffer, content.c_str(), copy_size);
+                        lua_code_buffer[copy_size] = '\0';
 
-                    file_loaded = true;
-                    current_filename = mode_path;
-                    last_saved_filename = mode_path;
-                    system_log.push_back("[Editor] Loaded: " + mode_path);
+                        file_loaded = true;
+                        current_filename = mode_path;
+                        last_saved_filename = mode_path;
+                        hardware->addLog("[Editor] Loaded: " + mode_path);
+                    }
                 } else {
                     // File doesn't exist - create template
                     const char* template_code =
                         "-- GRUVBOK Lua Mode Template\n"
                         "-- Mode: %d\n\n"
+                        "MODE_NAME = \"Mode %d\"\n\n"
                         "function init(context)\n"
                         "    -- Called once when mode loads\n"
-                        "    -- context.tempo = BPM\n"
-                        "    -- context.mode_number = 0-14\n"
-                        "    -- context.midi_channel = 0-14\n"
+                        "    print(\"Mode %d initialized on channel \" .. context.midi_channel)\n"
                         "end\n\n"
                         "function process_event(track, event)\n"
                         "    -- Called for each event during playback\n"
@@ -985,13 +985,15 @@ int main(int argc, char* argv[]) {
                         "        -- Send MIDI note\n"
                         "        note(60, 100)  -- Middle C, velocity 100\n"
                         "        off(60, 100)   -- Note off after 100ms\n"
-                        "    end\n"
+                        "    end\n\n"
+                        "    return {}\n"
                         "end\n";
 
-                    snprintf(lua_code_buffer, sizeof(lua_code_buffer), template_code, selected_mode);
+                    snprintf(lua_code_buffer, sizeof(lua_code_buffer), template_code,
+                             selected_mode, selected_mode, selected_mode);
                     file_loaded = true;
-                    current_filename = mode_path;
-                    system_log.push_back("[Editor] Created template for mode " + std::to_string(selected_mode));
+                    current_filename = ""; // No file yet
+                    hardware->addLog("[Editor] No file found for mode " + std::to_string(selected_mode) + " - showing template");
                 }
             }
 
@@ -1004,9 +1006,9 @@ int main(int argc, char* argv[]) {
                     file << lua_code_buffer;
                     file.close();
                     last_saved_filename = current_filename;
-                    system_log.push_back("[Editor] Saved: " + current_filename);
+                    hardware->addLog("[Editor] Saved: " + current_filename);
                 } else {
-                    system_log.push_back("[Editor] ERROR: Failed to save " + current_filename);
+                    hardware->addLog("[Editor] ERROR: Failed to save " + current_filename);
                 }
             }
 
@@ -1022,7 +1024,7 @@ int main(int argc, char* argv[]) {
                     // Reload the mode
                     LuaContext* lua_mode = mode_loader->getMode(selected_mode);
                     if (lua_mode) {
-                        if (lua_mode->loadFile(current_filename)) {
+                        if (lua_mode->loadScript(current_filename)) {
                             // Reinit with current tempo
                             LuaInitContext context;
                             context.tempo = engine->getTempo();
@@ -1030,13 +1032,13 @@ int main(int argc, char* argv[]) {
                             context.midi_channel = selected_mode;
                             lua_mode->callInit(context);
 
-                            system_log.push_back("[Editor] Hot-reloaded mode " + std::to_string(selected_mode));
+                            hardware->addLog("[Editor] Hot-reloaded mode " + std::to_string(selected_mode));
                         } else {
-                            system_log.push_back("[Editor] ERROR: Failed to reload mode " + std::to_string(selected_mode));
+                            hardware->addLog("[Editor] ERROR: Failed to reload mode " + std::to_string(selected_mode));
                         }
                     }
                 } else {
-                    system_log.push_back("[Editor] ERROR: Failed to save before reload");
+                    hardware->addLog("[Editor] ERROR: Failed to save before reload");
                 }
             }
 
@@ -1050,6 +1052,12 @@ int main(int argc, char* argv[]) {
                 ImVec2(-1, -1),
                 ImGuiInputTextFlags_AllowTabInput);
             ImGui::PopFont();
+
+                    ImGui::EndTabItem();
+                }
+
+                ImGui::EndTabBar();
+            }
 
             ImGui::End();
         }

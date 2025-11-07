@@ -32,7 +32,7 @@ set_target_properties(test_song
 )
 
 add_executable(test_midi_scheduler test_midi_scheduler.cpp)
-target_link_libraries(test_midi_scheduler PRIVATE gruvbok_core gruvbok_hardware)
+target_link_libraries(test_midi_scheduler PRIVATE gruvbok_hardware)  # Includes gruvbok_core transitively
 target_include_directories(test_midi_scheduler PRIVATE ${CMAKE_SOURCE_DIR}/src)
 add_test(NAME MidiSchedulerTests COMMAND test_midi_scheduler)
 set_target_properties(test_midi_scheduler
@@ -41,7 +41,7 @@ set_target_properties(test_midi_scheduler
 )
 
 add_executable(test_engine test_engine.cpp)
-target_link_libraries(test_engine PRIVATE gruvbok_core gruvbok_hardware gruvbok_lua ${LUA_LIBRARIES})
+target_link_libraries(test_engine PRIVATE gruvbok_lua ${LUA_LIBRARIES})  # Includes gruvbok_hardware and gruvbok_core transitively
 target_include_directories(test_engine PRIVATE ${CMAKE_SOURCE_DIR}/src ${LUA_INCLUDE_DIR})
 add_test(NAME EngineTests COMMAND test_engine)
 set_target_properties(test_engine
@@ -50,7 +50,7 @@ set_target_properties(test_engine
 )
 
 add_executable(test_lua_integration test_lua_integration.cpp)
-target_link_libraries(test_lua_integration PRIVATE gruvbok_core gruvbok_lua ${LUA_LIBRARIES})
+target_link_libraries(test_lua_integration PRIVATE gruvbok_lua ${LUA_LIBRARIES})  # Includes gruvbok_hardware and gruvbok_core transitively
 target_include_directories(test_lua_integration PRIVATE ${CMAKE_SOURCE_DIR}/src ${LUA_INCLUDE_DIR})
 add_test(NAME LuaIntegrationTests COMMAND test_lua_integration)
 set_target_properties(test_lua_integration

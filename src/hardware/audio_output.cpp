@@ -111,6 +111,23 @@ bool AudioOutput::loadSoundFont(const std::string& soundfont_path) {
     }
 
     std::cout << "[AudioOutput] SoundFont loaded successfully (ID: " << impl_->soundfont_id << ")\n";
+
+    // Set up default instruments for GRUVBOK modes
+    // Mode 1 (Channel 1) = Drums - need to select percussion bank
+    fluid_synth_bank_select(impl_->synth, 1, 128);  // Bank 128 = GM Percussion
+    fluid_synth_program_change(impl_->synth, 1, 0);  // Program 0 = Standard Kit
+    std::cout << "[AudioOutput] Channel 1 (Mode 1): GM Drum Kit\n";
+
+    // Mode 2 (Channel 2) = Acid Bass - synth bass sound
+    fluid_synth_program_change(impl_->synth, 2, 38);  // Program 38 = Synth Bass 1
+    std::cout << "[AudioOutput] Channel 2 (Mode 2): Synth Bass\n";
+
+    // Mode 3 (Channel 3) = Chords - electric piano
+    fluid_synth_program_change(impl_->synth, 3, 4);  // Program 4 = Electric Piano 1
+    std::cout << "[AudioOutput] Channel 3 (Mode 3): Electric Piano\n";
+
+    // Other channels default to Acoustic Grand Piano (program 0)
+
     return true;
 #else
     std::cerr << "[AudioOutput] FluidSynth not available\n";
