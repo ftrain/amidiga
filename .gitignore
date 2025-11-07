@@ -7,7 +7,7 @@ lib/lua/*.c  # But ignore Lua source files (users download these)
 lib/lua/*.h
 out/
 cmake-build-*/
-
+*/.pio/
 # Compiled files
 *.o
 *.obj
