@@ -67,15 +67,17 @@ private:
     int current_track_;
     int current_step_;  // 0-15
 
-    // Song mode (mode 0) - cycles through all patterns
-    int song_mode_pattern_;  // Current pattern in song mode
+    // Song mode (mode 0) - runs at 1/16th speed (each step = 1 full pattern)
+    int song_mode_step_;     // Current step in Mode 0 (0-15, advances every 16 normal steps)
+    int song_mode_pattern_;  // Current pattern number from Mode 0's S1 value
 
     uint32_t last_step_time_;
     uint32_t step_interval_ms_;
 
-    // MIDI clock tracking (24 PPQN)
-    uint32_t last_clock_time_;
-    uint32_t clock_interval_ms_;
+    // MIDI clock tracking (24 PPQN) - use absolute timing to prevent drift
+    uint32_t clock_start_time_;     // When playback started (absolute time)
+    uint32_t clock_pulse_count_;    // Number of clock pulses sent
+    double clock_interval_ms_;      // Interval between clock pulses (float for precision)
 
     // LED tempo indicator with patterns
     LEDPattern led_pattern_;

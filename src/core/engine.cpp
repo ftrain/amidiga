@@ -14,11 +14,13 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , current_pattern_(0)
     , current_track_(0)
     , current_step_(0)
+    , song_mode_step_(0)
     , song_mode_pattern_(0)
     , last_step_time_(0)
     , step_interval_ms_(0)
-    , last_clock_time_(0)
-    , clock_interval_ms_(0)
+    , clock_start_time_(0)
+    , clock_pulse_count_(0)
+    , clock_interval_ms_(0.0)
     , led_pattern_(LEDPattern::TEMPO_BEAT)
     , led_on_(false)
     , led_brightness_(255)
@@ -41,8 +43,12 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
 void Engine::start() {
     is_playing_ = true;
     current_step_ = 0;
+    song_mode_step_ = 0;  // Reset Mode 0 position
     last_step_time_ = hardware_->getMillis();
-    last_clock_time_ = last_step_time_;
+
+    // Reset MIDI clock timing (absolute timing to prevent drift)
+    clock_start_time_ = last_step_time_;
+    clock_pulse_count_ = 0;
 
     // Send MIDI start message
     scheduler_->sendStart();
@@ -81,10 +87,15 @@ void Engine::update() {
 
     uint32_t current_time = hardware_->getMillis();
 
-    // Send MIDI clock messages at 24 PPQN
-    if (current_time - last_clock_time_ >= clock_interval_ms_) {
+    // Send MIDI clock messages at 24 PPQN using absolute timing to prevent drift
+    // Calculate when the next clock pulse should occur
+    uint32_t next_clock_time = clock_start_time_ + (uint32_t)(clock_pulse_count_ * clock_interval_ms_);
+
+    // Send clock pulses for all that are due (can catch up if we fell behind)
+    while (current_time >= next_clock_time) {
         sendMidiClock();
-        last_clock_time_ = current_time;
+        clock_pulse_count_++;
+        next_clock_time = clock_start_time_ + (uint32_t)(clock_pulse_count_ * clock_interval_ms_);
     }
 
     // Check if it's time for next step
@@ -95,9 +106,9 @@ void Engine::update() {
         // Advance step
         current_step_ = (current_step_ + 1) % 16;
 
-        // In song mode (mode 0), advance pattern when we loop back to step 0
-        if (current_mode_ == 0 && current_step_ == 0) {
-            song_mode_pattern_ = (song_mode_pattern_ + 1) % Mode::NUM_PATTERNS;
+        // Mode 0 runs at 1/16th speed: advance song_mode_step_ when current_step_ wraps to 0
+        if (current_step_ == 0) {
+            song_mode_step_ = (song_mode_step_ + 1) % 16;
         }
     }
 }
@@ -160,9 +171,9 @@ void Engine::calculateStepInterval() {
 void Engine::calculateClockInterval() {
     // MIDI clock runs at 24 PPQN (pulses per quarter note)
     // Formula: (60000 / BPM) / 24 = ms per clock pulse
-    // At 120 BPM: 60000 / 120 / 24 = 20.833ms per clock
-    clock_interval_ms_ = (60000 / tempo_) / 24;
-    if (clock_interval_ms_ < 1) clock_interval_ms_ = 1;  // Minimum 1ms
+    // At 120 BPM: 60000 / 120 / 24 = 20.833333... ms per clock
+    // Use double precision to prevent rounding errors
+    clock_interval_ms_ = (60000.0 / static_cast<double>(tempo_)) / 24.0;
 }
 
 void Engine::sendMidiClock() {
@@ -176,10 +187,11 @@ void Engine::processStep() {
     int pattern_to_play;
 
     if (current_mode_ == 0) {
-        // Song mode: read pattern number from mode 0, track 0, current step
+        // Song mode: Mode 0 runs at 1/16th speed (each step = 1 full pattern)
+        // Read pattern number from mode 0, track 0, song_mode_step_ (not current_step_!)
         Mode& mode0 = song_->getMode(0);
         Pattern& song_pattern = mode0.getPattern(0);  // Mode 0 always uses pattern 0
-        const Event& step_event = song_pattern.getEvent(0, current_step_);  // Track 0
+        const Event& step_event = song_pattern.getEvent(0, song_mode_step_);  // Use song_mode_step_ (0-15, advances every 16 steps)
 
         if (step_event.getSwitch()) {
             // S1 encodes pattern number (0-127 maps to 0-31)

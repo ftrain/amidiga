@@ -532,8 +532,8 @@ int main(int argc, char* argv[]) {
             char mode_str[16], tempo_str[16], pattern_str[16], track_str[16];
             snprintf(mode_str, sizeof(mode_str), "%d", mode_val);
             snprintf(tempo_str, sizeof(tempo_str), "%d BPM", tempo_val);
-            snprintf(pattern_str, sizeof(pattern_str), "%d", pattern_val);
-            snprintf(track_str, sizeof(track_str), "%d", track_val);
+            snprintf(pattern_str, sizeof(pattern_str), "%d", pattern_val + 1);  // Display as 1-32
+            snprintf(track_str, sizeof(track_str), "%d", track_val + 1);        // Display as 1-8
 
             float knob_width = 100.0f;
 
@@ -602,7 +602,7 @@ int main(int argc, char* argv[]) {
             ImGui::Separator();
 
             // Pattern grid visualization
-            ImGui::Text("Pattern Grid (Track %d)", engine->getCurrentTrack());
+            ImGui::Text("Pattern Grid (Track %d)", engine->getCurrentTrack() + 1);  // Display as 1-8
             ImGui::BeginGroup();
 
             Mode& editing_mode = song->getMode(engine->getCurrentMode());
@@ -714,7 +714,7 @@ int main(int argc, char* argv[]) {
 
             ImGui::Text("Current Position (updates with knobs):");
             ImGui::TextColored(ImVec4(0.4f, 0.8f, 0.4f, 1.0f), "Mode: %d  Pattern: %d  Track: %d",
-                             explorer_mode, explorer_pattern, explorer_track);
+                             explorer_mode, explorer_pattern + 1, explorer_track + 1);  // Display patterns as 1-32, tracks as 1-8
 
             ImGui::Separator();
 
@@ -723,7 +723,7 @@ int main(int argc, char* argv[]) {
             Pattern& exp_pattern = exp_mode.getPattern(explorer_pattern);
             Track& exp_track = exp_pattern.getTrack(explorer_track);
 
-            ImGui::Text("Events: Mode %d, Pattern %d, Track %d", explorer_mode, explorer_pattern, explorer_track);
+            ImGui::Text("Events: Mode %d, Pattern %d, Track %d", explorer_mode, explorer_pattern + 1, explorer_track + 1);  // Display patterns as 1-32, tracks as 1-8
 
             // Table with event data
             if (ImGui::BeginTable("EventTable", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
