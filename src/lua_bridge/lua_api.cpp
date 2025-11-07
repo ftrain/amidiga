@@ -1,4 +1,5 @@
 #include "lua_api.h"
+#include "../core/engine.h"
 #include <cstring>
 
 namespace gruvbok {
@@ -9,6 +10,7 @@ void LuaAPI::registerAPI(lua_State* L) {
     lua_register(L, "off", lua_off);
     lua_register(L, "cc", lua_cc);
     lua_register(L, "stopall", lua_stopall);
+    lua_register(L, "led", lua_led);
 }
 
 void LuaAPI::setChannel(lua_State* L, uint8_t channel) {
@@ -26,6 +28,18 @@ std::vector<ScheduledMidiEvent>* LuaAPI::getEventBuffer(lua_State* L) {
 void LuaAPI::setEventBuffer(lua_State* L, std::vector<ScheduledMidiEvent>* buffer) {
     lua_pushlightuserdata(L, buffer);
     lua_setfield(L, LUA_REGISTRYINDEX, EVENT_BUFFER_KEY);
+}
+
+Engine* LuaAPI::getEngine(lua_State* L) {
+    lua_getfield(L, LUA_REGISTRYINDEX, ENGINE_KEY);
+    void* ptr = lua_touserdata(L, -1);
+    lua_pop(L, 1);
+    return static_cast<Engine*>(ptr);
+}
+
+void LuaAPI::setEngine(lua_State* L, Engine* engine) {
+    lua_pushlightuserdata(L, engine);
+    lua_setfield(L, LUA_REGISTRYINDEX, ENGINE_KEY);
 }
 
 // ============================================================================
@@ -120,6 +134,25 @@ int LuaAPI::lua_stopall(lua_State* L) {
     auto* buffer = getEventBuffer(L);
     if (buffer) {
         buffer->push_back(MidiScheduler::allNotesOff(channel, delta));
+    }
+
+    return 0;
+}
+
+// led(pattern_name, [brightness])
+int LuaAPI::lua_led(lua_State* L) {
+    int n = lua_gettop(L);
+    if (n < 1) {
+        return luaL_error(L, "led() requires at least 1 argument: pattern_name");
+    }
+
+    const char* pattern_name = luaL_checkstring(L, 1);
+    uint8_t brightness = (n >= 2) ? static_cast<uint8_t>(luaL_checkinteger(L, 2)) : 255;
+
+    // Get engine from registry
+    auto* engine = getEngine(L);
+    if (engine) {
+        engine->triggerLEDByName(pattern_name, brightness);
     }
 
     return 0;

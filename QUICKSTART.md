@@ -1,21 +1,21 @@
 # GRUVBOK Quick Start
 
-## TL;DR - Get It Running Fast
+## Get Running in 5 Minutes
 
 ```bash
 # 1. Install dependencies (one-time setup)
-brew install cmake lua sdl2
+brew install cmake lua sdl2    # macOS
+# or
+apt install cmake lua5.4 libsdl2-dev  # Linux
 
 # 2. Build
-./build.sh
+cmake -B build && cmake --build build
 
-# 3. Run the GUI simulator (from project root)
-./build/bin/gruvbok
+# 3. Run the GUI simulator
+bin/gruvbok
 ```
 
-**Note:** RtMidi and Dear ImGui are bundled - you only need to install cmake, lua, and sdl2!
-
-Press `Ctrl+C` to quit.
+**Note:** RtMidi and Dear ImGui are bundled - you only need cmake, lua, and sdl2!
 
 ## What You'll See
 
@@ -36,10 +36,10 @@ GRUVBOK opens a **GUI window** showing a hardware simulator:
 - Click to program steps
 
 **Slider Pots (S1-S4):**
-- 4 vertical sliders
-- S1: Velocity (for drums)
-- S2: Note length
-- S3-S4: Mode-specific parameters
+- 4 vertical sliders (mode-specific labels shown in GUI)
+- **Mode 1 (Drums):** S1=Velocity, S2=Note Length
+- **Mode 2 (Acid):** S1=Pitch, S2=Length, S3=Portamento, S4=Filter
+- **Mode 3 (Chords):** S1=Root Note, S2=Chord Type, S3=Velocity, S4=Length
 
 **Pattern Grid:**
 - Visual representation of the current track
@@ -47,10 +47,11 @@ GRUVBOK opens a **GUI window** showing a hardware simulator:
 - Red = currently playing step
 - Click to toggle steps on/off
 
-The GUI plays a demo drum pattern automatically:
-- Kick on beats 1, 2, 3, 4
-- Snare on beats 2 and 4
-- Hi-hat on every 8th note
+**Create patterns by:**
+1. Click step buttons (B1-B16) to toggle events on/off
+2. Move sliders (S1-S4) before clicking buttons to set parameters
+3. Change Mode/Pattern/Track with rotary knobs (R1-R4)
+4. Save your song with the "Save Song" button (saves to `/tmp/gruvbok_song_*.json`)
 
 ## Hearing Sound
 
@@ -180,23 +181,22 @@ pwd  # Should show .../gruvbok
 
 ## Status
 
-✅ **Phase 1 Complete** - Core foundation working!
+✅ **Desktop Implementation Complete!**
 
-The system can:
-- ✅ Store patterns in memory (Song/Mode/Pattern/Track/Event)
-- ✅ Loop through Events at specified tempo
-- ✅ Call Lua modes to generate MIDI
-- ✅ Send MIDI out to macOS
-- ✅ Play a test drum pattern
+**Working:**
+- ✅ Full GUI with pattern grid visualization
+- ✅ Real-time pattern editing (click to toggle steps)
+- ✅ Save/Load songs (JSON format, `/tmp/gruvbok_song_*.json`)
+- ✅ 15 musical modes (drums, acid, chords, + 11 experimental)
+- ✅ Multi-timbral playback (all modes play simultaneously)
+- ✅ Song Data Explorer window
+- ✅ System log with MIDI event monitoring
+- ✅ Full test suite (56/56 tests passing)
 
-Not yet implemented:
-- ⏳ Interactive keyboard input
-- ⏳ Real-time pattern editing
-- ⏳ Save/load songs
-- ⏳ More musical modes
-- ⏳ Teensy hardware port
+**Pending:**
+- ⏳ Teensy 4.1 hardware testing (firmware ready, needs physical device)
 
-See **DEVELOPMENT_ROADMAP.md** for the full plan.
+See **CLAUDE.md** for complete status and **docs/TEENSY_DEPLOYMENT_GUIDE.md** for hardware deployment.
 
 ## Have Fun!
 

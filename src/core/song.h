@@ -40,9 +40,9 @@ public:
     void setMode(int mode_num, const Mode& mode);
     void clear();
 
-    // Persistence (stubbed for now)
-    bool save(const std::string& filepath);
-    bool load(const std::string& filepath);
+    // Persistence
+    bool save(const std::string& filepath, const std::string& name = "GRUVBOK Song", int tempo = 120);
+    bool load(const std::string& filepath, std::string* out_name = nullptr, int* out_tempo = nullptr);
 
     static constexpr int NUM_MODES = 15;
 

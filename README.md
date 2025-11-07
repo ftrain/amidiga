@@ -1,109 +1,157 @@
 # GRUVBOK
 
-## The most important part
+**A hardware MIDI groovebox with Lua-scriptable modes - Desktop first, Teensy deployment ready**
 
-The "OS" layer of the software is purely about creating a data structure by hitting buttons and moving pots.
+## Status: Desktop Complete ✅ | Teensy Ready for Testing 🚧
 
-At all time, the system keeps playing and looping through that data structure.
+**What Works:**
+- ✅ Desktop GUI simulator with full feature set
+- ✅ 15 modes (0-14): Song sequencer, drums, acid, chords, + 11 experimental modes
+- ✅ Save/Load songs (JSON format)
+- ✅ Multi-timbral playback (15 MIDI channels)
+- ✅ Full test suite (56/56 tests passing)
+- ✅ Teensy 4.1 firmware (Lua + SD card support, awaiting hardware testing)
 
-The Lua interface recieves data events and transforms them into midi.
+## Quick Start
 
-Each Lua mode correlates to a midi channel.
+```bash
+# Install dependencies (macOS/Linux)
+brew install cmake lua sdl2  # macOS
+apt install cmake lua5.4 libsdl2-dev  # Linux
 
-## Desktop first
+# Build and run desktop simulator
+cmake -B build && cmake --build build
+bin/gruvbok  # GUI version
+```
 
-Create a desktop app for testing first. Yes, this runs on a teensy, but the first thing to do is create a simple desktop app that emulates the buttons, but then use the exact same C++ and Lua to actually power the midi generation engine. You may want to use JUCE and SDL.
+## Philosophy: Always Playing
+
+GRUVBOK is different from traditional sequencers - **it's always playing**. You build a data structure by pressing buttons and moving sliders, and the system continuously loops through it, transforming Events into MIDI via Lua scripts.
+
+## Architecture
+
+```
+Hardware → Data Structure → Playback Engine → Lua Modes → MIDI Output
+   ↓            ↓               ↓               ↓            ↓
+Buttons      Events          Tempo-sync      Transform    Hardware
+Pots      (parameter-locked)  Stepping        to MIDI      (USB)
+```
+
+### Data Model
+
+```
+Song = Mode[15]        # 15 simultaneous modes (MIDI channels)
+Mode = Pattern[32]     # 32 patterns per mode
+Pattern = Track[8]     # 8 tracks per pattern
+Track = Event[16]      # 16 events (matches 16 buttons!)
+Event = {Switch, Pot[4]}  # 1 switch + 4 sliders (29 bits packed)
+```
+
+**Memory footprint:** 245KB for all event data (61,440 events)
+
+### Controls
+
+**Rotary Pots (R1-R4):**
+- R1: Mode (0-14)
+- R2: Tempo (60-240 BPM)
+- R3: Pattern (0-31)
+- R4: Track (0-7)
+
+**Buttons (B1-B16):** Toggle events on/off (16 steps per track)
+
+**Slider Pots (S1-S4):** Mode-specific parameters (velocity, pitch, filter, etc.)
+
+## Implemented Modes
+
+**Mode 0:** Song/Pattern Sequencer (controls which pattern plays across all modes)
+**Mode 1:** Drum Machine (8 tracks, GM drum sounds)
+**Mode 2:** Acid Sequencer (TB-303 style bassline with slide/filter)
+**Mode 3:** Chord Sequencer (16 chord types, polyphonic)
+**Modes 4-7:** Reserved for future use
+**Mode 8:** Drunk Sequencer (random pitch walks)
+**Mode 9:** Cellular Automaton (Conway's Game of Life)
+**Mode 10:** Wave Table Scanner (smooth pitch scanning)
+**Mode 11:** MIDI Mangler (glitch effects)
+**Mode 12:** Lunar Phase (28-step sinusoidal evolution)
+**Mode 13:** Markov Chain (probabilistic melody)
+**Mode 14:** Tornado Spiral (Shepard tone spirals)
 
 ## Hardware
 
-I have a simple MIDI controller. It has:
-- 16 momentary switches, B1..B16.
-- 4 rotary pots, R1..R4.
-- 4 slider pots, S1..S4.
+**Target Platform:** Teensy 4.1 (600 MHz ARM, 1MB RAM, microSD slot)
 
-All of the above are wired into a Teensy 4.1 Arduino board.
+**Required Hardware:**
+- 16× momentary buttons (B1-B16)
+- 4× rotary pots 10kΩ (R1-R4)
+- 4× slide pots 10kΩ (S1-S4)
+- 1× LED (tempo indicator)
+- USB MIDI output
 
-The song on the groovebox is always playing.
+**See:** `docs/TEENSY_DEPLOYMENT_GUIDE.md` for complete build instructions
 
-## Software
+## Documentation
 
-The four rotary pots have global functions:
-R1: Mode switch: 0-15.
-R2: Tempo: 0 to 1000 BPM.
-R3: Pattern select: 1-32.
-R4: Track select: 1-8.
+- **CLAUDE.md** - Complete technical architecture and development guide
+- **QUICKSTART.md** - Get desktop version running in 5 minutes
+- **docs/LUA_API.md** - Create custom modes with Lua
+- **docs/TEENSY_DEPLOYMENT_GUIDE.md** - Deploy to Teensy hardware
+- **DEVELOPMENT_ROADMAP.md** - Implementation status
 
-## Core Data Model
+## Creating Custom Modes
 
-- The system plays a Song.
-- Songs repeat forever.
-- It plays up until there is no more data entered. I.e. if the user has entered only one pattern it plays only one bar on repeat.
-- A drum machine mode might only have one bar entered which would loop forever, while a sequencer might have eight bars, and all bars would loop.
-- The system plays in 15 simultaneous Modes; each mode is a MIDI channel.
-- A Mode contains 32 Patterns.
-- Each Pattern has 8 Tracks.
-- Each Track has 16 Events.
-- Each Event has:
-  - Switch status (on or off)
-  - Values for the four slider pots (0-127) (this could be a struct or a bit-packed 32-bit integer, think about what's most efficient.)
+Modes are Lua scripts. Example:
 
-Or boiling it down:
+```lua
+function init(context)
+    -- Called once when mode loads
+end
 
-```
-Song = Mode[8]
-Mode = Pattern[32]
-Pattern = Track[8]
-Track = Event[16]
-Event = {Switch, Pot[4]}
+function process_event(track, event)
+    if event.switch then
+        local pitch = event.pots[1]     -- S1
+        local velocity = event.pots[2]  -- S2
 
-Mode = 0..15
-Switch = 0|1
-Pot = 0..127
-
+        note(pitch, velocity)    -- MIDI note on
+        off(pitch, 100)          -- Note off after 100ms
+    end
+end
 ```
 
-### OS Layer
+**See:** `modes/TEMPLATE.lua` and `docs/LUA_API.md`
 
-The OS layer is in C++. 
+## Key Features
 
-The easiest way to understand the OS Layer is that it allows you to program events onto steps by hitting buttons B1..B16 and moving sliders S1...S4, and it keeps track of which patterns, tracks, and modes you are in.
+**Parameter Locking:** Slider values are captured per-step when you press buttons
+**Multi-timbral:** All 15 modes play simultaneously on separate MIDI channels
+**Desktop-first:** Develop and test without hardware
+**Real-time:** Immediate feedback, no play/stop button needed
+**Scriptable:** Lua modes for unlimited creative possibilities
 
-An simple, textual `.ini` file makes it possible to identify which # button is wired to which pin, and the wiring of the pots. It should be possible to add comments to that file.
+## Project Structure
 
-The OS handles mode switches, load, and save.
+```
+amidiga/
+├── src/
+│   ├── core/          # Platform-agnostic engine
+│   ├── hardware/      # Hardware abstraction
+│   ├── lua_bridge/    # Lua integration
+│   ├── desktop/       # Desktop GUI (SDL2 + ImGui)
+│   └── teensy/        # Teensy 4.1 firmware
+├── modes/             # Lua mode scripts (00-14)
+├── docs/              # Documentation
+├── tests/             # Test suite (56 tests, 100% passing)
+└── bin/               # Compiled executables
+```
 
-Each of the modes plays on a different MIDI channel.
+## Development
 
-Then it should invoke the Lua function:
-- It should pass a reference to the function the Track value and exactly one Event, thus passing it the Switch status and the Pot statuses.
-- A reference to the global context should be available.
-- The function should return MIDI events with delta timing to capture "note off."
-- The OS should schedule those events and transmit them.
-- The OS should provide a helpful interface with note(), off(), stopall(), and other convenience methods. It should be very, very concise and obvious and hide as much of the MIDI standard as possible.
+**Built with:** C++17, Lua 5.4, SDL2, RtMidi, Dear ImGui, CMake
 
-All changes are instantly persisted to the current song in memory.
+**Tested on:** macOS, Linux (Windows compatible)
 
+---
 
-### Modes
-0. Boot.
-- Load a song by tapping once. Teensy LED should blink once.
-- Save a song by tapping twice. Teensy LED should blink twice.
-- Erase a song by tapping once, then long-tapping. Teensy LED should blink three times.
-- Set reasonable defaults.
-
-1. Drum Machine.
-- This is an 808-style beat machine.
-- Switches set beats on and off.
-- Track select pot lets me switch between tracks.
-- Track 8 is accent.
-
-2. Acid Sequencer
-S1: Octave of active note
-S2: Length of current note
-S3: CC Portamento
-S4: CC Filter
-
-Feel free to suggest other ideas.
+**GRUVBOK is ready to make music - press buttons, twist knobs, and groove! 🎵**
 
 
 

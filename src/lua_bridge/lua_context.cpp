@@ -128,6 +128,10 @@ void LuaContext::setChannel(uint8_t channel) {
     LuaAPI::setChannel(L_, channel);
 }
 
+void LuaContext::setEngine(Engine* engine) {
+    LuaAPI::setEngine(L_, engine);
+}
+
 bool LuaContext::functionExists(const char* name) {
     lua_getglobal(L_, name);
     bool exists = lua_isfunction(L_, -1);
@@ -139,6 +143,24 @@ void LuaContext::setError(const std::string& error) {
     error_message_ = error;
     is_valid_ = false;
     std::cerr << "LuaContext error: " << error << std::endl;
+}
+
+std::string LuaContext::getModeName() const {
+    if (!is_valid_) {
+        return "Invalid";
+    }
+
+    // Try to read MODE_NAME global variable
+    lua_getglobal(L_, "MODE_NAME");
+
+    if (lua_isstring(L_, -1)) {
+        std::string name = lua_tostring(L_, -1);
+        lua_pop(L_, 1);
+        return name;
+    }
+
+    lua_pop(L_, 1);
+    return "Unnamed";  // Default if MODE_NAME not defined
 }
 
 } // namespace gruvbok

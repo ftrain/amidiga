@@ -23,6 +23,9 @@
   B1-B16: Toggle beats on/off for current track
 ]]--
 
+-- Mode metadata
+MODE_NAME = "Drums"
+
 -- MIDI note assignments for drum sounds (General MIDI Drum Map)
 local drum_map = {
   36,  -- Track 1: Kick (C1)
@@ -43,16 +46,14 @@ function init(context)
 end
 
 function process_event(track, event)
-  local midi = {}
-
   -- Skip if switch is not on
   if not event.switch then
-    return midi
+    return {}
   end
 
   -- Track 8 is accent - doesn't play a note
   if track == accent_track then
-    return midi
+    return {}
   end
 
   -- Get drum note for this track
@@ -68,11 +69,9 @@ function process_event(track, event)
   -- Get note length from S2 (minimum 10ms)
   local note_length = math.max(10, event.pots[2])
 
-  -- Send note on
-  table.insert(midi, note(drum_note, velocity))
+  -- Send MIDI events (these directly add to internal buffer)
+  note(drum_note, velocity, 0)
+  off(drum_note, note_length)
 
-  -- Send note off after specified length
-  table.insert(midi, off(drum_note, note_length))
-
-  return midi
+  return {}  -- Return value is ignored; events are in internal buffer
 end

@@ -80,9 +80,11 @@ end
 --   stopall([delta])                - All notes off
 --
 function process_event(track, event)
-  local midi_events = {}
-
   -- TODO: Implement your event processing logic
+
+  -- NOTE: The API functions (note, off, cc, stopall) directly add events
+  -- to an internal buffer. Don't try to collect their return values.
+  -- Just call them and they'll be scheduled automatically.
 
   -- Example: Simple note trigger
   --[[
@@ -90,8 +92,8 @@ function process_event(track, event)
     local pitch = 60 + track  -- C4 to G4 across tracks
     local velocity = event.pots[1]  -- S1 controls velocity
 
-    table.insert(midi_events, note(pitch, velocity))
-    table.insert(midi_events, off(pitch, 100))  -- Note off after 100ms
+    note(pitch, velocity, 0)  -- Send note on immediately
+    off(pitch, 100)           -- Send note off after 100ms
   end
   ]]--
 
@@ -99,11 +101,11 @@ function process_event(track, event)
   --[[
   if event.switch then
     -- Send CC for filter cutoff
-    table.insert(midi_events, cc(74, event.pots[4]))
+    cc(74, event.pots[4], 0)
   end
   ]]--
 
-  return midi_events
+  return {}  -- Return value is ignored
 end
 
 

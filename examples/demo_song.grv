@@ -1,0 +1,103 @@
+{
+  "format_version": "1.0",
+  "metadata": {
+    "title": "Demo Song",
+    "author": "GRUVBOK",
+    "created": "2025-11-06T15:00:00Z",
+    "modified": "2025-11-06T15:30:00Z",
+    "tempo": 120,
+    "description": "Demonstration song with drums, acid bassline, and chords"
+  },
+  "modes": {
+    "0": {
+      "name": "Song Sequencer",
+      "patterns": {
+        "0": {
+          "tracks": {
+            "0": {
+              "events": [
+                {"step": 0, "switch": true, "pots": [0, 0, 0, 0]},
+                {"step": 4, "switch": true, "pots": [0, 0, 0, 0]},
+                {"step": 8, "switch": true, "pots": [0, 0, 0, 0]},
+                {"step": 12, "switch": true, "pots": [0, 0, 0, 0]}
+              ]
+            }
+          }
+        }
+      }
+    },
+    "1": {
+      "name": "Drums",
+      "patterns": {
+        "0": {
+          "tracks": {
+            "0": {
+              "events": [
+                {"step": 0, "switch": true, "pots": [100, 50, 0, 0]},
+                {"step": 4, "switch": true, "pots": [100, 50, 0, 0]},
+                {"step": 8, "switch": true, "pots": [100, 50, 0, 0]},
+                {"step": 12, "switch": true, "pots": [100, 50, 0, 0]}
+              ]
+            },
+            "1": {
+              "events": [
+                {"step": 4, "switch": true, "pots": [90, 30, 0, 0]},
+                {"step": 12, "switch": true, "pots": [90, 30, 0, 0]}
+              ]
+            },
+            "2": {
+              "events": [
+                {"step": 0, "switch": true, "pots": [70, 20, 0, 0]},
+                {"step": 2, "switch": true, "pots": [70, 20, 0, 0]},
+                {"step": 4, "switch": true, "pots": [70, 20, 0, 0]},
+                {"step": 6, "switch": true, "pots": [70, 20, 0, 0]},
+                {"step": 8, "switch": true, "pots": [70, 20, 0, 0]},
+                {"step": 10, "switch": true, "pots": [70, 20, 0, 0]},
+                {"step": 12, "switch": true, "pots": [70, 20, 0, 0]},
+                {"step": 14, "switch": true, "pots": [70, 20, 0, 0]}
+              ]
+            }
+          }
+        }
+      }
+    },
+    "2": {
+      "name": "Acid Bassline",
+      "patterns": {
+        "0": {
+          "tracks": {
+            "0": {
+              "events": [
+                {"step": 0, "switch": true, "pots": [42, 40, 10, 60]},
+                {"step": 3, "switch": true, "pots": [67, 35, 60, 80]},
+                {"step": 4, "switch": true, "pots": [84, 30, 100, 110]},
+                {"step": 6, "switch": true, "pots": [59, 40, 20, 70]},
+                {"step": 8, "switch": true, "pots": [42, 50, 5, 50]},
+                {"step": 10, "switch": true, "pots": [50, 35, 40, 85]},
+                {"step": 12, "switch": true, "pots": [67, 40, 30, 75]},
+                {"step": 14, "switch": true, "pots": [8, 60, 0, 40]}
+              ]
+            }
+          }
+        }
+      }
+    },
+    "3": {
+      "name": "Chords",
+      "patterns": {
+        "0": {
+          "tracks": {
+            "0": {
+              "events": [
+                {"step": 0, "switch": true, "pots": [60, 0, 90, 80]},
+                {"step": 4, "switch": true, "pots": [65, 0, 85, 80]},
+                {"step": 8, "switch": true, "pots": [67, 0, 95, 80]},
+                {"step": 12, "switch": true, "pots": [60, 0, 100, 100]}
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
