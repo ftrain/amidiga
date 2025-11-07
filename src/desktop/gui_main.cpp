@@ -180,32 +180,32 @@ int main(int argc, char* argv[]) {
     Mode& mode0 = song->getMode(0);
     Pattern& song_pattern = mode0.getPattern(0);  // Mode 0 always uses pattern 0
 
-    // Steps 0-3: Pattern 0
+    // Steps 0-3: Pattern 1
     for (int step = 0; step < 4; step++) {
         Event& event = song_pattern.getEvent(0, step);
         event.setSwitch(true);
-        event.setPot(0, 0);  // S1 = 0 -> Pattern 0
+        event.setPot(0, 0);  // S1 = 0 -> Pattern 1 (displayed as 1-32)
     }
 
-    // Steps 4-7: Pattern 1
+    // Steps 4-7: Pattern 2
     for (int step = 4; step < 8; step++) {
         Event& event = song_pattern.getEvent(0, step);
         event.setSwitch(true);
-        event.setPot(0, 4);  // S1 = 4 -> Pattern 1
+        event.setPot(0, 4);  // S1 = 4 -> Pattern 2 (displayed as 1-32)
     }
 
-    // Steps 8-11: Pattern 2
+    // Steps 8-11: Pattern 3
     for (int step = 8; step < 12; step++) {
         Event& event = song_pattern.getEvent(0, step);
         event.setSwitch(true);
-        event.setPot(0, 8);  // S1 = 8 -> Pattern 2
+        event.setPot(0, 8);  // S1 = 8 -> Pattern 3 (displayed as 1-32)
     }
 
-    // Steps 12-15: Pattern 3
+    // Steps 12-15: Pattern 4
     for (int step = 12; step < 16; step++) {
         Event& event = song_pattern.getEvent(0, step);
         event.setSwitch(true);
-        event.setPot(0, 12);  // S1 = 12 -> Pattern 3
+        event.setPot(0, 12);  // S1 = 12 -> Pattern 4 (displayed as 1-32)
     }
 
     Mode& mode1 = song->getMode(1);
@@ -567,7 +567,13 @@ int main(int argc, char* argv[]) {
             int s4 = hardware->readSliderPot(3);
 
             char s1_label[64], s2_label[64], s3_label[64], s4_label[64];
-            snprintf(s1_label, sizeof(s1_label), "%s\n%d", GetSliderLabel(0, current_mode), s1);
+            // For Mode 0, S1 represents pattern number (1-32), not raw MIDI value
+            if (current_mode == 0) {
+                int pattern_num = ((s1 * 32) / 128) + 1;  // Convert 0-127 to 1-32
+                snprintf(s1_label, sizeof(s1_label), "%s\n%d", GetSliderLabel(0, current_mode), pattern_num);
+            } else {
+                snprintf(s1_label, sizeof(s1_label), "%s\n%d", GetSliderLabel(0, current_mode), s1);
+            }
             snprintf(s2_label, sizeof(s2_label), "%s\n%d", GetSliderLabel(1, current_mode), s2);
             snprintf(s3_label, sizeof(s3_label), "%s\n%d", GetSliderLabel(2, current_mode), s3);
             snprintf(s4_label, sizeof(s4_label), "%s\n%d", GetSliderLabel(3, current_mode), s4);
@@ -755,7 +761,13 @@ int main(int argc, char* argv[]) {
                     ImGui::Text("%s", evt.getSwitch() ? "X" : "");
 
                     ImGui::TableNextColumn();
-                    ImGui::Text("%d", evt.getPot(0));
+                    // For Mode 0, S1 represents pattern number (1-32), not raw MIDI value
+                    if (explorer_mode == 0) {
+                        int pattern_num = ((evt.getPot(0) * 32) / 128) + 1;  // Convert 0-127 to 1-32
+                        ImGui::Text("%d", pattern_num);
+                    } else {
+                        ImGui::Text("%d", evt.getPot(0));
+                    }
 
                     ImGui::TableNextColumn();
                     ImGui::Text("%d", evt.getPot(1));
