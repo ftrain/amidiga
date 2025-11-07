@@ -1,9 +1,14 @@
 #include "song.h"
+#ifndef NO_EXCEPTIONS
 #include <stdexcept>
 #include <fstream>
 #include "../../external/nlohmann/json.hpp"
+#endif
+#include <algorithm>
 
+#ifndef NO_EXCEPTIONS
 using json = nlohmann::json;
+#endif
 
 namespace gruvbok {
 
@@ -16,23 +21,35 @@ Mode::Mode() {
 }
 
 Pattern& Mode::getPattern(int pattern_num) {
+#ifndef NO_EXCEPTIONS
     if (pattern_num < 0 || pattern_num >= NUM_PATTERNS) {
         throw std::out_of_range("Pattern number out of range");
     }
+#endif
+    // Clamp to valid range for embedded builds (defensive programming)
+    pattern_num = std::max(0, std::min(pattern_num, NUM_PATTERNS - 1));
     return patterns_[pattern_num];
 }
 
 const Pattern& Mode::getPattern(int pattern_num) const {
+#ifndef NO_EXCEPTIONS
     if (pattern_num < 0 || pattern_num >= NUM_PATTERNS) {
         throw std::out_of_range("Pattern number out of range");
     }
+#endif
+    // Clamp to valid range for embedded builds (defensive programming)
+    pattern_num = std::max(0, std::min(pattern_num, NUM_PATTERNS - 1));
     return patterns_[pattern_num];
 }
 
 void Mode::setPattern(int pattern_num, const Pattern& pattern) {
+#ifndef NO_EXCEPTIONS
     if (pattern_num < 0 || pattern_num >= NUM_PATTERNS) {
         throw std::out_of_range("Pattern number out of range");
     }
+#endif
+    // Clamp to valid range for embedded builds (defensive programming)
+    pattern_num = std::max(0, std::min(pattern_num, NUM_PATTERNS - 1));
     patterns_[pattern_num] = pattern;
 }
 
@@ -51,23 +68,35 @@ Song::Song() {
 }
 
 Mode& Song::getMode(int mode_num) {
+#ifndef NO_EXCEPTIONS
     if (mode_num < 0 || mode_num >= NUM_MODES) {
         throw std::out_of_range("Mode number out of range");
     }
+#endif
+    // Clamp to valid range for embedded builds (defensive programming)
+    mode_num = std::max(0, std::min(mode_num, NUM_MODES - 1));
     return modes_[mode_num];
 }
 
 const Mode& Song::getMode(int mode_num) const {
+#ifndef NO_EXCEPTIONS
     if (mode_num < 0 || mode_num >= NUM_MODES) {
         throw std::out_of_range("Mode number out of range");
     }
+#endif
+    // Clamp to valid range for embedded builds (defensive programming)
+    mode_num = std::max(0, std::min(mode_num, NUM_MODES - 1));
     return modes_[mode_num];
 }
 
 void Song::setMode(int mode_num, const Mode& mode) {
+#ifndef NO_EXCEPTIONS
     if (mode_num < 0 || mode_num >= NUM_MODES) {
         throw std::out_of_range("Mode number out of range");
     }
+#endif
+    // Clamp to valid range for embedded builds (defensive programming)
+    mode_num = std::max(0, std::min(mode_num, NUM_MODES - 1));
     modes_[mode_num] = mode;
 }
 
@@ -78,6 +107,13 @@ void Song::clear() {
 }
 
 bool Song::save(const std::string& filepath, const std::string& name, int tempo) {
+#ifdef NO_EXCEPTIONS
+    // Save/load not available in NO_EXCEPTIONS builds (Teensy will use SD card binary format)
+    (void)filepath;
+    (void)name;
+    (void)tempo;
+    return false;
+#else
     try {
         json j;
         j["version"] = "1.0";
@@ -127,9 +163,17 @@ bool Song::save(const std::string& filepath, const std::string& name, int tempo)
     } catch (const std::exception& e) {
         return false;
     }
+#endif
 }
 
 bool Song::load(const std::string& filepath, std::string* out_name, int* out_tempo) {
+#ifdef NO_EXCEPTIONS
+    // Save/load not available in NO_EXCEPTIONS builds (Teensy will use SD card binary format)
+    (void)filepath;
+    (void)out_name;
+    (void)out_tempo;
+    return false;
+#else
     try {
         std::ifstream file(filepath);
         if (!file.is_open()) {
@@ -200,6 +244,7 @@ bool Song::load(const std::string& filepath, std::string* out_name, int* out_tem
     } catch (const std::exception& e) {
         return false;
     }
+#endif
 }
 
 size_t Song::getMemoryFootprint() {
