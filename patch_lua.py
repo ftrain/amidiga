@@ -66,6 +66,6 @@ def remove_lua_duplicates(lib_dir):
                 print(f"⚠️  Could not remove {filename}: {e}")
 
 
-# Register the callback to run before building any library
-# This ensures Lua is patched before the library build starts
-env.AddPreAction("buildprog", patch_lua_config)
+# Execute the patch immediately when the script is loaded
+# This runs after dependencies are downloaded but before any compilation
+env.Execute(lambda *args, **kwargs: patch_lua_config())
