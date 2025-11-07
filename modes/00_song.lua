@@ -21,7 +21,7 @@ MODE_NAME = "Song"
   How It Works:
   - Mode 0 runs at 1/16th speed (each step = 1 full 16-step pattern)
   - Each of the 16 steps in Mode 0 specifies which pattern to play
-  - S1 encodes the pattern number (displayed as 1-32, internally 0-31)
+  - S1 encodes the pattern number (displayed as 1-32)
   - When step is active, all modes switch to that pattern for the full bar
   - Inactive steps keep playing the previous pattern
 

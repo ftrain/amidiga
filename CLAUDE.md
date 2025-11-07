@@ -478,8 +478,8 @@ The desktop version is fully functional with all core features implemented. See 
 
 **Mode 0: Song/Pattern Sequencer** (`modes/00_song.lua`)
 - Controls which pattern plays across all other modes
-- S1 encodes pattern number (0-127 maps to 0-31)
-- Default: Patterns 0-3 repeating 4 times each
+- S1 encodes pattern number (displayed as 1-32)
+- Default: Patterns 1-4 repeating 4 times each
 - No MIDI output (pattern control only)
 
 **Mode 1: Drum Machine** (`modes/01_drums.lua`)
