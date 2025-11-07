@@ -4,12 +4,11 @@
 #include <string>
 #include <cstdint>
 
-// Forward declare FluidSynth types to avoid header dependency
-typedef struct _fluid_settings_t fluid_settings_t;
-typedef struct _fluid_synth_t fluid_synth_t;
-typedef struct _fluid_audio_driver_t fluid_audio_driver_t;
-
 namespace gruvbok {
+
+// Forward declare FluidSynth types as opaque pointers
+// (avoids typedef conflicts with FluidSynth headers)
+struct FluidSynthImpl;
 
 /**
  * @brief Audio output using FluidSynth for internal synthesis
@@ -50,7 +49,7 @@ public:
     /**
      * @brief Check if FluidSynth is initialized and ready
      */
-    bool isReady() const { return synth_ != nullptr; }
+    bool isReady() const { return initialized_; }
 
     /**
      * @brief Get the current gain (volume) setting
@@ -65,10 +64,7 @@ public:
     void setGain(float gain);
 
 private:
-    fluid_settings_t* settings_;
-    fluid_synth_t* synth_;
-    fluid_audio_driver_t* audio_driver_;
-    int soundfont_id_;
+    FluidSynthImpl* impl_;  // Opaque pointer to FluidSynth implementation
     bool initialized_;
 };
 
