@@ -96,4 +96,3 @@ external/rtmidi/android/.gradle/vcs-1/gc.properties
 external/rtmidi/android/gradle/wrapper/gradle-wrapper.properties
 imgui.ini
 external/rtmidi/android/gradle/wrapper/gradle-wrapper.properties
-.pio/libdeps/teensy41/lua
