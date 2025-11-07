@@ -70,7 +70,6 @@ private:
 
     // Song mode (mode 0) - runs at 1/16th speed (each step = 1 full pattern)
     int song_mode_step_;     // Current step in Mode 0 (0-15, advances every 16 normal steps)
-    int song_mode_pattern_;  // Current pattern number from Mode 0's S1 value
 
     uint32_t last_step_time_;
     uint32_t step_interval_ms_;
