@@ -80,9 +80,13 @@ Complete guide for building and deploying GRUVBOK firmware to Teensy 4.1 hardwar
    # Or use VS Code extension
    ```
 
-2. **Lua 5.4.6 Source** (you'll download this in setup)
+2. **Python 3** (for automated Lua download script)
+   - Usually pre-installed on macOS/Linux
+   - Windows: https://www.python.org/downloads/
 
 3. **Git** (for cloning repository)
+
+**Note:** Lua 5.4.6 source downloads automatically on first build via `scripts/embed_lua.py`
 
 ---
 
@@ -95,42 +99,7 @@ git clone <repository-url>
 cd amidiga
 ```
 
-### Step 2: Download Lua Source
-
-**Unix/Mac/Linux:**
-```bash
-cd lib/lua
-
-# Download Lua 5.4.6
-curl -R -O http://www.lua.org/ftp/lua-5.4.6.tar.gz
-
-# Extract and copy source files
-tar zxf lua-5.4.6.tar.gz
-cp lua-5.4.6/src/*.c .
-cp lua-5.4.6/src/*.h .
-
-# Remove standalone interpreters (not needed)
-rm -f lua.c luac.c onelua.c
-
-# Clean up
-rm -rf lua-5.4.6 lua-5.4.6.tar.gz
-
-cd ../..
-```
-
-**Windows:**
-1. Download: http://www.lua.org/ftp/lua-5.4.6.tar.gz
-2. Extract with 7-Zip or WinRAR
-3. Copy all `.c` and `.h` files from `lua-5.4.6/src/` to `lib/lua/`
-4. Delete `lua.c`, `luac.c`, `onelua.c`
-
-**Verify:**
-```bash
-ls lib/lua/*.c | wc -l  # Should show ~60 files
-ls lib/lua/*.h | wc -l  # Should show ~20 files
-```
-
-### Step 3: Prepare SD Card
+### Step 2: Prepare SD Card
 
 **Format:** FAT32
 
@@ -163,11 +132,19 @@ Start with 4 modes to save memory:
 - `02_acid.lua` - Bassline
 - `03_chords.lua` - Chord player
 
-### Step 4: Build Firmware
+### Step 3: Build Firmware
+
+**First build automatically downloads Lua 5.4.6:**
 
 ```bash
 platformio run -e teensy41
 ```
+
+The build script will:
+1. Download Lua 5.4.6 from lua.org (if not already present)
+2. Extract and copy source files to `lib/lua/`
+3. Configure for Teensy (32-bit mode, C89 compatibility)
+4. Build firmware
 
 **Check Memory Usage:**
 ```bash
@@ -185,7 +162,7 @@ PROGRAM: [===       ]  30-40% (used 2-3MB out of 7.9MB)
 - DATA 800-950KB: ⚠️ Tight (reduce modes if needed)
 - DATA > 950KB: ❌ Too much (will crash)
 
-### Step 5: Upload to Teensy
+### Step 4: Upload to Teensy
 
 1. Connect Teensy to computer via USB
 2. Run:
@@ -195,7 +172,7 @@ PROGRAM: [===       ]  30-40% (used 2-3MB out of 7.9MB)
 3. Press the **white button** on Teensy board
 4. Firmware uploads automatically
 
-### Step 6: Insert SD Card and Monitor
+### Step 5: Insert SD Card and Monitor
 
 1. **Power off Teensy** (unplug USB)
 2. Insert microSD card into Teensy's slot (underside of board)
@@ -444,10 +421,14 @@ Even without buttons/pots, you can test:
 ### Build Errors
 
 **"lua.h: No such file or directory"**
-- **Solution:** Download Lua source to `lib/lua/` (see Quick Start Step 2)
+- **Solution:** The `embed_lua.py` script should download Lua automatically on first build
+- Check that `scripts/embed_lua.py` exists
+- Try cleaning and rebuilding: `pio run -e teensy41 -t clean && pio run -e teensy41`
+- If still failing, manually run: `python scripts/embed_lua.py`
 
 **"undefined reference to lua_*"**
 - **Solution:** Lua source files missing or incomplete
+- Run the embed script manually: `python scripts/embed_lua.py`
 
 **Memory exceeds 1MB:**
 ```
@@ -714,10 +695,10 @@ GRUVBOK is designed as a desktop/tabletop groovebox. Consider:
 
 Ready to deploy? Verify all steps:
 
-- [ ] Lua source files in `lib/lua/` ✅
+- [ ] Repository cloned ✅
 - [ ] SD card formatted FAT32 ✅
 - [ ] Modes copied to `SD:/modes/` ✅
-- [ ] Firmware builds successfully ✅
+- [ ] Firmware builds successfully (Lua auto-downloads on first build) ✅
 - [ ] Memory usage < 800KB ✅
 - [ ] Firmware uploaded to Teensy ✅
 - [ ] SD card inserted into Teensy ✅
