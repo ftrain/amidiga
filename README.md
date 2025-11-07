@@ -95,6 +95,7 @@ Event = {Switch, Pot[4]}  # 1 switch + 4 sliders (29 bits packed)
 - **docs/TEENSY_GUIDE.md** - Build and deploy to Teensy hardware
 - **docs/LUA_API.md** - Create custom modes with Lua
 - **docs/SONG_FORMAT.md** - JSON song file format specification
+- **docs/TESTING.md** - Test suite documentation and guidelines
 
 ## Creating Custom Modes
 
@@ -160,7 +161,7 @@ ctest --verbose
 ./bin/tests/test_lua_integration
 ```
 
-**See:** `tests/README.md` for test documentation
+**See:** `docs/TESTING.md` for test documentation
 
 ## Development
 
