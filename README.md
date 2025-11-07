@@ -87,15 +87,14 @@ Event = {Switch, Pot[4]}  # 1 switch + 4 sliders (29 bits packed)
 - 1× LED (tempo indicator)
 - USB MIDI output
 
-**See:** `docs/TEENSY_DEPLOYMENT_GUIDE.md` for complete build instructions
+**See:** `docs/TEENSY_GUIDE.md` for complete build and deployment instructions
 
 ## Documentation
 
 - **CLAUDE.md** - Complete technical architecture and development guide
-- **QUICKSTART.md** - Get desktop version running in 5 minutes
+- **docs/TEENSY_GUIDE.md** - Build and deploy to Teensy hardware
 - **docs/LUA_API.md** - Create custom modes with Lua
-- **docs/TEENSY_DEPLOYMENT_GUIDE.md** - Deploy to Teensy hardware
-- **DEVELOPMENT_ROADMAP.md** - Implementation status
+- **docs/SONG_FORMAT.md** - JSON song file format specification
 
 ## Creating Custom Modes
 
@@ -139,9 +138,29 @@ amidiga/
 │   └── teensy/        # Teensy 4.1 firmware
 ├── modes/             # Lua mode scripts (00-14)
 ├── docs/              # Documentation
-├── tests/             # Test suite (56 tests, 100% passing)
+├── tests/             # Test suite (73 tests, 100% passing)
 └── bin/               # Compiled executables
 ```
+
+## Testing
+
+**Test Suite:** 73 tests, 100% passing
+
+Run tests:
+```bash
+cd build
+ctest --verbose
+
+# Or run individual test suites:
+./bin/tests/test_event
+./bin/tests/test_pattern
+./bin/tests/test_song
+./bin/tests/test_midi_scheduler
+./bin/tests/test_engine
+./bin/tests/test_lua_integration
+```
+
+**See:** `tests/README.md` for test documentation
 
 ## Development
 

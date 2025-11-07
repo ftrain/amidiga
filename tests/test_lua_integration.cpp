@@ -39,10 +39,24 @@ int fail_count = 0;
     } \
     void test_##name()
 
+// Helper to convert values to string (works with both numbers and strings)
+template<typename T>
+std::string value_to_string(const T& val) {
+    return std::to_string(val);
+}
+
+inline std::string value_to_string(const std::string& val) {
+    return "\"" + val + "\"";
+}
+
+inline std::string value_to_string(const char* val) {
+    return std::string("\"") + val + "\"";
+}
+
 #define ASSERT_EQ(a, b) \
     if ((a) != (b)) { \
         throw std::runtime_error(std::string("Expected ") + #a + " == " + #b + \
-                                 ", got " + std::to_string(a) + " != " + std::to_string(b)); \
+                                 ", got " + value_to_string(a) + " != " + value_to_string(b)); \
     }
 
 #define ASSERT_TRUE(expr) \
@@ -270,10 +284,10 @@ TEST(process_event_with_switch_on) {
 
     // Should generate 2 MIDI events: note on + note off
     ASSERT_EQ(midi_events.size(), 2);
-    ASSERT_EQ(midi_events[0].message[0], 0x90); // Note On, channel 0
-    ASSERT_EQ(midi_events[0].message[1], 60);   // Middle C
-    ASSERT_EQ(midi_events[0].message[2], 100);  // Velocity
-    ASSERT_EQ(midi_events[1].message[0], 0x80); // Note Off, channel 0
+    ASSERT_EQ(midi_events[0].data[0], 0x90); // Note On, channel 0
+    ASSERT_EQ(midi_events[0].data[1], 60);   // Middle C
+    ASSERT_EQ(midi_events[0].data[2], 100);  // Velocity
+    ASSERT_EQ(midi_events[1].data[0], 0x80); // Note Off, channel 0
 }
 
 TEST(process_event_with_switch_off) {
@@ -336,8 +350,8 @@ TEST(process_event_reads_pot_values) {
     auto midi_events = ctx.callProcessEvent(0, evt);
 
     ASSERT_EQ(midi_events.size(), 1);
-    ASSERT_EQ(midi_events[0].message[1], 72);  // Pitch from pot 1
-    ASSERT_EQ(midi_events[0].message[2], 110); // Velocity from pot 2
+    ASSERT_EQ(midi_events[0].data[1], 72);  // Pitch from pot 1
+    ASSERT_EQ(midi_events[0].data[2], 110); // Velocity from pot 2
 }
 
 // ============================================================================
@@ -370,9 +384,9 @@ TEST(generate_control_change) {
     auto midi_events = ctx.callProcessEvent(0, evt);
 
     ASSERT_EQ(midi_events.size(), 1);
-    ASSERT_EQ(midi_events[0].message[0], 0xB0); // CC, channel 0
-    ASSERT_EQ(midi_events[0].message[1], 74);   // Controller number
-    ASSERT_EQ(midi_events[0].message[2], 64);   // Value
+    ASSERT_EQ(midi_events[0].data[0], 0xB0); // CC, channel 0
+    ASSERT_EQ(midi_events[0].data[1], 74);   // Controller number
+    ASSERT_EQ(midi_events[0].data[2], 64);   // Value
 }
 
 TEST(generate_all_notes_off) {
@@ -400,9 +414,9 @@ TEST(generate_all_notes_off) {
     auto midi_events = ctx.callProcessEvent(0, evt);
 
     ASSERT_EQ(midi_events.size(), 1);
-    ASSERT_EQ(midi_events[0].message[0], 0xB0); // CC, channel 0
-    ASSERT_EQ(midi_events[0].message[1], 123);  // All Notes Off
-    ASSERT_EQ(midi_events[0].message[2], 0);
+    ASSERT_EQ(midi_events[0].data[0], 0xB0); // CC, channel 0
+    ASSERT_EQ(midi_events[0].data[1], 123);  // All Notes Off
+    ASSERT_EQ(midi_events[0].data[2], 0);
 }
 
 // ============================================================================

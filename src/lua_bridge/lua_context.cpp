@@ -35,9 +35,32 @@ LuaContext::LuaContext()
         return;
     }
 
+#ifdef NO_EXCEPTIONS
+    // For embedded systems (Teensy): Load only essential Lua libraries
+    // to minimize memory footprint
+    luaL_requiref(L_, "_G", luaopen_base, 1);       // Basic functions
+    luaL_requiref(L_, LUA_TABLIBNAME, luaopen_table, 1);  // table.*
+    luaL_requiref(L_, LUA_STRLIBNAME, luaopen_string, 1); // string.*
+    luaL_requiref(L_, LUA_MATHLIBNAME, luaopen_math, 1);  // math.*
+    lua_pop(L_, 4);  // Remove libs from stack
+
+    // Omitted for embedded:
+    // - io (liolib): File I/O not needed
+    // - os (loslib): OS functions not available on Teensy
+    // - package/loadlib: Dynamic loading not needed
+    // - debug: Not needed for production
+    // - coroutine: Not used in our modes
+#else
+    // Desktop: Load all standard libraries
     luaL_openlibs(L_);
+#endif
+
     LuaAPI::registerAPI(L_);
     LuaAPI::setEventBuffer(L_, &event_buffer_);
+
+    // Context is valid (Lua state created successfully)
+    // is_valid_ will be set to false if script loading fails
+    is_valid_ = true;
 }
 
 LuaContext::~LuaContext() {
