@@ -1,5 +1,6 @@
 -- Test mode for LED API
 MODE_NAME = "LED Test"
+SLIDER_LABELS = {"S1", "S2", "S3", "S4"}
 
 function init(context)
     print("LED Test mode initialized")

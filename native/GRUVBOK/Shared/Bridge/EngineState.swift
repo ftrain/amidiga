@@ -14,6 +14,7 @@ class EngineState: ObservableObject {
     @Published var currentStep: Int = 0
     @Published var tempo: Int = 120
     @Published var isPlaying: Bool = false
+    @Published var isDirty: Bool = false
     @Published var ledOn: Bool = false
 
     // Track data
@@ -65,6 +66,7 @@ class EngineState: ObservableObject {
         currentStep = Int(engineWrapper.getCurrentStep())
         tempo = Int(engineWrapper.getTempo())
         isPlaying = engineWrapper.isPlaying()
+        isDirty = engineWrapper.isDirty()
         ledOn = engineWrapper.getLEDState()
 
         // Update track events (only if current view needs it)

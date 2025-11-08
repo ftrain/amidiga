@@ -15,6 +15,7 @@
 ]]--
 
 MODE_NAME = "Tornado"
+SLIDER_LABELS = {"Radius", "Speed", "Rise", "Chaos"}
 
 -- Spiral angle for each track (in radians)
 local angle = {0, 0.785, 1.57, 2.356, 3.14, 3.927, 4.712, 5.498}  -- 8 positions around circle

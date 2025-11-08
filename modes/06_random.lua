@@ -1,4 +1,5 @@
 MODE_NAME = "Random"
+SLIDER_LABELS = {"Prob", "Pitch", "Range", "Vel"}
 
 
 --[[

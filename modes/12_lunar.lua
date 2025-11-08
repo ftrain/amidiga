@@ -15,6 +15,7 @@
 ]]--
 
 MODE_NAME = "Lunar Phase"
+SLIDER_LABELS = {"Speed", "Bright", "Silent", "Pitch"}
 
 -- Phase counter (0 to 28 for each track)
 local phase = {0, 3.5, 7, 10.5, 14, 17.5, 21, 24.5}  -- Offset phases

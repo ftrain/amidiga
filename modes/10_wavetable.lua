@@ -14,6 +14,7 @@
 ]]--
 
 MODE_NAME = "Wave Table Scanner"
+SLIDER_LABELS = {"Speed", "Dir", "Quant", "Velocity"}
 
 -- Scan position for each track (0.0 to 16.0)
 local scan_pos = {0, 2, 4, 6, 8, 10, 12, 14}

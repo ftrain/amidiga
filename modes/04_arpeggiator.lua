@@ -1,4 +1,5 @@
 MODE_NAME = "Arp"
+SLIDER_LABELS = {"Root", "Pattern", "Velocity", "Length"}
 
 
 --[[
