@@ -134,6 +134,10 @@ using namespace gruvbok;
     return engine_ ? engine_->isPlaying() : NO;
 }
 
+- (BOOL)isDirty {
+    return engine_ ? engine_->isDirty() : NO;
+}
+
 - (NSInteger)getCurrentMode {
     return engine_ ? engine_->getCurrentMode() : 0;
 }
@@ -291,7 +295,11 @@ using namespace gruvbok;
     std::string cppName = [name UTF8String];
     int tempo = engine_->getTempo();
 
-    return song_->save(cppPath, cppName, tempo);
+    if (song_->save(cppPath, cppName, tempo)) {
+        engine_->clearDirty();
+        return YES;
+    }
+    return NO;
 }
 
 - (BOOL)loadSongFromPath:(NSString *)path
@@ -315,6 +323,9 @@ using namespace gruvbok;
 
         // Apply loaded tempo to engine
         engine_->setTempo(loadedTempo);
+
+        // Clear dirty flag after successful load
+        engine_->clearDirty();
     }
 
     return success;

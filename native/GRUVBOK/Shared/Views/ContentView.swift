@@ -134,6 +134,16 @@ struct ContentView: View {
 
             Spacer()
 
+            // Save status indicator
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(engine.isDirty ? Color.orange : Color.green)
+                    .frame(width: 8, height: 8)
+                Text(engine.isDirty ? "UNSAVED" : "Saved")
+                    .font(.caption)
+                    .foregroundColor(engine.isDirty ? .orange : .green)
+            }
+
             // Audio status
             if engine.isAudioReady {
                 HStack(spacing: 5) {

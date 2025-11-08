@@ -1,4 +1,5 @@
 MODE_NAME = "Glitch"
+SLIDER_LABELS = {"Sample", "Quant", "Glitch", "Mod"}
 
 
 --[[

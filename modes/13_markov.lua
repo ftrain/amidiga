@@ -14,6 +14,7 @@
 ]]--
 
 MODE_NAME = "Markov Chain"
+SLIDER_LABELS = {"Memory", "Creative", "Scale", "Variance"}
 
 -- Transition table: [from_note][to_note] = count
 local transitions = {}

@@ -1,4 +1,5 @@
 MODE_NAME = "Euclidean"
+SLIDER_LABELS = {"Hits", "Rotate", "Note", "Velocity"}
 
 
 --[[

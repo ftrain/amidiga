@@ -14,6 +14,7 @@
 ]]--
 
 MODE_NAME = "MIDI Mangler"
+SLIDER_LABELS = {"Crush", "Steal", "Reverse", "Time"}
 
 -- Note buffer for reverse playback
 local note_buffer = {}

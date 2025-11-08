@@ -39,6 +39,11 @@ public:
     int getSongModeStep() const { return song_mode_step_; }  // For Mode 0 visualization
     int getTargetMode() const { return target_mode_; }  // For Mode 0 target mode selection
 
+    // Dirty flag (unsaved changes)
+    bool isDirty() const { return dirty_; }
+    void markDirty();
+    void clearDirty() { dirty_ = false; }
+
     // Edit current event
     void toggleCurrentSwitch();
     void setCurrentPot(int pot, uint8_t value);
@@ -136,7 +141,6 @@ private:
     void applyMode0Parameters();  // Apply Mode 0 params to all modes during playback
 
     // Autosave
-    void markDirty();
     void checkAutosave();
 };
 

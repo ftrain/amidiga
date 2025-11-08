@@ -15,6 +15,7 @@
 ]]--
 
 MODE_NAME = "Cellular Automaton"
+SLIDER_LABELS = {"Survive", "Birth", "Pitch", "Velocity"}
 
 -- Grid state: 8 tracks x 16 steps (true = alive)
 local grid = {}

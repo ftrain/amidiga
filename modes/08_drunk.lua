@@ -12,6 +12,7 @@
 ]]--
 
 MODE_NAME = "Drunk Sequencer"
+SLIDER_LABELS = {"Pitch", "Drunk", "Coherent", "Chaos"}
 
 -- Persistent drunk offset for each track (-12 to +12 semitones)
 local drunk_offset = {0, 0, 0, 0, 0, 0, 0, 0}
