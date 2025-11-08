@@ -438,9 +438,9 @@ using namespace gruvbok;
         event.setPot(0, 0);
     }
 
-    // Mode 1: Drums
-    Mode& mode1 = song_->getMode(1);
-    Pattern& drum_pattern = mode1.getPattern(0);
+    // Mode 10: Drums (GM channel 10)
+    Mode& mode10 = song_->getMode(10);
+    Pattern& drum_pattern = mode10.getPattern(0);
 
     // Kick pattern (track 0) - on steps 0, 4, 8, 12
     int kick_steps[] = {0, 4, 8, 12};
