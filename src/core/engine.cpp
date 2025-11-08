@@ -244,7 +244,7 @@ void Engine::handleInput() {
     uint8_t r4 = hardware_->readRotaryPot(3);  // Track OR target mode (when in Mode 0)
 
     // Map R1 to mode (0-127 -> 0-14)
-    int new_mode = (r1 * 15) / 128;
+    int new_mode = std::min((r1 * 15) / 128, 14);
     if (new_mode != current_mode_) {
         setMode(new_mode);
     }
@@ -256,7 +256,7 @@ void Engine::handleInput() {
     }
 
     // Map R3 to pattern (0-127 -> 0-31)
-    int new_pattern = (r3 * 32) / 128;
+    int new_pattern = std::min((r3 * 32) / 128, 31);
     if (new_pattern != current_pattern_) {
         setPattern(new_pattern);
     }
@@ -264,13 +264,13 @@ void Engine::handleInput() {
     // Map R4: In Mode 0, it selects target mode (1-14). Otherwise, it selects track (0-7).
     if (current_mode_ == 0) {
         // Mode 0: R4 selects target mode (1-14)
-        int new_target_mode = 1 + (r4 * 14) / 128;  // Map to 1-14
+        int new_target_mode = std::min(1 + (r4 * 14) / 128, 14);  // Map to 1-14
         if (new_target_mode != target_mode_) {
             target_mode_ = new_target_mode;
         }
     } else {
         // Other modes: R4 selects track (0-7)
-        int new_track = (r4 * 8) / 128;
+        int new_track = std::min((r4 * 8) / 128, 7);
         if (new_track != current_track_) {
             setTrack(new_track);
         }
@@ -558,13 +558,13 @@ float Engine::getAudioGain() const {
 // ============================================================================
 
 void Engine::calculateMode0LoopLength() {
-    // Scan Mode 0, Pattern 0, all tracks (0-13 map to modes 1-14)
+    // Scan Mode 0, Pattern 0, all 8 tracks
     // Find the highest step number with switch on
     Mode& mode0 = song_->getMode(0);
     Pattern& pattern = mode0.getPattern(0);
 
     int max_step = 0;  // Default to 1 bar minimum
-    for (int track = 0; track < 14; ++track) {  // Tracks 0-13 represent modes 1-14
+    for (int track = 0; track < Pattern::NUM_TRACKS; ++track) {  // All 8 tracks
         for (int step = 0; step < 16; ++step) {
             const Event& event = pattern.getEvent(track, step);
             if (event.getSwitch() && step > max_step) {
@@ -614,13 +614,13 @@ void Engine::parseMode0Event(const Event& event, int target_mode) {
 
 void Engine::applyMode0Parameters() {
     // Read Mode 0 events and apply parameters for all modes
-    // Mode 0 Pattern 0 contains configuration for modes 1-14 (tracks 0-13)
+    // Mode 0 Pattern 0 contains configuration for modes 1-8 (we only have 8 tracks!)
     Mode& mode0 = song_->getMode(0);
     Pattern& pattern = mode0.getPattern(0);
 
-    // Parse events for all modes at the current song_mode_step_
-    for (int track = 0; track < 14; ++track) {  // Tracks 0-13 represent modes 1-14
-        int target_mode = track + 1;  // Convert track to mode number (1-14)
+    // Parse events for modes 1-8 at the current song_mode_step_
+    for (int track = 0; track < Pattern::NUM_TRACKS; ++track) {  // Tracks 0-7 represent modes 1-8
+        int target_mode = track + 1;  // Convert track to mode number (1-8)
         const Event& event = pattern.getEvent(track, song_mode_step_);
         parseMode0Event(event, target_mode);
     }

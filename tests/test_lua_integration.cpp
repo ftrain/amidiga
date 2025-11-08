@@ -272,7 +272,7 @@ TEST(process_event_with_switch_on) {
     ctx.setChannel(0);
     ASSERT_TRUE(ctx.loadScript(script));
 
-    LuaInitContext init_ctx = {120, 0, 0};
+    LuaInitContext init_ctx = {120, 0, 0, 0, 0, 0};  // tempo, mode, channel, scale_root, scale_type, velocity_offset
     ASSERT_TRUE(ctx.callInit(init_ctx));
 
     // Create event with switch ON
@@ -306,7 +306,7 @@ TEST(process_event_with_switch_off) {
     ctx.setChannel(0);
     ASSERT_TRUE(ctx.loadScript(script));
 
-    LuaInitContext init_ctx = {120, 0, 0};
+    LuaInitContext init_ctx = {120, 0, 0, 0, 0, 0};  // tempo, mode, channel, scale_root, scale_type, velocity_offset
     ASSERT_TRUE(ctx.callInit(init_ctx));
 
     // Create event with switch OFF
@@ -338,7 +338,7 @@ TEST(process_event_reads_pot_values) {
     ctx.setChannel(0);
     ASSERT_TRUE(ctx.loadScript(script));
 
-    LuaInitContext init_ctx = {120, 0, 0};
+    LuaInitContext init_ctx = {120, 0, 0, 0, 0, 0};  // tempo, mode, channel, scale_root, scale_type, velocity_offset
     ASSERT_TRUE(ctx.callInit(init_ctx));
 
     // Create event with custom pot values
@@ -374,7 +374,7 @@ TEST(generate_control_change) {
     ctx.setChannel(0);
     ASSERT_TRUE(ctx.loadScript(script));
 
-    LuaInitContext init_ctx = {120, 0, 0};
+    LuaInitContext init_ctx = {120, 0, 0, 0, 0, 0};  // tempo, mode, channel, scale_root, scale_type, velocity_offset
     ASSERT_TRUE(ctx.callInit(init_ctx));
 
     Event evt;
@@ -405,7 +405,7 @@ TEST(generate_all_notes_off) {
     ctx.setChannel(0);
     ASSERT_TRUE(ctx.loadScript(script));
 
-    LuaInitContext init_ctx = {120, 0, 0};
+    LuaInitContext init_ctx = {120, 0, 0, 0, 0, 0};  // tempo, mode, channel, scale_root, scale_type, velocity_offset
     ASSERT_TRUE(ctx.callInit(init_ctx));
 
     Event evt;

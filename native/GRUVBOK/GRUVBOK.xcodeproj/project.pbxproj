@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		014F16102EBEF09400939D82 /* liblua.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 014F160F2EBEF09400939D82 /* liblua.dylib */; };
 		017F81D62EBEDF0C00870646 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 017F81D52EBEDF0C00870646 /* Assets.xcassets */; };
 		017F82172EBEE0CA00870646 /* CoreMIDI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 017F82162EBEE0C900870646 /* CoreMIDI.framework */; };
 		017F82192EBEE0CE00870646 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 017F82182EBEE0CE00870646 /* AVFoundation.framework */; };
@@ -32,6 +33,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		014F160F2EBEF09400939D82 /* liblua.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = liblua.dylib; path = ../../../../../../../../../../opt/homebrew/Cellar/lua/5.4.8/lib/liblua.dylib; sourceTree = "<group>"; };
 		017F81CC2EBEDF0B00870646 /* GRUVBOK.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GRUVBOK.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		017F81D52EBEDF0C00870646 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		017F81DB2EBEDF0D00870646 /* GRUVBOKTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GRUVBOKTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -71,6 +73,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				014F16102EBEF09400939D82 /* liblua.dylib in Frameworks */,
 				017F821D2EBEE0DD00870646 /* UIKit.framework in Frameworks */,
 				017F821B2EBEE0D500870646 /* CoreAudio.framework in Frameworks */,
 				017F82192EBEE0CE00870646 /* AVFoundation.framework in Frameworks */,
@@ -122,6 +125,7 @@
 		017F82152EBEE0C900870646 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				014F160F2EBEF09400939D82 /* liblua.dylib */,
 				017F821C2EBEE0DD00870646 /* UIKit.framework */,
 				017F821A2EBEE0D500870646 /* CoreAudio.framework */,
 				017F82182EBEE0CE00870646 /* AVFoundation.framework */,
@@ -447,6 +451,7 @@
 					"/opt/homebrew/include/**",
 					"$(SRCROOT)/../**",
 					"$(SRCROOT)/**",
+					"\" /opt/homebrew/opt/lua/include/lua5.4\"/**",
 				);
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -463,8 +468,10 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = (
-					/usr/local/lib,
-					/opt/homebrew/lib,
+					"/usr/local/lib/**",
+					"/opt/homebrew/lib/**",
+					"/opt/homebrew/opt/lua/lib/**",
+					/opt/homebrew/Cellar/lua/5.4.8/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
 				MARKETING_VERSION = 1.0;
@@ -508,6 +515,7 @@
 					"/opt/homebrew/include/**",
 					"$(SRCROOT)/../**",
 					"$(SRCROOT)/**",
+					"\" /opt/homebrew/opt/lua/include/lua5.4\"/**",
 				);
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -524,8 +532,10 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = (
-					/usr/local/lib,
-					/opt/homebrew/lib,
+					"/usr/local/lib/**",
+					"/opt/homebrew/lib/**",
+					"/opt/homebrew/opt/lua/lib/**",
+					/opt/homebrew/Cellar/lua/5.4.8/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
 				MARKETING_VERSION = 1.0;

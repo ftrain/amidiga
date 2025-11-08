@@ -1,6 +1,7 @@
 #include "pattern.h"
 #ifndef NO_EXCEPTIONS
 #include <stdexcept>
+#include <iostream>
 #endif
 #include <algorithm>
 

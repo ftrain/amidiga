@@ -18,6 +18,10 @@
 #include <sstream>
 #include <filesystem>
 
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
 using namespace gruvbok;
 
 #ifndef M_PI
@@ -171,11 +175,33 @@ int main(int argc, char* argv[]) {
     auto song = std::make_unique<Song>();
     auto mode_loader = std::make_unique<ModeLoader>();
 
-    int loaded = mode_loader->loadModesFromDirectory("modes", 120);
+    // Determine modes directory path
+    // On macOS app bundle: use Resources/modes relative to executable
+    // Otherwise: use "modes" relative to working directory
+    std::string modes_path = "modes";
+
+#ifdef __APPLE__
+    // Get the executable path to find app bundle Resources
+    char exe_path[1024];
+    uint32_t size = sizeof(exe_path);
+    if (_NSGetExecutablePath(exe_path, &size) == 0) {
+        std::filesystem::path exe_dir = std::filesystem::path(exe_path).parent_path();
+        std::filesystem::path bundle_modes = exe_dir / ".." / "Resources" / "modes";
+
+        if (std::filesystem::exists(bundle_modes) && std::filesystem::is_directory(bundle_modes)) {
+            modes_path = bundle_modes.string();
+            hardware->addLog("Using modes from app bundle");
+        } else if (std::filesystem::exists("modes")) {
+            hardware->addLog("Using modes from working directory");
+        }
+    }
+#endif
+
+    int loaded = mode_loader->loadModesFromDirectory(modes_path, 120);
     if (loaded > 0) {
-        hardware->addLog("Loaded " + std::to_string(loaded) + " mode(s) from modes/ directory");
+        hardware->addLog("Loaded " + std::to_string(loaded) + " mode(s)");
     } else {
-        hardware->addLog("Warning: No modes loaded");
+        hardware->addLog("Warning: No modes loaded from " + modes_path);
     }
 
     auto engine = std::make_unique<Engine>(song.get(), hardware.get(), mode_loader.get());
@@ -603,10 +629,10 @@ int main(int argc, char* argv[]) {
             int r4 = hardware->readRotaryPot(3);
 
             // Calculate converted values for display
-            int mode_val = (r1 * 15) / 128;
+            int mode_val = std::min((r1 * 15) / 128, 14);
             int tempo_val = 60 + (r2 * 180) / 127;
-            int pattern_val = (r3 * 32) / 128;
-            int track_val = (r4 * 8) / 128;
+            int pattern_val = std::min((r3 * 32) / 128, 31);
+            int track_val = std::min((r4 * 8) / 128, 7);
 
             char mode_str[16], tempo_str[16], pattern_str[16], track_str[16];
             snprintf(mode_str, sizeof(mode_str), "%d", mode_val);
