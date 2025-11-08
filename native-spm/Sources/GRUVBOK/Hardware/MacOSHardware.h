@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../src/hardware/hardware_interface.h"
+#include "hardware/hardware_interface.h"
 #include <array>
 #include <memory>
 #include <deque>
@@ -57,19 +57,32 @@ public:
     const std::deque<std::string>& getLogMessages() const { return log_messages_; }
     void clearLog();
 
-    // MIDI port info
+    // MIDI output port info
     int getMidiOutputCount();
     std::string getMidiOutputName(int index);
     bool selectMidiOutput(int index);
 
+    // MIDI input port info (mirror mode)
+    int getMidiInputCount();
+    std::string getMidiInputName(int index);
+    bool selectMidiInput(int index);
+    int getCurrentMidiInput() const { return current_midi_input_; }
+    bool isMirrorModeEnabled() const { return mirror_mode_enabled_; }
+    void setMirrorMode(bool enabled);
+
 private:
-    // MIDI
+    // MIDI output
     MIDIClientRef midi_client_;
     MIDIPortRef midi_output_port_;
     MIDIEndpointRef midi_virtual_source_;
     int current_midi_output_;
     bool midi_initialized_;
     bool use_external_midi_;
+
+    // MIDI input (mirror mode)
+    MIDIPortRef midi_input_port_;
+    int current_midi_input_;
+    bool mirror_mode_enabled_;
 
     // Audio (Objective-C++ objects)
     AVAudioEngine* audio_engine_;

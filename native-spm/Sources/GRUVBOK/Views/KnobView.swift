@@ -16,43 +16,82 @@ struct KnobView: View {
     private let maxAngle: Double = 135
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 4) {
             ZStack {
-                // Background circle
+                // Outer shadow/depth
                 Circle()
-                    .fill(Color(white: 0.2))
-                    .frame(width: size, height: size)
+                    .fill(
+                        RadialGradient(
+                            colors: [Color(white: 0.25), Color(white: 0.12)],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: size / 2
+                        )
+                    )
+                    .frame(width: size + 4, height: size + 4)
+                    .shadow(color: Color.black.opacity(0.5), radius: 4, y: 2)
 
-                // Outer ring
+                // Main knob body with metallic gradient
                 Circle()
-                    .stroke(
+                    .fill(
                         LinearGradient(
-                            colors: [.blue, .purple],
+                            colors: [Color(white: 0.35), Color(white: 0.18), Color(white: 0.25)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 3
+                        )
                     )
                     .frame(width: size, height: size)
 
-                // Value arc (progress indicator)
+                // Glossy highlight
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color.white.opacity(0.15), Color.clear],
+                            center: UnitPoint(x: 0.3, y: 0.3),
+                            startRadius: 0,
+                            endRadius: size / 2
+                        )
+                    )
+                    .frame(width: size, height: size)
+
+                // Value arc (progress indicator with glow)
                 Circle()
                     .trim(from: 0, to: normalizedValue)
-                    .stroke(Color.blue, lineWidth: 4)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.cyan, Color.blue],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
                     .frame(width: size - 8, height: size - 8)
                     .rotationEffect(.degrees(-90))
+                    .shadow(color: Color.cyan.opacity(0.6), radius: 3)
 
-                // Indicator line
+                // Indicator line with glow
                 Rectangle()
-                    .fill(isDragging ? Color.yellow : Color.white)
-                    .frame(width: 3, height: size * 0.3)
+                    .fill(isDragging ? Color.yellow : Color.cyan)
+                    .frame(width: 2.5, height: size * 0.35)
                     .offset(y: -size * 0.25)
                     .rotationEffect(.degrees(angle))
+                    .shadow(color: isDragging ? Color.yellow.opacity(0.8) : Color.cyan.opacity(0.8), radius: 4)
 
-                // Center dot
+                // Center cap
                 Circle()
-                    .fill(Color.gray)
-                    .frame(width: size * 0.15, height: size * 0.15)
+                    .fill(
+                        RadialGradient(
+                            colors: [Color(white: 0.3), Color(white: 0.15)],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: size * 0.1
+                        )
+                    )
+                    .frame(width: size * 0.2, height: size * 0.2)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.black.opacity(0.3), lineWidth: 1)
+                    )
             }
             .gesture(dragGesture)
             .onAppear {
@@ -64,16 +103,26 @@ struct KnobView: View {
 
             // Label
             Text(label)
-                .font(.caption)
-                .fontWeight(.medium)
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundColor(.cyan)
+                .textCase(.uppercase)
 
             // Display value
             Text(displayText ?? "\(value)")
-                .font(.caption2)
-                .foregroundColor(.gray)
-                .monospacedDigit()
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundColor(.white.opacity(0.8))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(white: 0.15))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 3)
+                                .stroke(Color.cyan.opacity(0.3), lineWidth: 1)
+                        )
+                )
         }
-        .frame(width: size + 20)
+        .frame(width: size + 10)
     }
 
     private var normalizedValue: Double {
@@ -115,24 +164,25 @@ struct KnobView: View {
     }
 }
 
-#Preview {
-    VStack(spacing: 30) {
-        HStack(spacing: 30) {
-            KnobView(
-                label: "Mode",
-                value: .constant(5),
-                range: 0...14,
-                displayText: "5"
-            )
-
-            KnobView(
-                label: "Tempo",
-                value: .constant(120),
-                range: 60...240,
-                displayText: "120 BPM"
-            )
-        }
-    }
-    .padding()
-    .background(Color.black)
-}
+// Preview disabled for SPM build
+// #Preview {
+//     VStack(spacing: 30) {
+//         HStack(spacing: 30) {
+//             KnobView(
+//                 label: "Mode",
+//                 value: .constant(5),
+//                 range: 0...14,
+//                 displayText: "5"
+//             )
+//
+//             KnobView(
+//                 label: "Tempo",
+//                 value: .constant(120),
+//                 range: 60...240,
+//                 displayText: "120 BPM"
+//             )
+//         }
+//     }
+//     .padding()
+//     .background(Color.black)
+// }

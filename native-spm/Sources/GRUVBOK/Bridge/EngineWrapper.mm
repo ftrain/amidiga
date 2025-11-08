@@ -1,17 +1,18 @@
 #import "EngineWrapper.h"
-#include "../../../../src/core/song.h"
-#include "../../../../src/core/engine.h"
-#include "../../../../src/lua_bridge/mode_loader.h"
+#include "core/song.h"
+#include "core/engine.h"
+#include "lua_bridge/mode_loader.h"
 
 #if TARGET_OS_IPHONE
-#include "../../iOS/IOSHardware.h"
+#include "../iOS/IOSHardware.h"
 #else
-#include "../../macOS/MacOSHardware.h"
+#include "../Hardware/MacOSHardware.h"
 #endif
 
 #include <memory>
 #include <vector>
 #include <string>
+#include <iostream>
 
 using namespace gruvbok;
 
@@ -70,18 +71,44 @@ using namespace gruvbok;
         return NO;
     }
 
-    // Load Lua modes from bundle
+    // Load Lua modes from bundle or fallback paths
     NSString* modesPath = [[NSBundle mainBundle] pathForResource:@"modes" ofType:nil];
     if (!modesPath) {
         // Try Resources/modes for app bundle
         modesPath = [[NSBundle mainBundle] pathForResource:@"Resources/modes" ofType:nil];
     }
 
+    if (!modesPath) {
+        // For SPM builds, try relative to executable
+        NSString* execPath = [[NSBundle mainBundle] executablePath];
+        NSString* execDir = [execPath stringByDeletingLastPathComponent];
+
+        // Try ../../../../modes (for .build/arm64-apple-macosx/debug/gruvbok-native -> amidiga/modes)
+        modesPath = [[execDir stringByAppendingPathComponent:@"../../../../modes"] stringByStandardizingPath];
+        if (![[NSFileManager defaultManager] fileExistsAtPath:modesPath]) {
+            // Try ../../../modes
+            modesPath = [[execDir stringByAppendingPathComponent:@"../../../modes"] stringByStandardizingPath];
+            if (![[NSFileManager defaultManager] fileExistsAtPath:modesPath]) {
+                // Try ../../modes
+                modesPath = [[execDir stringByAppendingPathComponent:@"../../modes"] stringByStandardizingPath];
+                if (![[NSFileManager defaultManager] fileExistsAtPath:modesPath]) {
+                    // Try ../modes
+                    modesPath = [[execDir stringByAppendingPathComponent:@"../modes"] stringByStandardizingPath];
+                    if (![[NSFileManager defaultManager] fileExistsAtPath:modesPath]) {
+                        modesPath = nil;
+                    }
+                }
+            }
+        }
+    }
+
     if (modesPath) {
         int loaded = modeLoader_->loadModesFromDirectory([modesPath UTF8String], 120);
         NSLog(@"Loaded %d Lua modes from: %@", loaded, modesPath);
+        hardware_->addLog("Loaded " + std::to_string(loaded) + " Lua modes from: " + std::string([modesPath UTF8String]));
     } else {
-        NSLog(@"WARNING: modes/ directory not found in bundle");
+        NSLog(@"WARNING: modes/ directory not found in bundle or relative paths");
+        hardware_->addLog("WARNING: modes/ directory not found!");
     }
 
     // Create engine
@@ -107,7 +134,11 @@ using namespace gruvbok;
 #endif
 
     // Start engine
+    NSLog(@"Starting engine...");
+    hardware_->addLog("Starting engine...");
     engine_->start();
+    NSLog(@"Engine started. Is playing: %d", engine_->isPlaying() ? 1 : 0);
+    hardware_->addLog(engine_->isPlaying() ? "✓ Engine is playing" : "✗ Engine failed to start");
 
     return YES;
 }
@@ -152,6 +183,10 @@ using namespace gruvbok;
 
 - (NSInteger)getCurrentStep {
     return engine_ ? engine_->getCurrentStep() : 0;
+}
+
+- (NSInteger)getSongModeStep {
+    return engine_ ? engine_->getSongModeStep() : 0;
 }
 
 - (NSInteger)getTempo {
@@ -288,6 +323,53 @@ using namespace gruvbok;
     }
 }
 
+- (NSInteger)getMidiOutputCount {
+    return hardware_ ? hardware_->getMidiOutputCount() : 0;
+}
+
+- (NSString *)getMidiOutputName:(NSInteger)index {
+    if (!hardware_) return @"";
+    std::string name = hardware_->getMidiOutputName((int)index);
+    return @(name.c_str());
+}
+
+- (BOOL)selectMidiOutput:(NSInteger)index {
+    return hardware_ ? hardware_->selectMidiOutput((int)index) : NO;
+}
+
+- (NSInteger)getCurrentMidiOutput {
+    // MacOSHardware doesn't expose current port getter in original implementation
+    return -1;
+}
+
+- (NSInteger)getMidiInputCount {
+    return hardware_ ? hardware_->getMidiInputCount() : 0;
+}
+
+- (NSString *)getMidiInputName:(NSInteger)index {
+    if (!hardware_) return @"";
+    std::string name = hardware_->getMidiInputName((int)index);
+    return @(name.c_str());
+}
+
+- (BOOL)selectMidiInput:(NSInteger)index {
+    return hardware_ ? hardware_->selectMidiInput((int)index) : NO;
+}
+
+- (NSInteger)getCurrentMidiInput {
+    return hardware_ ? hardware_->getCurrentMidiInput() : -1;
+}
+
+- (BOOL)isMirrorModeEnabled {
+    return hardware_ ? hardware_->isMirrorModeEnabled() : NO;
+}
+
+- (void)setMirrorMode:(BOOL)enabled {
+    if (hardware_) {
+        hardware_->setMirrorMode(enabled);
+    }
+}
+
 - (BOOL)saveSongToPath:(NSString *)path name:(NSString *)name {
     if (!song_ || !engine_) return NO;
 
@@ -329,6 +411,172 @@ using namespace gruvbok;
     }
 
     return success;
+}
+
+- (void)loadDemoContent {
+    if (!song_) return;
+
+    // Mode 0: Song/Pattern Sequencer - All steps play pattern 0
+    Mode& mode0 = song_->getMode(0);
+    Pattern& song_pattern = mode0.getPattern(0);
+    for (int step = 0; step < 16; step++) {
+        Event& event = song_pattern.getEvent(0, step);
+        event.setSwitch(true);
+        event.setPot(0, 0);  // S1 = 0 -> Pattern 0
+    }
+
+    // Mode 1: Drums
+    Mode& mode1 = song_->getMode(1);
+    Pattern& drum_pattern = mode1.getPattern(0);
+
+    // Kick pattern (track 0) - on steps 0, 4, 8, 12
+    int kick_steps[] = {0, 4, 8, 12};
+    for (int step : kick_steps) {
+        Event& event = drum_pattern.getEvent(0, step);
+        event.setSwitch(true);
+        event.setPot(0, 100);  // Velocity
+        event.setPot(1, 50);   // Length
+    }
+
+    // Snare pattern (track 1) - on steps 4, 12
+    int snare_steps[] = {4, 12};
+    for (int step : snare_steps) {
+        Event& event = drum_pattern.getEvent(1, step);
+        event.setSwitch(true);
+        event.setPot(0, 90);   // Velocity
+        event.setPot(1, 30);   // Length
+    }
+
+    // Hi-hat pattern (track 2) - every other step
+    for (int step = 0; step < 16; step += 2) {
+        Event& event = drum_pattern.getEvent(2, step);
+        event.setSwitch(true);
+        event.setPot(0, 70);   // Velocity
+        event.setPot(1, 20);   // Length
+    }
+
+    // Mode 2: Acid Bassline
+    Mode& mode2 = song_->getMode(2);
+    Pattern& acid_pattern = mode2.getPattern(0);
+
+    // Step 0: Root (C2)
+    acid_pattern.getEvent(0, 0).setSwitch(true);
+    acid_pattern.getEvent(0, 0).setPot(0, 42);   // Pitch
+    acid_pattern.getEvent(0, 0).setPot(1, 40);   // Length
+    acid_pattern.getEvent(0, 0).setPot(2, 10);   // Slide
+    acid_pattern.getEvent(0, 0).setPot(3, 60);   // Filter
+
+    // Step 3: Fifth (G2)
+    acid_pattern.getEvent(0, 3).setSwitch(true);
+    acid_pattern.getEvent(0, 3).setPot(0, 67);
+    acid_pattern.getEvent(0, 3).setPot(1, 35);
+    acid_pattern.getEvent(0, 3).setPot(2, 60);
+    acid_pattern.getEvent(0, 3).setPot(3, 80);
+
+    // Step 4: Octave up (C3)
+    acid_pattern.getEvent(0, 4).setSwitch(true);
+    acid_pattern.getEvent(0, 4).setPot(0, 84);
+    acid_pattern.getEvent(0, 4).setPot(1, 30);
+    acid_pattern.getEvent(0, 4).setPot(2, 100);
+    acid_pattern.getEvent(0, 4).setPot(3, 110);
+
+    // Step 6: Fourth (F2)
+    acid_pattern.getEvent(0, 6).setSwitch(true);
+    acid_pattern.getEvent(0, 6).setPot(0, 59);
+    acid_pattern.getEvent(0, 6).setPot(1, 40);
+    acid_pattern.getEvent(0, 6).setPot(2, 20);
+    acid_pattern.getEvent(0, 6).setPot(3, 70);
+
+    // Step 8: Back to root (C2)
+    acid_pattern.getEvent(0, 8).setSwitch(true);
+    acid_pattern.getEvent(0, 8).setPot(0, 42);
+    acid_pattern.getEvent(0, 8).setPot(1, 50);
+    acid_pattern.getEvent(0, 8).setPot(2, 5);
+    acid_pattern.getEvent(0, 8).setPot(3, 50);
+
+    // Step 10: Minor third (Eb2)
+    acid_pattern.getEvent(0, 10).setSwitch(true);
+    acid_pattern.getEvent(0, 10).setPot(0, 50);
+    acid_pattern.getEvent(0, 10).setPot(1, 35);
+    acid_pattern.getEvent(0, 10).setPot(2, 40);
+    acid_pattern.getEvent(0, 10).setPot(3, 65);
+
+    if (hardware_) {
+        hardware_->addLog("✓ Demo content loaded (Drums + Acid)");
+    }
+}
+
+- (void)triggerLEDPattern:(NSString *)patternName {
+    if (!engine_) return;
+
+    std::string pattern = [patternName UTF8String];
+    engine_->triggerLEDByName(pattern, 255);
+}
+
+- (BOOL)reloadMode:(NSInteger)mode {
+    if (!modeLoader_ || !engine_) return NO;
+
+    // Find modes directory (same logic as in initialize)
+    NSString* modesPath = [[NSBundle mainBundle] pathForResource:@"modes" ofType:nil];
+    if (!modesPath) {
+        modesPath = [[NSBundle mainBundle] pathForResource:@"Resources/modes" ofType:nil];
+    }
+
+    if (!modesPath) {
+        // For SPM builds, try relative to executable
+        NSString* execPath = [[NSBundle mainBundle] executablePath];
+        NSString* execDir = [execPath stringByDeletingLastPathComponent];
+
+        modesPath = [[execDir stringByAppendingPathComponent:@"../../../../modes"] stringByStandardizingPath];
+        if (![[NSFileManager defaultManager] fileExistsAtPath:modesPath]) {
+            modesPath = [[execDir stringByAppendingPathComponent:@"../../../modes"] stringByStandardizingPath];
+            if (![[NSFileManager defaultManager] fileExistsAtPath:modesPath]) {
+                modesPath = [[execDir stringByAppendingPathComponent:@"../../modes"] stringByStandardizingPath];
+                if (![[NSFileManager defaultManager] fileExistsAtPath:modesPath]) {
+                    modesPath = [[execDir stringByAppendingPathComponent:@"../modes"] stringByStandardizingPath];
+                    if (![[NSFileManager defaultManager] fileExistsAtPath:modesPath]) {
+                        modesPath = nil;
+                    }
+                }
+            }
+        }
+    }
+
+    if (!modesPath) {
+        NSLog(@"Could not find modes directory for reload");
+        return NO;
+    }
+
+    // Find the mode file
+    NSString* modeFilename = [NSString stringWithFormat:@"%02ld_*.lua", (long)mode];
+    NSArray* files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:modesPath error:nil];
+    NSString* modeFile = nil;
+
+    for (NSString* file in files) {
+        if ([file hasPrefix:[NSString stringWithFormat:@"%02ld_", (long)mode]] && [file hasSuffix:@".lua"]) {
+            modeFile = [modesPath stringByAppendingPathComponent:file];
+            break;
+        }
+    }
+
+    if (!modeFile) {
+        NSLog(@"Could not find mode file for mode %ld", (long)mode);
+        return NO;
+    }
+
+    // Reload the mode
+    std::string filepath = [modeFile UTF8String];
+    int tempo = engine_->getTempo();
+    bool success = modeLoader_->loadMode((int)mode, filepath, tempo);
+
+    if (success) {
+        NSLog(@"Reloaded mode %ld from %@", (long)mode, modeFile);
+        std::cout << "Mode " << mode << " reloaded successfully" << std::endl;
+    } else {
+        NSLog(@"Failed to reload mode %ld", (long)mode);
+    }
+
+    return success ? YES : NO;
 }
 
 @end

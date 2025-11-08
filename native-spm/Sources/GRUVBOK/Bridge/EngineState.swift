@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import GRUVBOKBridge
 
 /// SwiftUI-compatible wrapper for EngineWrapper
 /// Publishes state changes for reactive UI updates
@@ -12,6 +13,7 @@ class EngineState: ObservableObject {
     @Published var currentPattern: Int = 0
     @Published var currentTrack: Int = 0
     @Published var currentStep: Int = 0
+    @Published var songModeStep: Int = 0  // Mode 0 step (1/16th speed)
     @Published var tempo: Int = 120
     @Published var isPlaying: Bool = false
     @Published var isDirty: Bool = false
@@ -27,6 +29,12 @@ class EngineState: ObservableObject {
     // Logs
     @Published var logMessages: [String] = []
 
+    // Button debouncing
+    @Published var pressedButtons: Set<Int> = []
+
+    // State update throttling
+    private var skipTrackEventsUpdate: Bool = false
+
     init(platform: String) {
         engineWrapper = EngineWrapper(platform: platform)
 
@@ -40,8 +48,15 @@ class EngineState: ObservableObject {
         engineWrapper.simulateRotaryPot(2, value: 0)   // Pattern 0
         engineWrapper.simulateRotaryPot(3, value: 0)   // Track 0
 
+        // Load demo content
+        engineWrapper.loadDemoContent()
+
         // Start update loop at 60fps
         startUpdateLoop()
+    }
+
+    func loadDemoContent() {
+        engineWrapper.loadDemoContent()
     }
 
     func startUpdateLoop() {
@@ -64,13 +79,16 @@ class EngineState: ObservableObject {
         currentPattern = Int(engineWrapper.getCurrentPattern())
         currentTrack = Int(engineWrapper.getCurrentTrack())
         currentStep = Int(engineWrapper.getCurrentStep())
+        songModeStep = Int(engineWrapper.getSongModeStep())
         tempo = Int(engineWrapper.getTempo())
         isPlaying = engineWrapper.isPlaying()
         isDirty = engineWrapper.isDirty()
         ledOn = engineWrapper.getLEDState()
 
-        // Update track events (only if current view needs it)
-        trackEvents = engineWrapper.getTrackEvents()
+        // Update track events (skip during button press to avoid race condition)
+        if !skipTrackEventsUpdate {
+            trackEvents = engineWrapper.getTrackEvents()
+        }
 
         // Update logs (throttled - only every 10 frames)
         if Int.random(in: 0...9) == 0 {
@@ -101,11 +119,26 @@ class EngineState: ObservableObject {
     }
 
     func toggleButton(_ button: Int) {
+        // Debounce: ignore if button already pressed
+        guard !pressedButtons.contains(button) else { return }
+
+        pressedButtons.insert(button)
+
+        // Prevent state overwrite during button press
+        skipTrackEventsUpdate = true
+
         engineWrapper.simulateButton(button, pressed: true)
 
-        // Auto-release after 50ms (simulates momentary button)
+        // Auto-release after 50ms (increased for more reliable registration)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             self?.engineWrapper.simulateButton(button, pressed: false)
+            self?.pressedButtons.remove(button)
+
+            // Wait another 50ms for C++ engine to process, then refresh state
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                self?.trackEvents = self?.engineWrapper.getTrackEvents() ?? []
+                self?.skipTrackEventsUpdate = false
+            }
         }
     }
 
@@ -150,21 +183,69 @@ class EngineState: ObservableObject {
         engineWrapper.isAudioReady()
     }
 
+    // MARK: - MIDI Output Port Management
+
+    var midiOutputCount: Int {
+        Int(engineWrapper.getMidiOutputCount())
+    }
+
+    func midiOutputName(at index: Int) -> String {
+        engineWrapper.getMidiOutputName(index)
+    }
+
+    func selectMidiOutput(at index: Int) -> Bool {
+        engineWrapper.selectMidiOutput(index)
+    }
+
+    // MARK: - MIDI Input Port Management (Mirror Mode)
+
+    var midiInputCount: Int {
+        Int(engineWrapper.getMidiInputCount())
+    }
+
+    func midiInputName(at index: Int) -> String {
+        engineWrapper.getMidiInputName(index)
+    }
+
+    func selectMidiInput(at index: Int) -> Bool {
+        engineWrapper.selectMidiInput(index)
+    }
+
+    var currentMidiInput: Int {
+        Int(engineWrapper.getCurrentMidiInput())
+    }
+
+    var isMirrorModeEnabled: Bool {
+        engineWrapper.isMirrorModeEnabled()
+    }
+
+    func setMirrorMode(_ enabled: Bool) {
+        engineWrapper.setMirrorMode(enabled)
+    }
+
     // MARK: - Song Persistence
 
     func saveSong(path: String, name: String) -> Bool {
-        return engineWrapper.saveSong(toPath: path, name: name)
+        triggerLEDPattern("SAVING")
+        let success = engineWrapper.saveSong(toPath: path, name: name)
+        if !success {
+            triggerLEDPattern("ERROR")
+        }
+        return success
     }
 
     func loadSong(path: String) -> (success: Bool, name: String?, tempo: Int?) {
+        triggerLEDPattern("LOADING")
         var name: NSString? = nil
         var tempo: Int = 120
 
         let success = engineWrapper.loadSong(fromPath: path, outName: &name, outTempo: &tempo)
 
         if success {
+            triggerLEDPattern("TEMPO_BEAT")
             return (true, name as String?, tempo)
         } else {
+            triggerLEDPattern("ERROR")
             return (false, nil, nil)
         }
     }
@@ -172,6 +253,16 @@ class EngineState: ObservableObject {
     func clearLog() {
         engineWrapper.clearLog()
         logMessages = []
+    }
+
+    // MARK: - Lua Mode Management
+
+    func reloadMode(_ mode: Int) -> Bool {
+        return engineWrapper.reloadMode(mode)
+    }
+
+    func triggerLEDPattern(_ pattern: String) {
+        engineWrapper.triggerLEDPattern(pattern)
     }
 
     deinit {

@@ -1,4 +1,5 @@
 import SwiftUI
+import GRUVBOKBridge
 
 /// 16-step pattern grid (4x4)
 /// Shows active events, current step, and supports tap to toggle
@@ -8,14 +9,14 @@ struct PatternGridView: View {
     let onTap: (Int) -> Void
 
     private let columns = [
-        GridItem(.flexible(), spacing: 4),
-        GridItem(.flexible(), spacing: 4),
-        GridItem(.flexible(), spacing: 4),
-        GridItem(.flexible(), spacing: 4)
+        GridItem(.flexible(), spacing: 3),
+        GridItem(.flexible(), spacing: 3),
+        GridItem(.flexible(), spacing: 3),
+        GridItem(.flexible(), spacing: 3)
     ]
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 4) {
+        LazyVGrid(columns: columns, spacing: 3) {
             ForEach(0..<16, id: \.self) { step in
                 stepButton(for: step)
             }
@@ -33,15 +34,30 @@ struct PatternGridView: View {
             #endif
         }) {
             ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(buttonColor(for: step))
+                // Shadow/depth layer
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.black.opacity(0.4))
                     .aspectRatio(1, contentMode: .fit)
+                    .offset(y: 1)
+
+                // Main button
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(buttonGradient(for: step))
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(buttonBorderColor(for: step), lineWidth: 1.5)
+                    )
+                    .shadow(
+                        color: buttonShadowColor(for: step),
+                        radius: step == currentStep ? 6 : 3
+                    )
 
                 // Step number
                 Text("\(step + 1)")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(buttonTextColor(for: step))
+                    .shadow(color: Color.black.opacity(0.5), radius: 1)
 
                 // Event indicator dot (if has params)
                 if step < events.count && events[step].switchOn {
@@ -50,50 +66,91 @@ struct PatternGridView: View {
                         HStack {
                             Spacer()
                             Circle()
-                                .fill(Color.white.opacity(0.3))
-                                .frame(width: 6, height: 6)
-                                .padding(4)
+                                .fill(Color.cyan)
+                                .frame(width: 4, height: 4)
+                                .shadow(color: Color.cyan.opacity(0.8), radius: 2)
+                                .padding(3)
+                                .allowsHitTesting(false)
                         }
                     }
+                    .allowsHitTesting(false)
                 }
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    private func buttonColor(for step: Int) -> Color {
+    private func buttonGradient(for step: Int) -> LinearGradient {
         if step == currentStep {
-            // Currently playing - red
-            return Color.red
+            // Currently playing - red gradient
+            return LinearGradient(
+                colors: [Color.red.opacity(0.9), Color.red.opacity(0.6)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
         } else if step < events.count && events[step].switchOn {
-            // Active event - green
-            return Color.green.opacity(0.8)
+            // Active event - cyan gradient
+            return LinearGradient(
+                colors: [Color.cyan.opacity(0.8), Color.cyan.opacity(0.5)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
         } else {
-            // Empty - gray
-            return Color.gray.opacity(0.4)
+            // Empty - dark gradient
+            return LinearGradient(
+                colors: [Color(white: 0.25), Color(white: 0.15)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
         }
     }
-}
 
-#Preview {
-    VStack {
-        Text("Pattern Grid Demo")
-            .font(.headline)
-
-        PatternGridView(
-            events: [
-                EventData(step: 0, switchOn: true, pots: [64, 64, 64, 64]),
-                EventData(step: 1, switchOn: false, pots: [0, 0, 0, 0]),
-                EventData(step: 4, switchOn: true, pots: [80, 60, 40, 100]),
-                EventData(step: 8, switchOn: true, pots: [100, 100, 100, 100]),
-            ] + (0..<12).map { EventData(step: $0, switchOn: false, pots: [0, 0, 0, 0]) },
-            currentStep: 4,
-            onTap: { step in
-                print("Tapped step \(step)")
-            }
-        )
-        .padding()
+    private func buttonBorderColor(for step: Int) -> Color {
+        if step == currentStep {
+            return Color.red.opacity(0.8)
+        } else if step < events.count && events[step].switchOn {
+            return Color.cyan.opacity(0.7)
+        } else {
+            return Color.white.opacity(0.15)
+        }
     }
-    .frame(width: 400, height: 500)
-    .background(Color.black)
+
+    private func buttonShadowColor(for step: Int) -> Color {
+        if step == currentStep {
+            return Color.red.opacity(0.6)
+        } else if step < events.count && events[step].switchOn {
+            return Color.cyan.opacity(0.4)
+        } else {
+            return Color.clear
+        }
+    }
+
+    private func buttonTextColor(for step: Int) -> Color {
+        if step == currentStep || (step < events.count && events[step].switchOn) {
+            return .white
+        } else {
+            return Color.white.opacity(0.5)
+        }
+    }
+
 }
+
+// Preview disabled for SPM build
+// #Preview {
+//     VStack {
+//         Text("Pattern Grid Demo")
+//             .font(.headline)
+//
+//         PatternGridView(
+//             events: [],
+//             currentStep: 4,
+//             onTap: { step in
+//                 print("Tapped step \(step)")
+//             }
+//         )
+//         .padding()
+//     }
+//     .frame(width: 400, height: 500)
+//     .background(Color.black)
+// }

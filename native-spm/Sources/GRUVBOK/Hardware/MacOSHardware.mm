@@ -13,6 +13,9 @@ MacOSHardware::MacOSHardware()
     , current_midi_output_(-1)
     , midi_initialized_(false)
     , use_external_midi_(true)
+    , midi_input_port_(0)
+    , current_midi_input_(-1)
+    , mirror_mode_enabled_(false)
     , audio_engine_(nullptr)
     , sampler_(nullptr)
     , audio_initialized_(false)
@@ -91,16 +94,12 @@ bool MacOSHardware::initAudio(const std::string& soundfont_path) {
             addLog("Attempting to use built-in DLS instrument...");
 
             // Load default instrument (General MIDI piano)
-            NSError* error = nil;
-            if (![sampler_ loadInstrumentAtURL:nil
-                                       program:0
-                                        bankMSB:kAUSampler_DefaultMelodicBankMSB
-                                        bankLSB:kAUSampler_DefaultBankLSB
-                                         error:&error]) {
-                addLog("ERROR: Failed to load instrument: " + std::string([[error localizedDescription] UTF8String]));
-                return false;
-            }
-            addLog("✓ Loaded built-in DLS instrument");
+            // Note: On macOS, we need a SoundFont file - built-in DLS not available via AVAudioUnitSampler
+            addLog("WARNING: No SoundFont found and built-in DLS not available on macOS");
+            addLog("Audio playback will not work. Please provide a SoundFont file.");
+            // Continue anyway to allow MIDI output testing
+            audio_initialized_ = false;
+            return true;  // Return true to allow MIDI-only operation
         } else {
             // Load the SoundFont
             NSError* error = nil;
@@ -319,6 +318,100 @@ bool MacOSHardware::selectMidiOutput(int index) {
     current_midi_output_ = index;
     addLog("Selected MIDI output: " + getMidiOutputName(index));
     return true;
+}
+
+// MIDI Input (Mirror Mode) implementation
+
+int MacOSHardware::getMidiInputCount() {
+    return (int)MIDIGetNumberOfSources();
+}
+
+std::string MacOSHardware::getMidiInputName(int index) {
+    if (index < 0 || index >= getMidiInputCount()) {
+        return "";
+    }
+
+    MIDIEndpointRef source = MIDIGetSource(index);
+    CFStringRef name = nullptr;
+    MIDIObjectGetStringProperty(source, kMIDIPropertyName, &name);
+
+    if (name) {
+        std::string result = [(__bridge NSString*)name UTF8String];
+        CFRelease(name);
+        return result;
+    }
+
+    return "Unknown";
+}
+
+// MIDI input callback
+static void MidiInputCallback(const MIDIPacketList *pktlist, void *readProcRefCon, void *srcConnRefCon) {
+    MacOSHardware* hardware = (MacOSHardware*)readProcRefCon;
+    if (!hardware || !hardware->isMirrorModeEnabled()) {
+        return;
+    }
+
+    // Forward MIDI input to output (mirror/passthrough)
+    const MIDIPacket *packet = &pktlist->packet[0];
+    for (unsigned int i = 0; i < pktlist->numPackets; i++) {
+        // Create MIDI message from packet data
+        if (packet->length >= 1) {
+            std::vector<uint8_t> data(packet->data, packet->data + packet->length);
+            MidiMessage msg(data, 0);  // timestamp will be set by sendMidiMessage
+
+            // Send to output
+            hardware->sendMidiMessage(msg);
+        }
+
+        packet = MIDIPacketNext(packet);
+    }
+}
+
+bool MacOSHardware::selectMidiInput(int index) {
+    if (index < 0 || index >= getMidiInputCount()) {
+        current_midi_input_ = -1;
+        return false;
+    }
+
+    // Disconnect previous input if any
+    if (midi_input_port_ && current_midi_input_ >= 0) {
+        MIDIEndpointRef prev_source = MIDIGetSource(current_midi_input_);
+        MIDIPortDisconnectSource(midi_input_port_, prev_source);
+    }
+
+    // Create input port if needed
+    if (!midi_input_port_) {
+        OSStatus status = MIDIInputPortCreate(midi_client_, CFSTR("GRUVBOK Input"),
+                                              MidiInputCallback, this, &midi_input_port_);
+        if (status != noErr) {
+            addLog("ERROR: Failed to create MIDI input port");
+            return false;
+        }
+    }
+
+    // Connect to new source
+    MIDIEndpointRef source = MIDIGetSource(index);
+    OSStatus status = MIDIPortConnectSource(midi_input_port_, source, nullptr);
+
+    if (status != noErr) {
+        addLog("ERROR: Failed to connect MIDI input source");
+        current_midi_input_ = -1;
+        return false;
+    }
+
+    current_midi_input_ = index;
+    addLog("Selected MIDI input: " + getMidiInputName(index));
+    return true;
+}
+
+void MacOSHardware::setMirrorMode(bool enabled) {
+    mirror_mode_enabled_ = enabled;
+
+    if (enabled) {
+        addLog("✓ Mirror Mode enabled");
+    } else {
+        addLog("✗ Mirror Mode disabled");
+    }
 }
 
 } // namespace gruvbok

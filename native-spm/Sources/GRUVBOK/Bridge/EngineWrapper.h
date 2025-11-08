@@ -35,6 +35,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)getCurrentPattern;
 - (NSInteger)getCurrentTrack;
 - (NSInteger)getCurrentStep;
+- (NSInteger)getSongModeStep;  // Mode 0 step (1/16th speed)
 - (NSInteger)getTempo;
 - (BOOL)getLEDState;
 
@@ -61,11 +62,34 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)isAudioReady;
 - (void)setAudioGain:(float)gain;
 
+// MIDI output port management
+- (NSInteger)getMidiOutputCount;
+- (NSString *)getMidiOutputName:(NSInteger)index;
+- (BOOL)selectMidiOutput:(NSInteger)index;
+- (NSInteger)getCurrentMidiOutput;
+
+// MIDI input port management (mirror mode)
+- (NSInteger)getMidiInputCount;
+- (NSString *)getMidiInputName:(NSInteger)index;
+- (BOOL)selectMidiInput:(NSInteger)index;
+- (NSInteger)getCurrentMidiInput;
+- (BOOL)isMirrorModeEnabled;
+- (void)setMirrorMode:(BOOL)enabled;
+
 // Song persistence
 - (BOOL)saveSongToPath:(NSString *)path name:(NSString *)name;
 - (BOOL)loadSongFromPath:(NSString *)path
                outName:(NSString *_Nullable *_Nullable)outName
              outTempo:(NSInteger *)outTempo;
+
+// Demo content
+- (void)loadDemoContent;
+
+// LED pattern control
+- (void)triggerLEDPattern:(NSString *)patternName;
+
+// Lua mode management
+- (BOOL)reloadMode:(NSInteger)mode;
 
 @end
 
