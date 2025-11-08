@@ -478,7 +478,9 @@ void Engine::reinitLuaModes() {
         LuaContext* lua_mode = mode_loader_->getMode(mode_num);
         if (lua_mode && lua_mode->isValid()) {
             context.mode_number = mode_num;
-            context.midi_channel = mode_num;  // Each mode on its own channel
+            // Mode 0 produces no MIDI output (it's the song sequencer)
+            // Mode 1-14 map to MIDI channels 0-13 (displayed as channels 1-14)
+            context.midi_channel = (mode_num > 0) ? (mode_num - 1) : 0;
             context.scale_root = global_scale_root_;
             context.scale_type = global_scale_type_;
             context.velocity_offset = mode_velocity_offsets_[mode_num];

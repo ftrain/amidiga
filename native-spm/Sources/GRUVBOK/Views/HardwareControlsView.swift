@@ -5,6 +5,7 @@ import GRUVBOKBridge
 struct HardwareControlsView: View {
     @ObservedObject var engine: EngineState
     @State private var editingCell: (step: Int, pot: Int)? = nil
+    @State private var dragStartValue: Int = 0
 
     var body: some View {
         GeometryReader { geometry in
@@ -301,18 +302,24 @@ struct HardwareControlsView: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { drag in
+                        // Initialize drag state on first change
                         if editingCell?.step != index || editingCell?.pot != pot {
                             editingCell = (step: index, pot: pot)
+                            dragStartValue = Int(event.pots[pot].intValue)
                         }
-                        let delta = Int(drag.translation.width * 0.5)
-                        let currentValue = Int(event.pots[pot].intValue)
-                        let newValue = max(0, min(127, currentValue + delta))
-                        if newValue != currentValue {
-                            engine.setSliderPot(pot, value: UInt8(newValue))
+
+                        // Update value based on cumulative drag from start
+                        let newValue = max(0, min(127, dragStartValue + Int(drag.translation.width * 0.5)))
+                        engine.setSliderPot(pot, value: UInt8(newValue))
+                    }
+                    .onEnded { _ in
+                        // Save the value by toggling the button (parameter lock)
+                        if editingCell?.step == index && editingCell?.pot == pot {
                             engine.toggleButton(index)
                         }
+                        editingCell = nil
+                        dragStartValue = 0
                     }
-                    .onEnded { _ in editingCell = nil }
             )
     }
 }
