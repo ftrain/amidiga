@@ -308,8 +308,19 @@ class EngineState: ObservableObject {
         engineWrapper.triggerLEDPattern(pattern)
     }
 
+    // MARK: - MIDI Program Mapping
+
+    func setModeProgram(mode: Int, program: UInt8) {
+        engineWrapper.setModeProgram(mode, program: program)
+    }
+
+    func getModeProgram(mode: Int) -> UInt8 {
+        return engineWrapper.getModeProgram(mode)
+    }
+
     deinit {
         stopUpdateLoop()
         engineWrapper.stop()
     }
 }
+

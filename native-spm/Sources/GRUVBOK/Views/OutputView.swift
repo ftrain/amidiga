@@ -28,6 +28,18 @@ struct OutputView: View {
                             )
                     )
 
+                // Instrument Mapping Section
+                instrumentMappingSection
+                    .padding(10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(white: 0.1))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.cyan.opacity(0.2), lineWidth: 1)
+                            )
+                    )
+
                 // Audio Configuration Section
                 audioConfigSection
                     .padding(10)
@@ -277,6 +289,86 @@ struct OutputView: View {
                     songName = "Demo Song"
                 }
                 .foregroundColor(.blue)
+            }
+        }
+    }
+
+    // MARK: - Instrument Mapping
+
+    private var instrumentMappingSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Instrument Mapping (General MIDI)")
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundColor(.cyan)
+                .textCase(.uppercase)
+
+            Text("Configure which instrument each mode uses")
+                .font(.system(size: 11))
+                .foregroundColor(.gray)
+
+            Divider().background(Color.gray.opacity(0.3))
+
+            // Grid of mode instrument selectors
+            ForEach(1...14, id: \.self) { mode in
+                HStack(spacing: 10) {
+                    Text("Mode \(mode):")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundColor(.cyan)
+                        .frame(width: 70, alignment: .trailing)
+
+                    Picker("Instrument for Mode \(mode)", selection: Binding(
+                        get: { Int(engine.getModeProgram(mode: mode)) },
+                        set: { engine.setModeProgram(mode: mode, program: UInt8($0)) }
+                    )) {
+                        ForEach(GMInstruments.instruments, id: \.number) { instrument in
+                            Text("\(instrument.number): \(instrument.name)")
+                                .font(.system(size: 11))
+                                .tag(instrument.number)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity)
+
+                    // Current selection display
+                    Text(GMInstruments.name(for: Int(engine.getModeProgram(mode: mode))))
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                        .lineLimit(1)
+                        .frame(width: 200, alignment: .leading)
+                }
+            }
+
+            // Quick presets
+            Divider().background(Color.gray.opacity(0.3))
+
+            Text("Quick Presets")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.cyan.opacity(0.8))
+
+            HStack(spacing: 8) {
+                Button("Drums → M1") {
+                    engine.setModeProgram(mode: 1, program: 0)  // Use channel 10 for drums in GM
+                }
+                .buttonStyle(.bordered)
+                .font(.system(size: 11))
+
+                Button("Bass → M2") {
+                    engine.setModeProgram(mode: 2, program: 33)  // Electric Bass (finger)
+                }
+                .buttonStyle(.bordered)
+                .font(.system(size: 11))
+
+                Button("Piano → M3") {
+                    engine.setModeProgram(mode: 3, program: 0)  // Acoustic Grand Piano
+                }
+                .buttonStyle(.bordered)
+                .font(.system(size: 11))
+
+                Button("Strings → M4") {
+                    engine.setModeProgram(mode: 4, program: 48)  // String Ensemble
+                }
+                .buttonStyle(.bordered)
+                .font(.system(size: 11))
             }
         }
     }

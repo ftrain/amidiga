@@ -99,6 +99,7 @@ let package = Package(
                 "Views/ModeLabels.swift",
                 "Views/LuaManagerView.swift",
                 "Views/CodeEditorView.swift",
+                "Views/GMInstruments.swift",
                 "Bridge/EngineState.swift"
             ],
             resources: [
