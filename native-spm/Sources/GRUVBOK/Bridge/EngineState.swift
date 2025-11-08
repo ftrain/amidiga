@@ -7,6 +7,8 @@ import GRUVBOKBridge
 class EngineState: ObservableObject {
     private let engineWrapper: EngineWrapper
     private var updateTimer: Timer?
+    private var engineQueue: DispatchQueue
+    private var isRunning: Bool = false
 
     // Published state
     @Published var currentMode: Int = 0
@@ -36,6 +38,9 @@ class EngineState: ObservableObject {
     private var skipTrackEventsUpdate: Bool = false
 
     init(platform: String) {
+        // Create high-priority background queue for engine updates
+        engineQueue = DispatchQueue(label: "com.gruvbok.engine", qos: .userInteractive)
+
         engineWrapper = EngineWrapper(platform: platform)
 
         if !engineWrapper.initialize() {
@@ -60,39 +65,71 @@ class EngineState: ObservableObject {
     }
 
     func startUpdateLoop() {
-        updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { [weak self] _ in
-            self?.update()
+        isRunning = true
+
+        // Run engine update loop on dedicated high-priority background thread
+        engineQueue.async { [weak self] in
+            guard let self = self else { return }
+
+            let targetInterval: TimeInterval = 1.0 / 60.0  // 60fps
+            var lastUpdate = Date()
+
+            while self.isRunning {
+                let now = Date()
+                let elapsed = now.timeIntervalSince(lastUpdate)
+
+                if elapsed >= targetInterval {
+                    self.update()
+                    lastUpdate = now
+                }
+
+                // Precise sleep to maintain timing
+                let remaining = targetInterval - elapsed
+                if remaining > 0 {
+                    Thread.sleep(forTimeInterval: remaining)
+                }
+            }
         }
     }
 
     func stopUpdateLoop() {
-        updateTimer?.invalidate()
-        updateTimer = nil
+        isRunning = false
     }
 
     private func update() {
-        // Call C++ engine update
+        // Call C++ engine update on background thread (thread-safe)
         engineWrapper.update()
 
-        // Poll state (efficient - just reading values)
-        currentMode = Int(engineWrapper.getCurrentMode())
-        currentPattern = Int(engineWrapper.getCurrentPattern())
-        currentTrack = Int(engineWrapper.getCurrentTrack())
-        currentStep = Int(engineWrapper.getCurrentStep())
-        songModeStep = Int(engineWrapper.getSongModeStep())
-        tempo = Int(engineWrapper.getTempo())
-        isPlaying = engineWrapper.isPlaying()
-        isDirty = engineWrapper.isDirty()
-        ledOn = engineWrapper.getLEDState()
+        // Read state values on background thread
+        let mode = Int(engineWrapper.getCurrentMode())
+        let pattern = Int(engineWrapper.getCurrentPattern())
+        let track = Int(engineWrapper.getCurrentTrack())
+        let step = Int(engineWrapper.getCurrentStep())
+        let songStep = Int(engineWrapper.getSongModeStep())
+        let currentTempo = Int(engineWrapper.getTempo())
+        let playing = engineWrapper.isPlaying()
+        let dirty = engineWrapper.isDirty()
+        let led = engineWrapper.getLEDState()
 
-        // Update track events (skip during button press to avoid race condition)
-        if !skipTrackEventsUpdate {
-            trackEvents = engineWrapper.getTrackEvents()
-        }
+        // Update track events if not skipped
+        let events = skipTrackEventsUpdate ? trackEvents : engineWrapper.getTrackEvents()
 
         // Update logs (throttled - only every 10 frames)
-        if Int.random(in: 0...9) == 0 {
-            logMessages = engineWrapper.getLogMessages()
+        let logs = (Int.random(in: 0...9) == 0) ? engineWrapper.getLogMessages() : logMessages
+
+        // Dispatch UI updates to main thread
+        DispatchQueue.main.async { [weak self] in
+            self?.currentMode = mode
+            self?.currentPattern = pattern
+            self?.currentTrack = track
+            self?.currentStep = step
+            self?.songModeStep = songStep
+            self?.tempo = currentTempo
+            self?.isPlaying = playing
+            self?.isDirty = dirty
+            self?.ledOn = led
+            self?.trackEvents = events
+            self?.logMessages = logs
         }
     }
 
@@ -259,6 +296,12 @@ class EngineState: ObservableObject {
 
     func reloadMode(_ mode: Int) -> Bool {
         return engineWrapper.reloadMode(mode)
+    }
+
+    func validateLuaScript(path: String) -> (Bool, String?) {
+        var errorMessage: NSString?
+        let success = engineWrapper.validateLuaScript(path, outError: &errorMessage)
+        return (success, errorMessage as String?)
     }
 
     func triggerLEDPattern(_ pattern: String) {

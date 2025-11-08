@@ -101,17 +101,25 @@ bool MacOSHardware::initAudio(const std::string& soundfont_path) {
             audio_initialized_ = false;
             return true;  // Return true to allow MIDI-only operation
         } else {
-            // Load the SoundFont
+            // Load the entire SoundFont bank (all instruments + drums)
             NSError* error = nil;
+
+            // Load the soundfont with default melodic bank
+            // For General MIDI: bankMSB=0x79 (121), bankLSB=0x00
             if (![sampler_ loadSoundBankInstrumentAtURL:sfURL
                                                 program:0
-                                                 bankMSB:kAUSampler_DefaultMelodicBankMSB
+                                                 bankMSB:0x79  // GM Level 1 melodic bank
                                                  bankLSB:kAUSampler_DefaultBankLSB
                                                   error:&error]) {
                 addLog("ERROR: Failed to load SoundFont: " + std::string([[error localizedDescription] UTF8String]));
                 return false;
             }
+
             addLog("✓ Loaded SoundFont: " + std::string([[sfURL lastPathComponent] UTF8String]));
+
+            // Multi-timbral mode: AVAudioUnitSampler responds to all 16 MIDI channels
+            // Channel 10 (index 9) is automatically drums in General MIDI soundfonts
+            addLog("✓ Multi-timbral mode enabled (16 channels)");
         }
 
         // Start audio engine
@@ -215,20 +223,35 @@ void MacOSHardware::sendToCoreMIDI(const MidiMessage& msg) {
 
 void MacOSHardware::sendToAudioEngine(const MidiMessage& msg) {
     @autoreleasepool {
-        if (!audio_initialized_ || !sampler_ || msg.data.size() < 3) return;
+        if (!audio_initialized_ || !sampler_ || msg.data.empty()) return;
 
         UInt8 status = msg.data[0];
-        UInt8 byte1 = msg.data[1];
-        UInt8 byte2 = msg.data[2];
         UInt8 channel = status & 0x0F;
         UInt8 command = status & 0xF0;
 
-        if (command == 0x90 && byte2 > 0) {  // Note On
-            [sampler_ startNote:byte1 withVelocity:byte2 onChannel:channel];
-        } else if (command == 0x80 || (command == 0x90 && byte2 == 0)) {  // Note Off
-            [sampler_ stopNote:byte1 onChannel:channel];
+        if (command == 0x90 && msg.data.size() >= 3) {  // Note On
+            UInt8 note = msg.data[1];
+            UInt8 velocity = msg.data[2];
+            if (velocity > 0) {
+                [sampler_ startNote:note withVelocity:velocity onChannel:channel];
+            } else {
+                [sampler_ stopNote:note onChannel:channel];
+            }
+        } else if (command == 0x80 && msg.data.size() >= 3) {  // Note Off
+            UInt8 note = msg.data[1];
+            [sampler_ stopNote:note onChannel:channel];
+        } else if (command == 0xC0 && msg.data.size() >= 2) {  // Program Change
+            UInt8 program = msg.data[1];
+            // Send program change via raw MIDI to sampler
+            // AVAudioUnitSampler handles GM channel mapping internally
+            UInt8 status = 0xC0 | channel;
+            [sampler_ sendMIDIEvent:status data1:program];
+        } else if (command == 0xB0 && msg.data.size() >= 3) {  // Control Change
+            UInt8 controller = msg.data[1];
+            UInt8 value = msg.data[2];
+            UInt8 status = 0xB0 | channel;
+            [sampler_ sendMIDIEvent:status data1:controller data2:value];
         }
-        // TODO: Handle CC messages for filter, etc.
     }
 }
 

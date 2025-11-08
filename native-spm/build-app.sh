@@ -50,6 +50,15 @@ else
     fi
 fi
 
+# Copy soundfont
+echo "Copying soundfont..."
+if [ -f "Resources/default.sf2" ]; then
+    cp "Resources/default.sf2" "$RESOURCES_DIR/"
+    echo "Soundfont copied ($(du -h Resources/default.sf2 | cut -f1))"
+else
+    echo "Warning: Resources/default.sf2 not found"
+fi
+
 # Create Info.plist
 echo "Creating Info.plist..."
 cat > "$CONTENTS_DIR/Info.plist" << EOF

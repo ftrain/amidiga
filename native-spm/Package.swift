@@ -101,6 +101,9 @@ let package = Package(
                 "Views/CodeEditorView.swift",
                 "Bridge/EngineState.swift"
             ],
+            resources: [
+                .copy("../../Resources/default.sf2")
+            ],
             swiftSettings: [
                 .interoperabilityMode(.Cxx)
             ],

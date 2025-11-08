@@ -7,6 +7,8 @@ struct LuaManagerView: View {
     @State private var selectedFile: LuaFileInfo?
     @State private var editorContent: String = ""
     @State private var modesDirectoryPath: String = ""
+    @State private var showValidationError: Bool = false
+    @State private var validationErrorMessage: String = ""
 
     var body: some View {
         HSplitView {
@@ -21,6 +23,11 @@ struct LuaManagerView: View {
         .background(Color.black)
         .onAppear {
             loadLuaFiles()
+        }
+        .alert("Lua Validation Error", isPresented: $showValidationError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(validationErrorMessage)
         }
     }
 
@@ -265,11 +272,35 @@ struct LuaManagerView: View {
     private func saveFile() {
         guard let file = selectedFile else { return }
 
+        // Write content to a temporary file for validation
+        let tempPath = NSTemporaryDirectory() + "temp_lua_validation.lua"
+        do {
+            try editorContent.write(toFile: tempPath, atomically: true, encoding: .utf8)
+        } catch {
+            validationErrorMessage = "Failed to create temporary file: \(error.localizedDescription)"
+            showValidationError = true
+            return
+        }
+
+        // Validate the Lua script
+        let (isValid, errorMessage) = engine.validateLuaScript(path: tempPath)
+
+        // Clean up temp file
+        try? FileManager.default.removeItem(atPath: tempPath)
+
+        if !isValid {
+            validationErrorMessage = errorMessage ?? "Unknown Lua validation error"
+            showValidationError = true
+            return
+        }
+
+        // Save to actual file if validation passed
         do {
             try editorContent.write(toFile: file.path, atomically: true, encoding: .utf8)
-            print("Saved \(file.filename)")
+            print("✓ Saved \(file.filename) (validation passed)")
         } catch {
-            print("Error saving file: \(error)")
+            validationErrorMessage = "Failed to save file: \(error.localizedDescription)"
+            showValidationError = true
         }
     }
 

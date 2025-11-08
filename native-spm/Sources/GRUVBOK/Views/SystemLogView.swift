@@ -34,7 +34,7 @@ struct SystemLogView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
                 }
-                .onChange(of: engine.logMessages.count) { _ in
+                .onChange(of: engine.logMessages.count) {
                     // Auto-scroll to bottom when new messages arrive
                     if let lastIndex = engine.logMessages.indices.last {
                         withAnimation {

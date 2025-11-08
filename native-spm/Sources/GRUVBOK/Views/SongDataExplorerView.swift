@@ -96,7 +96,7 @@ struct SongDataExplorerView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 10)
+            .padding(.vertical)
 
             Divider()
 

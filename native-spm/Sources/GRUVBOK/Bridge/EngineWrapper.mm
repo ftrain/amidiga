@@ -579,4 +579,34 @@ using namespace gruvbok;
     return success ? YES : NO;
 }
 
+- (BOOL)validateLuaScript:(NSString *)path outError:(NSString **)outError {
+    if (!path) {
+        if (outError) {
+            *outError = @"Invalid path";
+        }
+        return NO;
+    }
+
+    // Create a temporary Lua context to test validation
+    gruvbok::LuaContext tempContext;
+    bool success = tempContext.loadScript([path UTF8String]);
+
+    if (!success) {
+        if (outError) {
+            std::string errorMsg = tempContext.getError();
+            *outError = [NSString stringWithUTF8String:errorMsg.c_str()];
+        }
+        return NO;
+    }
+
+    // Check for required functions
+    // Note: We could also call init() here, but that might have side effects
+    // For now, loadScript() checks for init and process_event existence
+
+    if (outError) {
+        *outError = nil;
+    }
+    return YES;
+}
+
 @end

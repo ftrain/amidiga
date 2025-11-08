@@ -7,10 +7,11 @@ struct KnobView: View {
     @Binding var value: Int
     let range: ClosedRange<Int>
     var displayText: String?
-    var size: CGFloat = 70
+    var size: CGFloat = 120
 
     @State private var angle: Double = 0
     @State private var isDragging: Bool = false
+    @State private var lastDragValue: CGFloat = 0
 
     private let minAngle: Double = -135
     private let maxAngle: Double = 135
@@ -97,19 +98,19 @@ struct KnobView: View {
             .onAppear {
                 updateAngle()
             }
-            .onChange(of: value) { _ in
+            .onChange(of: value) {
                 updateAngle()
             }
 
             // Label
             Text(label)
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundColor(.cyan)
                 .textCase(.uppercase)
 
             // Display value
             Text(displayText ?? "\(value)")
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundColor(.white.opacity(0.8))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
@@ -137,29 +138,36 @@ struct KnobView: View {
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { gesture in
-                isDragging = true
+                if !isDragging {
+                    isDragging = true
+                    lastDragValue = gesture.translation.height
+                }
 
-                // Calculate delta based on vertical drag
-                let delta = -gesture.translation.height
-                let sensitivity: Double = 0.5  // Adjust for feel
+                // Calculate delta since last update
+                let currentDragValue = gesture.translation.height
+                let delta = -(currentDragValue - lastDragValue)
+                lastDragValue = currentDragValue
+
+                let sensitivity: Double = 0.3  // Reduced sensitivity
 
                 // Calculate new value
-                let valueRange = Double(range.upperBound - range.lowerBound)
                 let change = Int(delta * sensitivity)
-                let newValue = max(range.lowerBound, min(range.upperBound, value + change))
+                if change != 0 {
+                    let newValue = max(range.lowerBound, min(range.upperBound, value + change))
+                    if newValue != value {
+                        value = newValue
 
-                if newValue != value {
-                    value = newValue
-
-                    // Haptic feedback on value change (iOS only)
-                    #if os(iOS)
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    #endif
+                        // Haptic feedback on value change (iOS only)
+                        #if os(iOS)
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        #endif
+                    }
                 }
             }
             .onEnded { _ in
                 isDragging = false
+                lastDragValue = 0
             }
     }
 }

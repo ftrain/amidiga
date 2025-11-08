@@ -90,6 +90,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 // Lua mode management
 - (BOOL)reloadMode:(NSInteger)mode;
+- (BOOL)validateLuaScript:(NSString *)path outError:(NSString *_Nullable *_Nullable)outError;
 
 @end
 

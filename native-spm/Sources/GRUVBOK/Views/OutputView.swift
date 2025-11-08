@@ -80,12 +80,12 @@ struct OutputView: View {
                 }
                 .labelsHidden()
                 .frame(width: 250)
-                .onChange(of: selectedMidiPort) { newPort in
+                .onChange(of: selectedMidiPort) { _, newPort in
                     _ = engine.selectMidiOutput(at: newPort)
                 }
 
                 Toggle("Enable", isOn: $useExternalMIDI)
-                    .onChange(of: useExternalMIDI) { enabled in
+                    .onChange(of: useExternalMIDI) { _, enabled in
                         engine.setUseExternalMIDI(enabled)
                     }
                     .frame(width: 100)
@@ -98,7 +98,7 @@ struct OutputView: View {
                     .frame(width: 80, alignment: .trailing)
 
                 Toggle("Enable MIDI Input Passthrough", isOn: $mirrorModeEnabled)
-                    .onChange(of: mirrorModeEnabled) { enabled in
+                    .onChange(of: mirrorModeEnabled) { _, enabled in
                         engine.setMirrorMode(enabled)
                         if enabled {
                             engine.triggerLEDPattern("MIRROR_MODE")
@@ -124,7 +124,7 @@ struct OutputView: View {
                     }
                     .labelsHidden()
                     .frame(width: 250)
-                    .onChange(of: selectedMidiInputPort) { newPort in
+                    .onChange(of: selectedMidiInputPort) { _, newPort in
                         if newPort >= 0 {
                             _ = engine.selectMidiInput(at: newPort)
                         }
@@ -149,7 +149,7 @@ struct OutputView: View {
                     .frame(width: 80, alignment: .trailing)
 
                 Toggle("Enable FluidSynth", isOn: $useInternalAudio)
-                    .onChange(of: useInternalAudio) { enabled in
+                    .onChange(of: useInternalAudio) { _, enabled in
                         engine.setUseInternalAudio(enabled)
                         // Note: Would need to initialize audio with SoundFont path
                     }
@@ -180,7 +180,7 @@ struct OutputView: View {
 
                     Slider(value: $audioGain, in: 0...2.0)
                         .frame(width: 200)
-                        .onChange(of: audioGain) { gain in
+                        .onChange(of: audioGain) { _, gain in
                             engine.setAudioGain(gain)
                         }
 

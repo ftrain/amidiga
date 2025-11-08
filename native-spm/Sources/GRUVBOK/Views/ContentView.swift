@@ -45,7 +45,7 @@ struct ContentView: View {
         }
         .background(Color.black)
         .preferredColorScheme(.dark)
-        .frame(minWidth: 720, minHeight: 500)
+        .frame(minWidth: 900, idealWidth: 1100, minHeight: 700, idealHeight: 800)
         .onAppear {
             setupKeyboardMonitoring()
         }
