@@ -13,6 +13,16 @@
 		017F82192EBEE0CE00870646 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 017F82182EBEE0CE00870646 /* AVFoundation.framework */; };
 		017F821B2EBEE0D500870646 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 017F821A2EBEE0D500870646 /* CoreAudio.framework */; };
 		017F821D2EBEE0DD00870646 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 017F821C2EBEE0DD00870646 /* UIKit.framework */; platformFilters = (ios, xros, ); };
+		/* C++ Source Files */
+		017F823C2EBEE26300870646 /* engine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017F82292EBEE25000870646 /* engine.cpp */; };
+		017F823D2EBEE26400870646 /* event.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017F822B2EBEE25200870646 /* event.cpp */; };
+		017F823E2EBEE26500870646 /* pattern.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017F822D2EBEE25400870646 /* pattern.cpp */; };
+		017F823F2EBEE26600870646 /* song.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017F822F2EBEE25600870646 /* song.cpp */; };
+		017F82402EBEE26700870646 /* audio_output.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017F82312EBEE25800870646 /* audio_output.cpp */; };
+		017F82412EBEE26800870646 /* midi_scheduler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017F82342EBEE25B00870646 /* midi_scheduler.cpp */; };
+		017F82422EBEE26900870646 /* lua_api.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017F82362EBEE25D00870646 /* lua_api.cpp */; };
+		017F82432EBEE26A00870646 /* lua_context.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017F82382EBEE25F00870646 /* lua_context.cpp */; };
+		017F82442EBEE26B00870646 /* mode_loader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 017F823A2EBEE26100870646 /* mode_loader.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -43,6 +53,28 @@
 		017F821A2EBEE0D500870646 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.1.sdk/System/Library/Frameworks/CoreAudio.framework; sourceTree = DEVELOPER_DIR; };
 		017F821C2EBEE0DD00870646 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.1.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		017F821E2EBEE11700870646 /* GRUVBOK-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GRUVBOK-Bridging-Header.h"; sourceTree = "<group>"; };
+	/* C++ Core Files */
+	017F82292EBEE25000870646 /* engine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = engine.cpp; path = ../../src/core/engine.cpp; sourceTree = "<group>"; };
+	017F822A2EBEE25100870646 /* engine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = engine.h; path = ../../src/core/engine.h; sourceTree = "<group>"; };
+	017F822B2EBEE25200870646 /* event.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = event.cpp; path = ../../src/core/event.cpp; sourceTree = "<group>"; };
+	017F822C2EBEE25300870646 /* event.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = event.h; path = ../../src/core/event.h; sourceTree = "<group>"; };
+	017F822D2EBEE25400870646 /* pattern.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = pattern.cpp; path = ../../src/core/pattern.cpp; sourceTree = "<group>"; };
+	017F822E2EBEE25500870646 /* pattern.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pattern.h; path = ../../src/core/pattern.h; sourceTree = "<group>"; };
+	017F822F2EBEE25600870646 /* song.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = song.cpp; path = ../../src/core/song.cpp; sourceTree = "<group>"; };
+	017F82302EBEE25700870646 /* song.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = song.h; path = ../../src/core/song.h; sourceTree = "<group>"; };
+	/* C++ Hardware Files */
+	017F82312EBEE25800870646 /* audio_output.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = audio_output.cpp; path = ../../src/hardware/audio_output.cpp; sourceTree = "<group>"; };
+	017F82322EBEE25900870646 /* audio_output.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = audio_output.h; path = ../../src/hardware/audio_output.h; sourceTree = "<group>"; };
+	017F82332EBEE25A00870646 /* hardware_interface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hardware_interface.h; path = ../../src/hardware/hardware_interface.h; sourceTree = "<group>"; };
+	017F82342EBEE25B00870646 /* midi_scheduler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = midi_scheduler.cpp; path = ../../src/hardware/midi_scheduler.cpp; sourceTree = "<group>"; };
+	017F82352EBEE25C00870646 /* midi_scheduler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = midi_scheduler.h; path = ../../src/hardware/midi_scheduler.h; sourceTree = "<group>"; };
+	/* C++ Lua Bridge Files */
+	017F82362EBEE25D00870646 /* lua_api.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = lua_api.cpp; path = ../../src/lua_bridge/lua_api.cpp; sourceTree = "<group>"; };
+	017F82372EBEE25E00870646 /* lua_api.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lua_api.h; path = ../../src/lua_bridge/lua_api.h; sourceTree = "<group>"; };
+	017F82382EBEE25F00870646 /* lua_context.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = lua_context.cpp; path = ../../src/lua_bridge/lua_context.cpp; sourceTree = "<group>"; };
+	017F82392EBEE26000870646 /* lua_context.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lua_context.h; path = ../../src/lua_bridge/lua_context.h; sourceTree = "<group>"; };
+	017F823A2EBEE26100870646 /* mode_loader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mode_loader.cpp; path = ../../src/lua_bridge/mode_loader.cpp; sourceTree = "<group>"; };
+	017F823B2EBEE26200870646 /* mode_loader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mode_loader.h; path = ../../src/lua_bridge/mode_loader.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -64,6 +96,16 @@
 		017F82232EBEE1F000870646 /* macOS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = macOS;
+			sourceTree = "<group>";
+		};
+		017F82242EBEE20000870646 /* iOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		017F82252EBEE21000870646 /* GRUVBOK */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GRUVBOK;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -104,6 +146,11 @@
 				017F821E2EBEE11700870646 /* GRUVBOK-Bridging-Header.h */,
 				017F821F2EBEE1AD00870646 /* Shared */,
 				017F82232EBEE1F000870646 /* macOS */,
+				017F82242EBEE20000870646 /* iOS */,
+				017F82252EBEE21000870646 /* GRUVBOK */,
+				017F82262EBEE22000870646 /* Core */,
+				017F82272EBEE23000870646 /* Hardware */,
+				017F82282EBEE24000870646 /* Lua Bridge */,
 				017F81DE2EBEDF0D00870646 /* GRUVBOKTests */,
 				017F81E82EBEDF0D00870646 /* GRUVBOKUITests */,
 				017F82152EBEE0C900870646 /* Frameworks */,
@@ -134,6 +181,46 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		017F82262EBEE22000870646 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				017F82292EBEE25000870646 /* engine.cpp */,
+				017F822A2EBEE25100870646 /* engine.h */,
+				017F822B2EBEE25200870646 /* event.cpp */,
+				017F822C2EBEE25300870646 /* event.h */,
+				017F822D2EBEE25400870646 /* pattern.cpp */,
+				017F822E2EBEE25500870646 /* pattern.h */,
+				017F822F2EBEE25600870646 /* song.cpp */,
+				017F82302EBEE25700870646 /* song.h */,
+			);
+			name = Core;
+			sourceTree = "<group>";
+		};
+		017F82272EBEE23000870646 /* Hardware */ = {
+			isa = PBXGroup;
+			children = (
+				017F82312EBEE25800870646 /* audio_output.cpp */,
+				017F82322EBEE25900870646 /* audio_output.h */,
+				017F82332EBEE25A00870646 /* hardware_interface.h */,
+				017F82342EBEE25B00870646 /* midi_scheduler.cpp */,
+				017F82352EBEE25C00870646 /* midi_scheduler.h */,
+			);
+			name = Hardware;
+			sourceTree = "<group>";
+		};
+		017F82282EBEE24000870646 /* Lua Bridge */ = {
+			isa = PBXGroup;
+			children = (
+				017F82362EBEE25D00870646 /* lua_api.cpp */,
+				017F82372EBEE25E00870646 /* lua_api.h */,
+				017F82382EBEE25F00870646 /* lua_context.cpp */,
+				017F82392EBEE26000870646 /* lua_context.h */,
+				017F823A2EBEE26100870646 /* mode_loader.cpp */,
+				017F823B2EBEE26200870646 /* mode_loader.h */,
+			);
+			name = "Lua Bridge";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -152,6 +239,8 @@
 			fileSystemSynchronizedGroups = (
 				017F821F2EBEE1AD00870646 /* Shared */,
 				017F82232EBEE1F000870646 /* macOS */,
+				017F82242EBEE20000870646 /* iOS */,
+				017F82252EBEE21000870646 /* GRUVBOK */,
 			);
 			name = GRUVBOK;
 			packageProductDependencies = (
@@ -281,6 +370,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				017F823C2EBEE26300870646 /* engine.cpp in Sources */,
+				017F823D2EBEE26400870646 /* event.cpp in Sources */,
+				017F823E2EBEE26500870646 /* pattern.cpp in Sources */,
+				017F823F2EBEE26600870646 /* song.cpp in Sources */,
+				017F82402EBEE26700870646 /* audio_output.cpp in Sources */,
+				017F82412EBEE26800870646 /* midi_scheduler.cpp in Sources */,
+				017F82422EBEE26900870646 /* lua_api.cpp in Sources */,
+				017F82432EBEE26A00870646 /* lua_context.cpp in Sources */,
+				017F82442EBEE26B00870646 /* mode_loader.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
