@@ -463,7 +463,7 @@ void Engine::updateLED() {
 }
 
 void Engine::reinitLuaModes() {
-    // Reinitialize all Lua modes with current tempo
+    // Reinitialize all Lua modes with current tempo and Mode 0 context
     // This is called after tempo changes (debounced)
     std::cout << "Reinitializing Lua modes with tempo=" << tempo_ << " BPM" << std::endl;
 
@@ -475,6 +475,9 @@ void Engine::reinitLuaModes() {
         if (lua_mode && lua_mode->isValid()) {
             context.mode_number = mode_num;
             context.midi_channel = mode_num;  // Each mode on its own channel
+            context.scale_root = global_scale_root_;
+            context.scale_type = global_scale_type_;
+            context.velocity_offset = mode_velocity_offsets_[mode_num];
             lua_mode->callInit(context);
         }
     }

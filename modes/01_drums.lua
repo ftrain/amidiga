@@ -21,10 +21,15 @@
 
   Button Interaction:
   B1-B16: Toggle beats on/off for current track
+
+  Mode 0 Context:
+  - Velocity offset applied to all drum hits
+  - Scale is ignored (drums are not pitched)
 ]]--
 
 -- Mode metadata
 MODE_NAME = "Drums"
+SLIDER_LABELS = {"Velocity", "Length", "S3", "S4"}
 
 -- MIDI note assignments for drum sounds (General MIDI Drum Map)
 local drum_map = {
@@ -41,8 +46,16 @@ local drum_map = {
 local accent_track = 7  -- Track 8 (0-indexed as 7)
 local accent_boost = 30  -- Velocity boost when accent is active
 
+-- Mode 0 context (set by init)
+local velocity_offset = 0
+
 function init(context)
   print("Drum machine initialized on channel " .. context.midi_channel)
+
+  -- Store Mode 0 velocity offset
+  velocity_offset = context.velocity_offset or 0
+
+  print("  Velocity offset: " .. velocity_offset)
 end
 
 function process_event(track, event)
@@ -62,9 +75,11 @@ function process_event(track, event)
   -- Get velocity from S1
   local velocity = event.pots[1]
 
-  -- Apply accent if track 8 is also active (we don't have cross-track info here,
-  -- so this is simplified - just use pot value as base velocity)
-  velocity = math.min(127, velocity)
+  -- Apply Mode 0 velocity offset
+  velocity = velocity + velocity_offset
+
+  -- Clamp to MIDI range
+  velocity = math.max(1, math.min(127, velocity))
 
   -- Get note length from S2 (minimum 10ms)
   local note_length = math.max(10, event.pots[2])

@@ -117,6 +117,15 @@ bool LuaContext::callInit(const LuaInitContext& context) {
     lua_pushinteger(L_, context.midi_channel);
     lua_setfield(L_, -2, "midi_channel");
 
+    lua_pushinteger(L_, context.scale_root);
+    lua_setfield(L_, -2, "scale_root");
+
+    lua_pushinteger(L_, context.scale_type);
+    lua_setfield(L_, -2, "scale_type");
+
+    lua_pushinteger(L_, context.velocity_offset);
+    lua_setfield(L_, -2, "velocity_offset");
+
     // Call init(context)
     if (lua_pcall(L_, 1, 0, 0) != LUA_OK) {
         setError(std::string("Error calling init(): ") + lua_tostring(L_, -1));
@@ -207,6 +216,31 @@ std::string LuaContext::getModeName() const {
 
     lua_pop(L_, 1);
     return "Unnamed";  // Default if MODE_NAME not defined
+}
+
+std::vector<std::string> LuaContext::getSliderLabels() const {
+    std::vector<std::string> labels = {"S1", "S2", "S3", "S4"};  // Defaults
+
+    if (!is_valid_) {
+        return labels;
+    }
+
+    // Try to read SLIDER_LABELS global table
+    lua_getglobal(L_, "SLIDER_LABELS");
+
+    if (lua_istable(L_, -1)) {
+        // Read up to 4 labels from the table
+        for (int i = 0; i < 4; ++i) {
+            lua_rawgeti(L_, -1, i + 1);  // Lua arrays are 1-indexed
+            if (lua_isstring(L_, -1)) {
+                labels[i] = lua_tostring(L_, -1);
+            }
+            lua_pop(L_, 1);
+        }
+    }
+
+    lua_pop(L_, 1);
+    return labels;
 }
 
 } // namespace gruvbok

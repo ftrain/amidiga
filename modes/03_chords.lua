@@ -1,4 +1,5 @@
 MODE_NAME = "Chords"
+SLIDER_LABELS = {"Root", "Type", "Velocity", "Length"}
 
 
 --[[
@@ -25,6 +26,11 @@ MODE_NAME = "Chords"
 
   Button Interaction:
   B1-B16: Toggle chord trigger for current track
+
+  Mode 0 Context:
+  - scale_root: Transposes all chords (0-11 = C-B)
+  - scale_type: Unused (chord type controlled by S2)
+  - velocity_offset: Applied to all chord velocities
 ]]--
 
 -- ============================================================================
@@ -57,12 +63,22 @@ local chord_names = {
   "Maj6", "Min6", "7sus4", "Power"
 }
 
+-- Mode 0 context (set by init)
+local transpose = 0  -- Global transpose from Mode 0
+local velocity_offset = 0
+
 -- ============================================================================
 -- init() - Called once when mode loads
 -- ============================================================================
 
 function init(context)
   print("Chord sequencer initialized on channel " .. context.midi_channel)
+
+  -- Get Mode 0 context
+  transpose = context.scale_root or 0  -- Use scale_root as global transpose
+  velocity_offset = context.velocity_offset or 0
+
+  print("  Transpose: " .. transpose .. " semitones, Velocity offset: " .. velocity_offset)
 end
 
 
@@ -79,6 +95,12 @@ function process_event(track, event)
   -- Get root note from S1 (0-127 maps to full MIDI range)
   local root_note = event.pots[1]
 
+  -- Apply Mode 0 transpose
+  root_note = root_note + transpose
+
+  -- Clamp to valid MIDI range
+  root_note = math.max(0, math.min(127, root_note))
+
   -- Get chord type from S2 (0-127 mapped to 16 chord types)
   local chord_index = math.floor((event.pots[2] / 127.0) * (#chord_types - 1)) + 1
   chord_index = math.max(1, math.min(#chord_types, chord_index))
@@ -86,6 +108,10 @@ function process_event(track, event)
 
   -- Get velocity from S3
   local velocity = math.max(1, math.min(127, event.pots[3]))
+
+  -- Apply Mode 0 velocity offset
+  velocity = velocity + velocity_offset
+  velocity = math.max(1, math.min(127, velocity))
 
   -- Get note length from S4 (map 0-127 to 10-1000ms)
   local note_length = 10 + math.floor((event.pots[4] / 127.0) * 990)
