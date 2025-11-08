@@ -318,9 +318,15 @@ class EngineState: ObservableObject {
         return engineWrapper.getModeProgram(mode)
     }
 
+    // Direct event editing
+    func setEventPot(mode: Int, pattern: Int, track: Int, step: Int, pot: Int, value: UInt8) {
+        engineWrapper.setEventPot(mode, pattern: pattern, track: track, step: step, pot: pot, value: value)
+    }
+
     deinit {
         stopUpdateLoop()
         engineWrapper.stop()
     }
 }
+
 

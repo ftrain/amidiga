@@ -28,5 +28,14 @@ struct GruvbokApp: App {
                     NSApp.windows.first?.makeKeyAndOrderFront(nil)
                 }
         }
+        .commands {
+            // Add standard Quit command (Command-Q)
+            CommandGroup(replacing: .appTermination) {
+                Button("Quit GRUVBOK") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .keyboardShortcut("q", modifiers: .command)
+            }
+        }
     }
 }

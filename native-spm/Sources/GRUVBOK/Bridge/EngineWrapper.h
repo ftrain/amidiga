@@ -96,6 +96,14 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setModeProgram:(NSInteger)mode program:(uint8_t)program;
 - (uint8_t)getModeProgram:(NSInteger)mode;
 
+// Direct event editing (for table UI)
+- (void)setEventPot:(NSInteger)mode
+            pattern:(NSInteger)pattern
+              track:(NSInteger)track
+               step:(NSInteger)step
+                pot:(NSInteger)pot
+              value:(uint8_t)value;
+
 @end
 
 NS_ASSUME_NONNULL_END

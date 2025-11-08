@@ -1,20 +1,12 @@
 #pragma once
 
 #include "hardware/hardware_interface.h"
+#include "hardware/audio_output.h"
 #include <array>
 #include <memory>
 #include <deque>
 #include <string>
 #include <CoreMIDI/CoreMIDI.h>
-
-// Forward declarations
-#ifdef __OBJC__
-@class AVAudioEngine;
-@class AVAudioUnitSampler;
-#else
-typedef struct objc_object AVAudioEngine;
-typedef struct objc_object AVAudioUnitSampler;
-#endif
 
 namespace gruvbok {
 
@@ -84,9 +76,8 @@ private:
     int current_midi_input_;
     bool mirror_mode_enabled_;
 
-    // Audio (Objective-C++ objects)
-    AVAudioEngine* audio_engine_;
-    AVAudioUnitSampler* sampler_;
+    // Audio (FluidSynth)
+    std::unique_ptr<AudioOutput> audio_output_;
     bool audio_initialized_;
     bool use_internal_audio_;
 

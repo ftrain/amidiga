@@ -35,16 +35,20 @@ let package = Package(
             cxxSettings: [
                 .headerSearchPath("src"),
                 .define("TARGET_OS_OSX", to: "1"),
+                .define("HAVE_FLUIDSYNTH", to: "1"),
                 .unsafeFlags([
                     "-I/opt/homebrew/opt/lua/include/lua5.4",
                     "-I/opt/homebrew/include",
+                    "-I/opt/homebrew/opt/fluid-synth/include",
                     "-I/usr/local/include"
                 ])
             ],
             linkerSettings: [
                 .linkedLibrary("lua"),
+                .linkedLibrary("fluidsynth"),
                 .unsafeFlags([
                     "-L/opt/homebrew/opt/lua/lib",
+                    "-L/opt/homebrew/opt/fluid-synth/lib",
                     "-L/usr/local/lib"
                 ])
             ]
@@ -68,7 +72,6 @@ let package = Package(
             ],
             linkerSettings: [
                 .linkedFramework("CoreMIDI"),
-                .linkedFramework("AVFoundation"),
                 .linkedFramework("CoreAudio")
             ]
         ),

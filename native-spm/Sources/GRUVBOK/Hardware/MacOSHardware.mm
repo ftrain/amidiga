@@ -1,6 +1,5 @@
 #import "MacOSHardware.h"
 #import <Foundation/Foundation.h>
-#import <AVFoundation/AVFoundation.h>
 #import <CoreAudio/CoreAudio.h>
 #import <mach/mach_time.h>
 
@@ -16,8 +15,7 @@ MacOSHardware::MacOSHardware()
     , midi_input_port_(0)
     , current_midi_input_(-1)
     , mirror_mode_enabled_(false)
-    , audio_engine_(nullptr)
-    , sampler_(nullptr)
+    , audio_output_(std::make_unique<AudioOutput>())
     , audio_initialized_(false)
     , use_internal_audio_(false)
     , led_state_(false) {
@@ -63,83 +61,50 @@ bool MacOSHardware::init() {
 }
 
 bool MacOSHardware::initAudio(const std::string& soundfont_path) {
-    @autoreleasepool {
-        audio_engine_ = [[AVAudioEngine alloc] init];
-        sampler_ = [[AVAudioUnitSampler alloc] init];
+    addLog("Initializing FluidSynth audio...");
 
-        // Attach sampler to audio engine
-        [audio_engine_ attachNode:sampler_];
-
-        // Connect sampler to main mixer
-        AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0
-                                                                                channels:2];
-        [audio_engine_ connect:sampler_
-                            to:[audio_engine_ mainMixerNode]
-                        format:format];
-
-        // Load SoundFont
-        NSURL* sfURL = nil;
-
-        if (!soundfont_path.empty()) {
-            // Try provided path
-            sfURL = [NSURL fileURLWithPath:@(soundfont_path.c_str())];
-        } else {
-            // Try bundle resource
-            sfURL = [[NSBundle mainBundle] URLForResource:@"default" withExtension:@"sf2"];
-        }
-
-        if (!sfURL || ![[NSFileManager defaultManager] fileExistsAtPath:[sfURL path]]) {
-            addLog("ERROR: SoundFont not found");
-            // Try to use Apple's built-in synth instead
-            addLog("Attempting to use built-in DLS instrument...");
-
-            // Load default instrument (General MIDI piano)
-            // Note: On macOS, we need a SoundFont file - built-in DLS not available via AVAudioUnitSampler
-            addLog("WARNING: No SoundFont found and built-in DLS not available on macOS");
-            addLog("Audio playback will not work. Please provide a SoundFont file.");
-            // Continue anyway to allow MIDI output testing
-            audio_initialized_ = false;
-            return true;  // Return true to allow MIDI-only operation
-        } else {
-            // Load the entire SoundFont bank (all instruments + drums)
-            NSError* error = nil;
-
-            // Load the soundfont with default melodic bank
-            // For General MIDI: bankMSB=0x79 (121), bankLSB=0x00
-            if (![sampler_ loadSoundBankInstrumentAtURL:sfURL
-                                                program:0
-                                                 bankMSB:0x79  // GM Level 1 melodic bank
-                                                 bankLSB:kAUSampler_DefaultBankLSB
-                                                  error:&error]) {
-                addLog("ERROR: Failed to load SoundFont: " + std::string([[error localizedDescription] UTF8String]));
-                return false;
-            }
-
-            addLog("✓ Loaded SoundFont: " + std::string([[sfURL lastPathComponent] UTF8String]));
-
-            // Multi-timbral mode: AVAudioUnitSampler responds to all 16 MIDI channels
-            // Channel 10 (index 9) is automatically drums in General MIDI soundfonts
-            addLog("✓ Multi-timbral mode enabled (16 channels)");
-        }
-
-        // Start audio engine
-        NSError* error = nil;
-        if (![audio_engine_ startAndReturnError:&error]) {
-            addLog("ERROR: Failed to start audio engine: " + std::string([[error localizedDescription] UTF8String]));
-            return false;
-        }
-
-        audio_initialized_ = true;
-        addLog("✓ AVAudioEngine started");
-        return true;
+    // Initialize FluidSynth
+    if (!audio_output_->init(44100)) {
+        addLog("ERROR: Failed to initialize FluidSynth");
+        audio_initialized_ = false;
+        return false;
     }
+
+    // Get SoundFont path
+    std::string sf_path = soundfont_path;
+    if (sf_path.empty()) {
+        // Try bundle resource
+        @autoreleasepool {
+            NSURL* sfURL = [[NSBundle mainBundle] URLForResource:@"default" withExtension:@"sf2"];
+            if (sfURL) {
+                sf_path = [[sfURL path] UTF8String];
+            }
+        }
+    }
+
+    if (sf_path.empty()) {
+        addLog("ERROR: No SoundFont found");
+        audio_initialized_ = false;
+        return false;
+    }
+
+    // Load SoundFont
+    if (!audio_output_->loadSoundFont(sf_path)) {
+        addLog("ERROR: Failed to load SoundFont");
+        audio_initialized_ = false;
+        return false;
+    }
+
+    addLog("✓ FluidSynth initialized with SoundFont: " + sf_path);
+    addLog("✓ Multi-timbral audio ready (16 channels, Program Change supported)");
+    audio_initialized_ = true;
+    return true;
 }
 
 void MacOSHardware::shutdown() {
-    if (audio_engine_) {
-        [audio_engine_ stop];
-        audio_engine_ = nullptr;
-    }
+    // FluidSynth cleanup handled by AudioOutput destructor
+    audio_output_.reset();
+    audio_initialized_ = false;
 
     if (midi_virtual_source_) {
         MIDIEndpointDispose(midi_virtual_source_);
@@ -222,37 +187,12 @@ void MacOSHardware::sendToCoreMIDI(const MidiMessage& msg) {
 }
 
 void MacOSHardware::sendToAudioEngine(const MidiMessage& msg) {
-    @autoreleasepool {
-        if (!audio_initialized_ || !sampler_ || msg.data.empty()) return;
-
-        UInt8 status = msg.data[0];
-        UInt8 channel = status & 0x0F;
-        UInt8 command = status & 0xF0;
-
-        if (command == 0x90 && msg.data.size() >= 3) {  // Note On
-            UInt8 note = msg.data[1];
-            UInt8 velocity = msg.data[2];
-            if (velocity > 0) {
-                [sampler_ startNote:note withVelocity:velocity onChannel:channel];
-            } else {
-                [sampler_ stopNote:note onChannel:channel];
-            }
-        } else if (command == 0x80 && msg.data.size() >= 3) {  // Note Off
-            UInt8 note = msg.data[1];
-            [sampler_ stopNote:note onChannel:channel];
-        } else if (command == 0xC0 && msg.data.size() >= 2) {  // Program Change
-            UInt8 program = msg.data[1];
-            // Send program change via raw MIDI to sampler
-            // AVAudioUnitSampler handles GM channel mapping internally
-            UInt8 status = 0xC0 | channel;
-            [sampler_ sendMIDIEvent:status data1:program];
-        } else if (command == 0xB0 && msg.data.size() >= 3) {  // Control Change
-            UInt8 controller = msg.data[1];
-            UInt8 value = msg.data[2];
-            UInt8 status = 0xB0 | channel;
-            [sampler_ sendMIDIEvent:status data1:controller data2:value];
-        }
+    if (!audio_initialized_ || !audio_output_ || !audio_output_->isReady()) {
+        return;
     }
+
+    // Send MIDI message to FluidSynth
+    audio_output_->sendMidiMessage(msg.data.data(), msg.data.size());
 }
 
 void MacOSHardware::setLED(bool on) {
@@ -294,8 +234,8 @@ void MacOSHardware::simulateSliderPot(int pot, uint8_t value) {
 }
 
 void MacOSHardware::setAudioGain(float gain) {
-    if (audio_engine_) {
-        [audio_engine_ mainMixerNode].outputVolume = gain;
+    if (audio_output_) {
+        audio_output_->setGain(gain);
     }
 }
 

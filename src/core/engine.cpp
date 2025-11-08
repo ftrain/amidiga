@@ -39,8 +39,24 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     for (int i = 0; i < Song::NUM_MODES; ++i) {
         mode_velocity_offsets_[i] = 0;
         mode_pattern_overrides_[i] = -1;  // -1 means use default pattern
-        mode_programs_[i] = 0;  // Default to GM program 0 (Acoustic Grand Piano)
     }
+
+    // Set sensible default instruments for each mode (General MIDI)
+    mode_programs_[0] = 0;    // Mode 0: Song sequencer (no MIDI output)
+    mode_programs_[1] = 0;    // Mode 1: Acoustic Grand Piano
+    mode_programs_[2] = 33;   // Mode 2: Electric Bass (finger)
+    mode_programs_[3] = 48;   // Mode 3: String Ensemble
+    mode_programs_[4] = 81;   // Mode 4: Sawtooth Lead
+    mode_programs_[5] = 24;   // Mode 5: Acoustic Guitar (nylon)
+    mode_programs_[6] = 88;   // Mode 6: New Age Pad
+    mode_programs_[7] = 56;   // Mode 7: Trumpet
+    mode_programs_[8] = 4;    // Mode 8: Electric Piano 1
+    mode_programs_[9] = 38;   // Mode 9: Synth Bass 1
+    mode_programs_[10] = 0;   // Mode 10: Drums (GM channel 10 is always drums)
+    mode_programs_[11] = 40;  // Mode 11: Violin
+    mode_programs_[12] = 16;  // Mode 12: Drawbar Organ
+    mode_programs_[13] = 65;  // Mode 13: Alto Sax
+    mode_programs_[14] = 98;  // Mode 14: Crystal (FX)
 
     scheduler_ = std::make_unique<MidiScheduler>(hardware);
     calculateStepInterval();
@@ -62,6 +78,9 @@ void Engine::start() {
     // Reset MIDI clock timing (absolute timing to prevent drift)
     clock_start_time_ = last_step_time_;
     clock_pulse_count_ = 0;
+
+    // Initialize Lua modes and send Program Change messages for all instruments
+    reinitLuaModes();
 
     // Send MIDI start message
     scheduler_->sendStart();
@@ -178,6 +197,23 @@ void Engine::setCurrentPot(int pot, uint8_t value) {
     Event& event = pattern.getEvent(current_track_, current_step_);
 
     event.setPot(pot, value);
+    markDirty();
+}
+
+void Engine::setEventPot(int mode, int pattern, int track, int step, int pot, uint8_t value) {
+    // Bounds checking
+    if (mode < 0 || mode >= Song::NUM_MODES) return;
+    if (pattern < 0 || pattern >= Mode::NUM_PATTERNS) return;
+    if (track < 0 || track >= Pattern::NUM_TRACKS) return;
+    if (step < 0 || step >= Track::NUM_EVENTS) return;
+    if (pot < 0 || pot >= 4) return;
+
+    // Get the event and set the pot value directly
+    Mode& m = song_->getMode(mode);
+    Pattern& p = m.getPattern(pattern);
+    Event& e = p.getEvent(track, step);
+
+    e.setPot(pot, value);
     markDirty();
 }
 
@@ -635,17 +671,26 @@ void Engine::parseMode0Event(const Event& event, int target_mode) {
 }
 
 void Engine::applyMode0Parameters() {
-    // Read Mode 0 events and apply parameters for all modes
-    // Mode 0 Pattern 0 contains configuration for modes 1-8 (we only have 8 tracks!)
+    // Read Mode 0 Track 0 event at the current song_mode_step_
+    // Mode 0 uses only Track 0 to set pattern for ALL modes simultaneously
     Mode& mode0 = song_->getMode(0);
     Pattern& pattern = mode0.getPattern(0);
 
-    // Parse events for modes 1-8 at the current song_mode_step_
-    for (int track = 0; track < Pattern::NUM_TRACKS; ++track) {  // Tracks 0-7 represent modes 1-8
-        int target_mode = track + 1;  // Convert track to mode number (1-8)
-        const Event& event = pattern.getEvent(track, song_mode_step_);
-        parseMode0Event(event, target_mode);
+    // Get event for current song mode step (Track 0 only)
+    const Event& event = pattern.getEvent(0, song_mode_step_);
+
+    // If this step is active, apply pattern to all modes 1-14
+    if (event.getSwitch()) {
+        // S1: Pattern (0-127 maps to 0-31)
+        uint8_t s1 = event.getPot(0);
+        int selected_pattern = (s1 * 32) / 128;
+
+        // Apply this pattern to all modes 1-14
+        for (int mode_num = 1; mode_num < Song::NUM_MODES; ++mode_num) {
+            mode_pattern_overrides_[mode_num] = selected_pattern;
+        }
     }
+    // If step is inactive (button off), keep previous pattern (no override change)
 }
 
 // ============================================================================

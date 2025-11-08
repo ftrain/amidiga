@@ -416,13 +416,26 @@ using namespace gruvbok;
 - (void)loadDemoContent {
     if (!song_) return;
 
-    // Mode 0: Song/Pattern Sequencer - All steps play pattern 0
+    // Mode 0: Song/Pattern Sequencer - Default 4-pattern loop
+    // Steps 0-3: Pattern 1, Steps 4-7: Pattern 2, Steps 8-11: Pattern 3, Steps 12-15: Pattern 4
+    // Only first 4 buttons lit, rest unlit
     Mode& mode0 = song_->getMode(0);
     Pattern& song_pattern = mode0.getPattern(0);
-    for (int step = 0; step < 16; step++) {
+
+    // First 4 steps active (buttons 1-4 lit)
+    for (int step = 0; step < 4; step++) {
         Event& event = song_pattern.getEvent(0, step);
         event.setSwitch(true);
-        event.setPot(0, 0);  // S1 = 0 -> Pattern 0
+        // S1 maps 0-127 to patterns 1-32, so pattern N = S1 value of (N-1) * 4
+        // Pattern 1 = S1:0, Pattern 2 = S1:4, Pattern 3 = S1:8, Pattern 4 = S1:12
+        event.setPot(0, step * 4);  // S1: 0, 4, 8, 12 -> Patterns 1, 2, 3, 4
+    }
+
+    // Remaining 12 steps inactive (buttons 5-16 unlit)
+    for (int step = 4; step < 16; step++) {
+        Event& event = song_pattern.getEvent(0, step);
+        event.setSwitch(false);  // Button off
+        event.setPot(0, 0);
     }
 
     // Mode 1: Drums
@@ -617,6 +630,16 @@ using namespace gruvbok;
 - (uint8_t)getModeProgram:(NSInteger)mode {
     if (!engine_) return 0;
     return engine_->getModeProgram((int)mode);
+}
+
+- (void)setEventPot:(NSInteger)mode
+            pattern:(NSInteger)pattern
+              track:(NSInteger)track
+               step:(NSInteger)step
+                pot:(NSInteger)pot
+              value:(uint8_t)value {
+    if (!engine_) return;
+    engine_->setEventPot((int)mode, (int)pattern, (int)track, (int)step, (int)pot, value);
 }
 
 @end

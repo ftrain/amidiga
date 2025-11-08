@@ -52,6 +52,9 @@ public:
     void toggleCurrentSwitch();
     void setCurrentPot(int pot, uint8_t value);
 
+    // Direct event editing (for UI table)
+    void setEventPot(int mode, int pattern, int track, int step, int pot, uint8_t value);
+
     // LED pattern control (public enum for external access)
     enum class LEDPattern {
         TEMPO_BEAT,

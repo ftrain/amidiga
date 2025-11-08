@@ -302,40 +302,15 @@ struct OutputView: View {
                 .foregroundColor(.cyan)
                 .textCase(.uppercase)
 
-            Text("Configure which instrument each mode uses")
+            Text("Configure which instrument each mode uses (0-127)")
                 .font(.system(size: 11))
                 .foregroundColor(.gray)
 
             Divider().background(Color.gray.opacity(0.3))
 
-            // Grid of mode instrument selectors
+            // Compact grid of mode instrument selectors
             ForEach(1...14, id: \.self) { mode in
-                HStack(spacing: 10) {
-                    Text("Mode \(mode):")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundColor(.cyan)
-                        .frame(width: 70, alignment: .trailing)
-
-                    Picker("Instrument for Mode \(mode)", selection: Binding(
-                        get: { Int(engine.getModeProgram(mode: mode)) },
-                        set: { engine.setModeProgram(mode: mode, program: UInt8($0)) }
-                    )) {
-                        ForEach(GMInstruments.instruments, id: \.number) { instrument in
-                            Text("\(instrument.number): \(instrument.name)")
-                                .font(.system(size: 11))
-                                .tag(instrument.number)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity)
-
-                    // Current selection display
-                    Text(GMInstruments.name(for: Int(engine.getModeProgram(mode: mode))))
-                        .font(.system(size: 11))
-                        .foregroundColor(.gray)
-                        .lineLimit(1)
-                        .frame(width: 200, alignment: .leading)
-                }
+                instrumentRow(mode: mode)
             }
 
             // Quick presets
@@ -346,8 +321,15 @@ struct OutputView: View {
                 .foregroundColor(.cyan.opacity(0.8))
 
             HStack(spacing: 8) {
-                Button("Drums → M1") {
-                    engine.setModeProgram(mode: 1, program: 0)  // Use channel 10 for drums in GM
+                Button("Drums → M10") {
+                    // GM channel 10 is always drums - Mode 10 outputs on channel 10
+                    engine.setModeProgram(mode: 10, program: 0)  // Any program on ch 10 = drums
+                }
+                .buttonStyle(.bordered)
+                .font(.system(size: 11))
+
+                Button("Piano → M1") {
+                    engine.setModeProgram(mode: 1, program: 0)  // Acoustic Grand Piano
                 }
                 .buttonStyle(.bordered)
                 .font(.system(size: 11))
@@ -358,18 +340,61 @@ struct OutputView: View {
                 .buttonStyle(.bordered)
                 .font(.system(size: 11))
 
-                Button("Piano → M3") {
-                    engine.setModeProgram(mode: 3, program: 0)  // Acoustic Grand Piano
+                Button("Strings → M3") {
+                    engine.setModeProgram(mode: 3, program: 48)  // String Ensemble
                 }
                 .buttonStyle(.bordered)
                 .font(.system(size: 11))
 
-                Button("Strings → M4") {
-                    engine.setModeProgram(mode: 4, program: 48)  // String Ensemble
+                Button("Synth Lead → M4") {
+                    engine.setModeProgram(mode: 4, program: 81)  // Sawtooth Lead
                 }
                 .buttonStyle(.bordered)
                 .font(.system(size: 11))
             }
+        }
+    }
+
+    // MARK: - Instrument Row (Compact)
+
+    private func instrumentRow(mode: Int) -> some View {
+        HStack(spacing: 10) {
+            // Mode label
+            Text("Mode \(mode):")
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundColor(.cyan)
+                .frame(width: 70, alignment: .trailing)
+
+            // Stepper for +/- increment
+            Stepper("", value: Binding(
+                get: { Int(engine.getModeProgram(mode: mode)) },
+                set: { newValue in
+                    let clamped = max(0, min(127, newValue))
+                    engine.setModeProgram(mode: mode, program: UInt8(clamped))
+                }
+            ), in: 0...127)
+            .labelsHidden()
+            .frame(width: 20)
+
+            // Number input field (editable)
+            TextField("", value: Binding(
+                get: { Int(engine.getModeProgram(mode: mode)) },
+                set: { newValue in
+                    let clamped = max(0, min(127, newValue))
+                    engine.setModeProgram(mode: mode, program: UInt8(clamped))
+                }
+            ), formatter: NumberFormatter())
+            .textFieldStyle(.roundedBorder)
+            .frame(width: 50)
+            .multilineTextAlignment(.center)
+            .font(.system(size: 12, design: .monospaced))
+
+            // Instrument name (read-only)
+            Text(GMInstruments.name(for: Int(engine.getModeProgram(mode: mode))))
+                .font(.system(size: 11))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

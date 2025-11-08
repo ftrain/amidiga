@@ -313,22 +313,42 @@ struct HardwareControlsView: View {
                         let delta = -drag.translation.height * sensitivity
                         let newValue = max(0, min(127, dragStartValue + Int(delta)))
 
-                        // Directly set the slider pot value (this is used for preview)
-                        // The value will be captured into the event when button is pressed
-                        engine.setSliderPot(pot, value: UInt8(newValue))
+                        // Directly update event data using new setEventPot API
+                        // This bypasses the slider pot system and eliminates race conditions
+                        engine.setEventPot(
+                            mode: engine.currentMode,
+                            pattern: engine.currentPattern,
+                            track: engine.currentTrack,
+                            step: index,
+                            pot: pot,
+                            value: UInt8(newValue)
+                        )
                     }
                     .onEnded { drag in
-                        // Only save if the value actually changed significantly
+                        // Only finalize if the value actually changed significantly
                         let finalDelta = -drag.translation.height * 0.5
                         let finalValue = max(0, min(127, dragStartValue + Int(finalDelta)))
 
                         if abs(finalValue - dragStartValue) > 5 {
-                            // Value changed significantly - capture it into the event
-                            engine.setSliderPot(pot, value: UInt8(finalValue))
-
-                            // Single button toggle to capture the pot value
-                            // (EngineState handles press/release timing automatically)
-                            engine.toggleButton(index)
+                            // Final update to ensure exact value is set
+                            engine.setEventPot(
+                                mode: engine.currentMode,
+                                pattern: engine.currentPattern,
+                                track: engine.currentTrack,
+                                step: index,
+                                pot: pot,
+                                value: UInt8(finalValue)
+                            )
+                        } else {
+                            // Revert to original value if change was too small
+                            engine.setEventPot(
+                                mode: engine.currentMode,
+                                pattern: engine.currentPattern,
+                                track: engine.currentTrack,
+                                step: index,
+                                pot: pot,
+                                value: UInt8(dragStartValue)
+                            )
                         }
 
                         editingCell = nil
