@@ -609,4 +609,14 @@ using namespace gruvbok;
     return YES;
 }
 
+- (void)setModeProgram:(NSInteger)mode program:(uint8_t)program {
+    if (!engine_) return;
+    engine_->setModeProgram((int)mode, program);
+}
+
+- (uint8_t)getModeProgram:(NSInteger)mode {
+    if (!engine_) return 0;
+    return engine_->getModeProgram((int)mode);
+}
+
 @end

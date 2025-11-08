@@ -39,6 +39,7 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     for (int i = 0; i < Song::NUM_MODES; ++i) {
         mode_velocity_offsets_[i] = 0;
         mode_pattern_overrides_[i] = -1;  // -1 means use default pattern
+        mode_programs_[i] = 0;  // Default to GM program 0 (Acoustic Grand Piano)
     }
 
     scheduler_ = std::make_unique<MidiScheduler>(hardware);
@@ -478,13 +479,28 @@ void Engine::reinitLuaModes() {
         LuaContext* lua_mode = mode_loader_->getMode(mode_num);
         if (lua_mode && lua_mode->isValid()) {
             context.mode_number = mode_num;
+            // Modes 1-14 output on MIDI channels 1-14
             // Mode 0 produces no MIDI output (it's the song sequencer)
-            // Mode 1-14 map to MIDI channels 0-13 (displayed as channels 1-14)
-            context.midi_channel = (mode_num > 0) ? (mode_num - 1) : 0;
+            context.midi_channel = mode_num;
             context.scale_root = global_scale_root_;
             context.scale_type = global_scale_type_;
             context.velocity_offset = mode_velocity_offsets_[mode_num];
             lua_mode->callInit(context);
+
+            // Send Program Change message to set instrument for this mode
+            if (mode_num > 0) {  // Skip Mode 0 (no MIDI output)
+                uint8_t program = mode_programs_[mode_num];
+                uint8_t channel = mode_num;  // Mode N → MIDI channel N
+
+                // Create Program Change MIDI message (0xC0 + channel)
+                std::vector<uint8_t> program_change = {
+                    static_cast<uint8_t>(0xC0 | (channel & 0x0F)),
+                    program
+                };
+
+                MidiMessage msg(program_change, 0);
+                hardware_->sendMidiMessage(msg);
+            }
         }
     }
 }
@@ -662,6 +678,44 @@ void Engine::checkAutosave() {
             triggerLEDPattern(LEDPattern::ERROR);
         }
     }
+}
+
+// ============================================================================
+// MIDI Program Mapping
+// ============================================================================
+
+void Engine::setModeProgram(int mode, uint8_t program) {
+    if (mode < 0 || mode >= Song::NUM_MODES) {
+        return;
+    }
+
+    mode_programs_[mode] = program;
+
+    // Send Program Change message immediately if this mode is active
+    if (mode > 0) {  // Skip Mode 0 (no MIDI output)
+        uint8_t channel = mode;  // Mode N → MIDI channel N
+
+        // Create Program Change MIDI message (0xC0 + channel)
+        std::vector<uint8_t> program_change = {
+            static_cast<uint8_t>(0xC0 | (channel & 0x0F)),
+            program
+        };
+
+        MidiMessage msg(program_change, 0);
+        hardware_->sendMidiMessage(msg);
+
+        std::cout << "[Engine] Set Mode " << mode << " (channel " << static_cast<int>(channel)
+                  << ") to program " << static_cast<int>(program) << std::endl;
+    }
+
+    markDirty();
+}
+
+uint8_t Engine::getModeProgram(int mode) const {
+    if (mode < 0 || mode >= Song::NUM_MODES) {
+        return 0;
+    }
+    return mode_programs_[mode];
 }
 
 } // namespace gruvbok

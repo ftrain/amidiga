@@ -92,6 +92,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)reloadMode:(NSInteger)mode;
 - (BOOL)validateLuaScript:(NSString *)path outError:(NSString *_Nullable *_Nullable)outError;
 
+// MIDI program mapping (instrument selection per mode)
+- (void)setModeProgram:(NSInteger)mode program:(uint8_t)program;
+- (uint8_t)getModeProgram:(NSInteger)mode;
+
 @end
 
 NS_ASSUME_NONNULL_END
