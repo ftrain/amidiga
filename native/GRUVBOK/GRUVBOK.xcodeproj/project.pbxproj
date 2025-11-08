@@ -1,0 +1,694 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		017F81D62EBEDF0C00870646 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 017F81D52EBEDF0C00870646 /* Assets.xcassets */; };
+		017F82172EBEE0CA00870646 /* CoreMIDI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 017F82162EBEE0C900870646 /* CoreMIDI.framework */; };
+		017F82192EBEE0CE00870646 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 017F82182EBEE0CE00870646 /* AVFoundation.framework */; };
+		017F821B2EBEE0D500870646 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 017F821A2EBEE0D500870646 /* CoreAudio.framework */; };
+		017F821D2EBEE0DD00870646 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 017F821C2EBEE0DD00870646 /* UIKit.framework */; platformFilters = (ios, xros, ); };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		017F81DC2EBEDF0D00870646 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 017F81C42EBEDF0B00870646 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 017F81CB2EBEDF0B00870646;
+			remoteInfo = GRUVBOK;
+		};
+		017F81E62EBEDF0D00870646 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 017F81C42EBEDF0B00870646 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 017F81CB2EBEDF0B00870646;
+			remoteInfo = GRUVBOK;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		017F81CC2EBEDF0B00870646 /* GRUVBOK.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GRUVBOK.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		017F81D52EBEDF0C00870646 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		017F81DB2EBEDF0D00870646 /* GRUVBOKTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GRUVBOKTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		017F81E52EBEDF0D00870646 /* GRUVBOKUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GRUVBOKUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		017F82162EBEE0C900870646 /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.1.sdk/System/Library/Frameworks/CoreMIDI.framework; sourceTree = DEVELOPER_DIR; };
+		017F82182EBEE0CE00870646 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.1.sdk/System/Library/Frameworks/AVFoundation.framework; sourceTree = DEVELOPER_DIR; };
+		017F821A2EBEE0D500870646 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.1.sdk/System/Library/Frameworks/CoreAudio.framework; sourceTree = DEVELOPER_DIR; };
+		017F821C2EBEE0DD00870646 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.1.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		017F821E2EBEE11700870646 /* GRUVBOK-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GRUVBOK-Bridging-Header.h"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		017F81DE2EBEDF0D00870646 /* GRUVBOKTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GRUVBOKTests;
+			sourceTree = "<group>";
+		};
+		017F81E82EBEDF0D00870646 /* GRUVBOKUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GRUVBOKUITests;
+			sourceTree = "<group>";
+		};
+		017F821F2EBEE1AD00870646 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		017F82232EBEE1F000870646 /* macOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = macOS;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		017F81C92EBEDF0B00870646 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				017F821D2EBEE0DD00870646 /* UIKit.framework in Frameworks */,
+				017F821B2EBEE0D500870646 /* CoreAudio.framework in Frameworks */,
+				017F82192EBEE0CE00870646 /* AVFoundation.framework in Frameworks */,
+				017F82172EBEE0CA00870646 /* CoreMIDI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		017F81D82EBEDF0D00870646 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		017F81E22EBEDF0D00870646 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		017F81C32EBEDF0B00870646 = {
+			isa = PBXGroup;
+			children = (
+				017F821E2EBEE11700870646 /* GRUVBOK-Bridging-Header.h */,
+				017F821F2EBEE1AD00870646 /* Shared */,
+				017F82232EBEE1F000870646 /* macOS */,
+				017F81DE2EBEDF0D00870646 /* GRUVBOKTests */,
+				017F81E82EBEDF0D00870646 /* GRUVBOKUITests */,
+				017F82152EBEE0C900870646 /* Frameworks */,
+				017F81CD2EBEDF0B00870646 /* Products */,
+				017F81D52EBEDF0C00870646 /* Assets.xcassets */,
+			);
+			sourceTree = "<group>";
+		};
+		017F81CD2EBEDF0B00870646 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				017F81CC2EBEDF0B00870646 /* GRUVBOK.app */,
+				017F81DB2EBEDF0D00870646 /* GRUVBOKTests.xctest */,
+				017F81E52EBEDF0D00870646 /* GRUVBOKUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		017F82152EBEE0C900870646 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				017F821C2EBEE0DD00870646 /* UIKit.framework */,
+				017F821A2EBEE0D500870646 /* CoreAudio.framework */,
+				017F82182EBEE0CE00870646 /* AVFoundation.framework */,
+				017F82162EBEE0C900870646 /* CoreMIDI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		017F81CB2EBEDF0B00870646 /* GRUVBOK */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 017F81EF2EBEDF0D00870646 /* Build configuration list for PBXNativeTarget "GRUVBOK" */;
+			buildPhases = (
+				017F81C82EBEDF0B00870646 /* Sources */,
+				017F81C92EBEDF0B00870646 /* Frameworks */,
+				017F81CA2EBEDF0B00870646 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				017F821F2EBEE1AD00870646 /* Shared */,
+				017F82232EBEE1F000870646 /* macOS */,
+			);
+			name = GRUVBOK;
+			packageProductDependencies = (
+			);
+			productName = GRUVBOK;
+			productReference = 017F81CC2EBEDF0B00870646 /* GRUVBOK.app */;
+			productType = "com.apple.product-type.application";
+		};
+		017F81DA2EBEDF0D00870646 /* GRUVBOKTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 017F81F22EBEDF0D00870646 /* Build configuration list for PBXNativeTarget "GRUVBOKTests" */;
+			buildPhases = (
+				017F81D72EBEDF0D00870646 /* Sources */,
+				017F81D82EBEDF0D00870646 /* Frameworks */,
+				017F81D92EBEDF0D00870646 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				017F81DD2EBEDF0D00870646 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				017F81DE2EBEDF0D00870646 /* GRUVBOKTests */,
+			);
+			name = GRUVBOKTests;
+			packageProductDependencies = (
+			);
+			productName = GRUVBOKTests;
+			productReference = 017F81DB2EBEDF0D00870646 /* GRUVBOKTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		017F81E42EBEDF0D00870646 /* GRUVBOKUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 017F81F52EBEDF0D00870646 /* Build configuration list for PBXNativeTarget "GRUVBOKUITests" */;
+			buildPhases = (
+				017F81E12EBEDF0D00870646 /* Sources */,
+				017F81E22EBEDF0D00870646 /* Frameworks */,
+				017F81E32EBEDF0D00870646 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				017F81E72EBEDF0D00870646 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				017F81E82EBEDF0D00870646 /* GRUVBOKUITests */,
+			);
+			name = GRUVBOKUITests;
+			packageProductDependencies = (
+			);
+			productName = GRUVBOKUITests;
+			productReference = 017F81E52EBEDF0D00870646 /* GRUVBOKUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		017F81C42EBEDF0B00870646 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2610;
+				LastUpgradeCheck = 2610;
+				TargetAttributes = {
+					017F81CB2EBEDF0B00870646 = {
+						CreatedOnToolsVersion = 26.1;
+						LastSwiftMigration = 2610;
+					};
+					017F81DA2EBEDF0D00870646 = {
+						CreatedOnToolsVersion = 26.1;
+						TestTargetID = 017F81CB2EBEDF0B00870646;
+					};
+					017F81E42EBEDF0D00870646 = {
+						CreatedOnToolsVersion = 26.1;
+						TestTargetID = 017F81CB2EBEDF0B00870646;
+					};
+				};
+			};
+			buildConfigurationList = 017F81C72EBEDF0B00870646 /* Build configuration list for PBXProject "GRUVBOK" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 017F81C32EBEDF0B00870646;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 017F81CD2EBEDF0B00870646 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				017F81CB2EBEDF0B00870646 /* GRUVBOK */,
+				017F81DA2EBEDF0D00870646 /* GRUVBOKTests */,
+				017F81E42EBEDF0D00870646 /* GRUVBOKUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		017F81CA2EBEDF0B00870646 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				017F81D62EBEDF0C00870646 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		017F81D92EBEDF0D00870646 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		017F81E32EBEDF0D00870646 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		017F81C82EBEDF0B00870646 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		017F81D72EBEDF0D00870646 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		017F81E12EBEDF0D00870646 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		017F81DD2EBEDF0D00870646 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 017F81CB2EBEDF0B00870646 /* GRUVBOK */;
+			targetProxy = 017F81DC2EBEDF0D00870646 /* PBXContainerItemProxy */;
+		};
+		017F81E72EBEDF0D00870646 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 017F81CB2EBEDF0B00870646 /* GRUVBOK */;
+			targetProxy = 017F81E62EBEDF0D00870646 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		017F81ED2EBEDF0D00870646 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 4984LAJC8A;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		017F81EE2EBEDF0D00870646 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 4984LAJC8A;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		017F81F02EBEDF0D00870646 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4984LAJC8A;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"/usr/local/include/**",
+					"/opt/homebrew/include/**",
+					"$(SRCROOT)/../**",
+					"$(SRCROOT)/**",
+				);
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/opt/homebrew/lib,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "-llua";
+				PRODUCT_BUNDLE_IDENTIFIER = com.ftrain.GRUVBOK;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/GRUVBOK-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 26.1;
+			};
+			name = Debug;
+		};
+		017F81F12EBEDF0D00870646 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4984LAJC8A;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"/usr/local/include/**",
+					"/opt/homebrew/include/**",
+					"$(SRCROOT)/../**",
+					"$(SRCROOT)/**",
+				);
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/opt/homebrew/lib,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "-llua";
+				PRODUCT_BUNDLE_IDENTIFIER = com.ftrain.GRUVBOK;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/GRUVBOK-Bridging-Header.h";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 26.1;
+			};
+			name = Release;
+		};
+		017F81F32EBEDF0D00870646 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4984LAJC8A;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ftrain.GRUVBOKTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GRUVBOK.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GRUVBOK";
+				XROS_DEPLOYMENT_TARGET = 26.1;
+			};
+			name = Debug;
+		};
+		017F81F42EBEDF0D00870646 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4984LAJC8A;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ftrain.GRUVBOKTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GRUVBOK.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GRUVBOK";
+				XROS_DEPLOYMENT_TARGET = 26.1;
+			};
+			name = Release;
+		};
+		017F81F62EBEDF0D00870646 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4984LAJC8A;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ftrain.GRUVBOKUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_TARGET_NAME = GRUVBOK;
+				XROS_DEPLOYMENT_TARGET = 26.1;
+			};
+			name = Debug;
+		};
+		017F81F72EBEDF0D00870646 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4984LAJC8A;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ftrain.GRUVBOKUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_TARGET_NAME = GRUVBOK;
+				XROS_DEPLOYMENT_TARGET = 26.1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		017F81C72EBEDF0B00870646 /* Build configuration list for PBXProject "GRUVBOK" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				017F81ED2EBEDF0D00870646 /* Debug */,
+				017F81EE2EBEDF0D00870646 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		017F81EF2EBEDF0D00870646 /* Build configuration list for PBXNativeTarget "GRUVBOK" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				017F81F02EBEDF0D00870646 /* Debug */,
+				017F81F12EBEDF0D00870646 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		017F81F22EBEDF0D00870646 /* Build configuration list for PBXNativeTarget "GRUVBOKTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				017F81F32EBEDF0D00870646 /* Debug */,
+				017F81F42EBEDF0D00870646 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		017F81F52EBEDF0D00870646 /* Build configuration list for PBXNativeTarget "GRUVBOKUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				017F81F62EBEDF0D00870646 /* Debug */,
+				017F81F72EBEDF0D00870646 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 017F81C42EBEDF0B00870646 /* Project object */;
+}
