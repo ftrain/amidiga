@@ -1,4 +1,5 @@
 MODE_NAME = "Acid"
+SLIDER_LABELS = {"Pitch", "Length", "Slide", "Filter"}
 
 
 --[[
@@ -25,17 +26,38 @@ MODE_NAME = "Acid"
 
   Button Interaction:
   B1-B16: Toggle note on/off for each step
+
+  Mode 0 Context:
+  - scale_root: Transposes the scale (0-11 = C-B)
+  - scale_type: Chooses scale type (0-7)
+  - velocity_offset: Adjusts velocity
 ]]--
 
 -- ============================================================================
 -- Module-level variables
 -- ============================================================================
 
--- Minor pentatonic scale (classic acid sound)
-local scale = {0, 3, 5, 7, 10}  -- C, Eb, F, G, Bb
+-- Scale type definitions (intervals in semitones)
+local scale_types = {
+  {0, 2, 4, 5, 7, 9, 11},    -- 0: Ionian (Major)
+  {0, 2, 3, 5, 7, 9, 10},    -- 1: Dorian
+  {0, 1, 3, 5, 7, 8, 10},    -- 2: Phrygian
+  {0, 2, 4, 6, 7, 9, 11},    -- 3: Lydian
+  {0, 2, 4, 5, 7, 9, 10},    -- 4: Mixolydian
+  {0, 2, 3, 5, 7, 8, 10},    -- 5: Aeolian (Natural Minor)
+  {0, 1, 3, 5, 6, 8, 10},    -- 6: Locrian
+  {0, 3, 5, 7, 10}           -- 7: Minor Pentatonic (acid classic)
+}
 
--- Base MIDI note (C2)
-local base_note = 36
+local scale_names = {
+  "Ionian", "Dorian", "Phrygian", "Lydian",
+  "Mixolydian", "Aeolian", "Locrian", "Min Pent"
+}
+
+-- Mode 0 context (set by init)
+local scale = {0, 3, 5, 7, 10}  -- Default: Minor pentatonic
+local base_note = 36  -- Default: C2
+local velocity_offset = 0
 
 
 -- ============================================================================
@@ -43,7 +65,19 @@ local base_note = 36
 -- ============================================================================
 
 function init(context)
-  -- Nothing special needed for acid mode
+  -- Get Mode 0 scale context
+  local scale_root = context.scale_root or 0  -- 0-11 (C-B)
+  local scale_type_idx = (context.scale_type or 7) + 1  -- Convert to 1-indexed, default to pentatonic
+  scale_type_idx = math.max(1, math.min(#scale_types, scale_type_idx))
+
+  -- Build scale from Mode 0 context
+  scale = scale_types[scale_type_idx]
+  base_note = 36 + scale_root  -- C2 + transpose
+
+  -- Store velocity offset
+  velocity_offset = context.velocity_offset or 0
+
+  print("Acid initialized: " .. scale_names[scale_type_idx] .. " root=" .. scale_root .. " velocity_offset=" .. velocity_offset)
 end
 
 
@@ -57,17 +91,16 @@ function process_event(track, event)
     return {}
   end
 
-  -- Map S1 (0-127) to note pitch across 3 octaves of the pentatonic scale
-  -- Each unit of scale spans ~25 values, giving us about 5 steps per octave
+  -- Map S1 (0-127) to note pitch across 3 octaves of the scale
   local s1_value = event.pots[1]
 
-  -- Determine which scale degree (0-4 for pentatonic)
-  local scale_index = math.floor((s1_value % 42) / 8.4)  -- Maps 0-42 to 0-4
-  scale_index = math.max(1, math.min(#scale, scale_index + 1))
+  -- Determine which scale degree
+  local scale_index = math.floor((s1_value * #scale) / 128) + 1
+  scale_index = math.max(1, math.min(#scale, scale_index))
   local note_offset = scale[scale_index]
 
-  -- Determine octave (0-127 gives us 3 octaves)
-  local octave = math.floor(s1_value / 42)  -- 0, 1, or 2
+  -- Determine octave (0-127 gives us roughly 3 octaves)
+  local octave = math.floor(s1_value / 43)  -- 128 / 3 ≈ 43
   local octave_shift = octave * 12
 
   -- Calculate final pitch
@@ -76,8 +109,9 @@ function process_event(track, event)
   -- Clamp to valid MIDI range
   pitch = math.max(0, math.min(127, pitch))
 
-  -- Get velocity (fixed at 100 for acid, or could use accent)
-  local velocity = 100
+  -- Get velocity (fixed at 100 for acid, plus offset)
+  local velocity = 100 + velocity_offset
+  velocity = math.max(1, math.min(127, velocity))
 
   -- Get note length from S2 (map 0-127 to 10-500ms)
   local note_length = 10 + math.floor((event.pots[2] / 127.0) * 490)

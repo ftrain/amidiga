@@ -23,6 +23,9 @@ struct LuaInitContext {
     int tempo;
     int mode_number;
     int midi_channel;
+    int scale_root;      // 0-11 (C-B), controlled by Mode 0
+    int scale_type;      // 0-7 (Ionian, Dorian, etc.), controlled by Mode 0
+    int velocity_offset; // -64 to +63, controlled by Mode 0
 };
 
 /**
@@ -57,6 +60,10 @@ public:
 
     // Get mode name (from MODE_NAME global variable in Lua)
     std::string getModeName() const;
+
+    // Get slider labels (from SLIDER_LABELS global array in Lua, optional)
+    // Returns array of 4 strings (S1-S4 labels)
+    std::vector<std::string> getSliderLabels() const;
 
     // Get Lua state (for testing only)
     lua_State* getState() const { return L_; }

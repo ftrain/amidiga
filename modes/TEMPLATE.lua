@@ -1,3 +1,12 @@
+-- ============================================================================
+-- Mode Metadata (required)
+-- ============================================================================
+
+MODE_NAME = "[Your Mode Name]"
+
+-- Slider labels (optional - provides GUI labels for S1-S4)
+SLIDER_LABELS = {"[S1 Label]", "[S2 Label]", "[S3 Label]", "[S4 Label]"}
+
 --[[
   GRUVBOK Mode Template
 
@@ -28,6 +37,11 @@
 
   Button Interaction:
   B1-B16: [What do the switches do? Note triggers? Step enables?]
+
+  Mode 0 Context (applied globally from master control):
+  - scale_root: Global scale root (0-11 = C-B), use for transposing pitched content
+  - scale_type: Global scale type (0-7 = Ionian/Dorian/etc), use for building scales
+  - velocity_offset: Per-mode velocity offset (-64 to +63), apply to all note velocities
 ]]--
 
 -- ============================================================================
@@ -36,6 +50,7 @@
 
 -- Example: local scale = {0, 2, 4, 5, 7, 9, 11}  -- Major scale
 -- Example: local base_note = 60  -- Middle C
+-- Example: local velocity_offset = 0  -- Store Mode 0 velocity offset
 
 
 -- ============================================================================
@@ -44,17 +59,33 @@
 --
 -- Parameters:
 --   context (table):
---     .tempo       - Current tempo in BPM
---     .mode_number - This mode's number (0-15)
---     .midi_channel- MIDI channel for this mode
+--     .tempo           - Current tempo in BPM
+--     .mode_number     - This mode's number (0-15)
+--     .midi_channel    - MIDI channel for this mode
+--     .scale_root      - Global scale root (0-11 = C-B) from Mode 0
+--     .scale_type      - Global scale type (0-7) from Mode 0
+--     .velocity_offset - Per-mode velocity offset (-64 to +63) from Mode 0
 --
 -- Use this to:
 --   - Initialize module-level variables
---   - Set up lookup tables
+--   - Set up lookup tables based on Mode 0 scale context
 --   - Prepare any state needed for processing
 --
 function init(context)
   -- Example: print("Mode " .. context.mode_number .. " initialized at " .. context.tempo .. " BPM")
+
+  -- Example: Store Mode 0 context for use in process_event()
+  -- velocity_offset = context.velocity_offset or 0
+
+  -- Example: Build scale from Mode 0 context
+  -- local scale_types = {
+  --   {0, 2, 4, 5, 7, 9, 11},  -- Ionian
+  --   {0, 2, 3, 5, 7, 9, 10},  -- Dorian
+  --   -- ... etc
+  -- }
+  -- local scale_idx = (context.scale_type or 0) + 1
+  -- scale = scale_types[scale_idx]
+  -- base_note = 60 + (context.scale_root or 0)
 
   -- TODO: Add your initialization code here
 end
