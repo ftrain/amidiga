@@ -252,4 +252,100 @@ size_t Song::getMemoryFootprint() {
     return NUM_MODES * Mode::NUM_PATTERNS * Pattern::NUM_TRACKS * Track::NUM_EVENTS * sizeof(uint32_t);
 }
 
+bool Song::saveBinary(const std::string& filepath) {
+#ifdef NO_EXCEPTIONS
+    // For embedded: Write to flash memory region
+    // This will be implemented in Teensy-specific code
+    (void)filepath;
+    return false;
+#else
+    try {
+        std::ofstream file(filepath, std::ios::binary);
+        if (!file.is_open()) {
+            return false;
+        }
+
+        // Write magic number and version
+        const uint32_t magic = 0x47525642;  // "GRVB" in ASCII
+        const uint32_t version = 1;
+        file.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
+        file.write(reinterpret_cast<const char*>(&version), sizeof(version));
+
+        // Write raw event data for all modes
+        // The Song/Mode/Pattern/Track hierarchy is just nested arrays, so we can write directly
+        for (int mode_num = 0; mode_num < NUM_MODES; ++mode_num) {
+            const Mode& mode = modes_[mode_num];
+            for (int pattern_num = 0; pattern_num < Mode::NUM_PATTERNS; ++pattern_num) {
+                const Pattern& pattern = mode.getPattern(pattern_num);
+                for (int track_num = 0; track_num < Pattern::NUM_TRACKS; ++track_num) {
+                    for (int step = 0; step < Track::NUM_EVENTS; ++step) {
+                        const Event& evt = pattern.getEvent(track_num, step);
+                        uint32_t packed = evt.getRawData();  // Get bit-packed representation
+                        file.write(reinterpret_cast<const char*>(&packed), sizeof(packed));
+                    }
+                }
+            }
+        }
+
+        file.close();
+        return true;
+
+    } catch (const std::exception& e) {
+        return false;
+    }
+#endif
+}
+
+bool Song::loadBinary(const std::string& filepath) {
+#ifdef NO_EXCEPTIONS
+    // For embedded: Read from flash memory region
+    // This will be implemented in Teensy-specific code
+    (void)filepath;
+    return false;
+#else
+    try {
+        std::ifstream file(filepath, std::ios::binary);
+        if (!file.is_open()) {
+            return false;
+        }
+
+        // Read and validate magic number
+        uint32_t magic = 0;
+        file.read(reinterpret_cast<char*>(&magic), sizeof(magic));
+        if (magic != 0x47525642) {  // "GRVB"
+            return false;
+        }
+
+        // Read version
+        uint32_t version = 0;
+        file.read(reinterpret_cast<char*>(&version), sizeof(version));
+        if (version != 1) {
+            return false;
+        }
+
+        // Read raw event data for all modes
+        for (int mode_num = 0; mode_num < NUM_MODES; ++mode_num) {
+            Mode& mode = modes_[mode_num];
+            for (int pattern_num = 0; pattern_num < Mode::NUM_PATTERNS; ++pattern_num) {
+                Pattern& pattern = mode.getPattern(pattern_num);
+                for (int track_num = 0; track_num < Pattern::NUM_TRACKS; ++track_num) {
+                    for (int step = 0; step < Track::NUM_EVENTS; ++step) {
+                        uint32_t packed = 0;
+                        file.read(reinterpret_cast<char*>(&packed), sizeof(packed));
+                        Event& evt = pattern.getEvent(track_num, step);
+                        evt.setRawData(packed);
+                    }
+                }
+            }
+        }
+
+        file.close();
+        return true;
+
+    } catch (const std::exception& e) {
+        return false;
+    }
+#endif
+}
+
 } // namespace gruvbok

@@ -40,9 +40,13 @@ public:
     void setMode(int mode_num, const Mode& mode);
     void clear();
 
-    // Persistence
+    // Persistence (JSON format - human readable, desktop only)
     bool save(const std::string& filepath, const std::string& name = "GRUVBOK Song", int tempo = 120);
     bool load(const std::string& filepath, std::string* out_name = nullptr, int* out_tempo = nullptr);
+
+    // Binary persistence (for flash memory - efficient, static size)
+    bool saveBinary(const std::string& filepath);
+    bool loadBinary(const std::string& filepath);
 
     static constexpr int NUM_MODES = 15;
 

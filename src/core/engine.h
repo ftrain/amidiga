@@ -37,6 +37,7 @@ public:
     int getCurrentTrack() const { return current_track_; }
     int getCurrentStep() const { return current_step_; }
     int getSongModeStep() const { return song_mode_step_; }  // For Mode 0 visualization
+    int getTargetMode() const { return target_mode_; }  // For Mode 0 target mode selection
 
     // Edit current event
     void toggleCurrentSwitch();
@@ -82,6 +83,21 @@ private:
 
     // Song mode (mode 0) - runs at 1/16th speed (each step = 1 full pattern)
     int song_mode_step_;     // Current step in Mode 0 (0-15, advances every 16 normal steps)
+    int song_mode_loop_length_;  // Loop length based on highest button pressed in Mode 0 (1-16)
+
+    // Mode 0 target mode selection (when current_mode_ == 0, R4 selects target mode, not track)
+    int target_mode_;  // 1-14
+
+    // Mode 0 parameters: applied globally from Mode 0 events
+    int global_scale_root_;      // 0-11 (C-B)
+    int global_scale_type_;      // 0-N (Ionian, Dorian, etc.)
+    int mode_velocity_offsets_[Song::NUM_MODES];  // Per-mode velocity offset (-64 to +63)
+    int mode_pattern_overrides_[Song::NUM_MODES]; // Per-mode pattern override (0-31, or -1 for default)
+
+    // Dirty flag and autosave
+    bool dirty_;                 // True if data has been modified
+    uint32_t last_autosave_time_;
+    static constexpr uint32_t AUTOSAVE_INTERVAL_MS = 20000;  // 20 seconds
 
     uint32_t last_step_time_;
     uint32_t step_interval_ms_;
@@ -113,6 +129,15 @@ private:
     void handleInput();
     void updateLED();
     void reinitLuaModes();  // Reinitialize all Lua modes with current tempo
+
+    // Mode 0 helpers
+    void calculateMode0LoopLength();  // Determine loop length from highest button pressed
+    void parseMode0Event(const Event& event, int target_mode);  // Parse S1-S4 from Mode 0 event
+    void applyMode0Parameters();  // Apply Mode 0 params to all modes during playback
+
+    // Autosave
+    void markDirty();
+    void checkAutosave();
 };
 
 } // namespace gruvbok
