@@ -25,10 +25,7 @@ struct HardwareControlsView: View {
                     eventDataSection(width: cellWidth, height: cellHeight)
                 }
             }
-            .padding(.leading, 16)
-            .padding(.trailing, 28)  // Extra right padding to prevent cutoff
-            .padding(.top, 16)
-            .padding(.bottom, 28)  // Extra bottom padding to prevent cutoff
+            .padding(16)
             .background(Color.black)
         }
     }
@@ -285,50 +282,47 @@ struct HardwareControlsView: View {
                         }
                         .buttonStyle(.plain)
 
-                        // Pot values (inline editable)
+                        // Pot values (virtual slider - drag to change)
                         ForEach(0..<4) { pot in
-                            if editingCell?.step == index && editingCell?.pot == pot {
-                                // Inline slider editor
-                                VStack(spacing: 2) {
-                                    Text("\(event.pots[pot].intValue)")
-                                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                        .foregroundColor(.cyan)
+                            Text("\(event.pots[pot].intValue)")
+                                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                                .foregroundColor(
+                                    editingCell?.step == index && editingCell?.pot == pot
+                                    ? .cyan
+                                    : (event.switchOn ? .white : .secondary)
+                                )
+                                .frame(maxWidth: .infinity)
+                                .frame(height: rowHeight - 2)
+                                .background(
+                                    editingCell?.step == index && editingCell?.pot == pot
+                                    ? Color.cyan.opacity(0.2)
+                                    : Color.clear
+                                )
+                                .cornerRadius(2)
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { drag in
+                                            // Start editing on click
+                                            if editingCell?.step != index || editingCell?.pot != pot {
+                                                editingCell = (step: index, pot: pot)
+                                            }
 
-                                    Slider(
-                                        value: Binding(
-                                            get: { Double(event.pots[pot].intValue) },
-                                            set: { newValue in
+                                            // Calculate new value based on horizontal drag
+                                            let sensitivity: CGFloat = 0.5
+                                            let delta = Int(drag.translation.width * sensitivity)
+                                            let currentValue = Int(event.pots[pot].intValue)
+                                            let newValue = max(0, min(127, currentValue + delta))
+
+                                            if newValue != currentValue {
                                                 engine.setSliderPot(pot, value: UInt8(newValue))
                                                 engine.toggleButton(index)
                                             }
-                                        ),
-                                        in: 0...127,
-                                        step: 1
-                                    )
-                                    .accentColor(.cyan)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: rowHeight - 2)
-                                .padding(.horizontal, 4)
-                                .background(Color.cyan.opacity(0.2))
-                                .cornerRadius(2)
-                                .onTapGesture {
-                                    // Click away to finish editing
-                                    editingCell = nil
-                                }
-                            } else {
-                                // Normal text display (clickable)
-                                Button(action: {
-                                    editingCell = (step: index, pot: pot)
-                                }) {
-                                    Text("\(event.pots[pot].intValue)")
-                                        .font(.system(size: 13, weight: .medium, design: .monospaced))
-                                        .foregroundColor(event.switchOn ? .white : .secondary)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: rowHeight - 2)
-                                }
-                                .buttonStyle(.plain)
-                            }
+                                        }
+                                        .onEnded { _ in
+                                            // Stop editing when drag ends
+                                            editingCell = nil
+                                        }
+                                )
                         }
                     }
                     .frame(height: rowHeight)

@@ -53,12 +53,6 @@ struct PatternGridView: View {
                         radius: step == currentStep ? 6 : 3
                     )
 
-                // Step number
-                Text("\(step + 1)")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(buttonTextColor(for: step))
-                    .shadow(color: Color.black.opacity(0.5), radius: 1)
-
                 // Event indicator dot (if has params)
                 if step < events.count && events[step].switchOn {
                     VStack {
@@ -83,9 +77,9 @@ struct PatternGridView: View {
 
     private func buttonGradient(for step: Int) -> LinearGradient {
         if step == currentStep {
-            // Currently playing - red gradient
+            // Currently playing - subtle purple gradient
             return LinearGradient(
-                colors: [Color.red.opacity(0.9), Color.red.opacity(0.6)],
+                colors: [Color.purple.opacity(0.5), Color.purple.opacity(0.3)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -108,7 +102,7 @@ struct PatternGridView: View {
 
     private func buttonBorderColor(for step: Int) -> Color {
         if step == currentStep {
-            return Color.red.opacity(0.8)
+            return Color.purple.opacity(0.6)
         } else if step < events.count && events[step].switchOn {
             return Color.cyan.opacity(0.7)
         } else {
@@ -118,19 +112,11 @@ struct PatternGridView: View {
 
     private func buttonShadowColor(for step: Int) -> Color {
         if step == currentStep {
-            return Color.red.opacity(0.6)
+            return Color.purple.opacity(0.4)
         } else if step < events.count && events[step].switchOn {
             return Color.cyan.opacity(0.4)
         } else {
             return Color.clear
-        }
-    }
-
-    private func buttonTextColor(for step: Int) -> Color {
-        if step == currentStep || (step < events.count && events[step].switchOn) {
-            return .white
-        } else {
-            return Color.white.opacity(0.5)
         }
     }
 

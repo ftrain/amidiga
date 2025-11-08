@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var engine: EngineState
     @State private var localEventMonitor: Any?
+    @State private var keyRepeatCount: [Character: Int] = [:]
 
     init(platform: String) {
         _engine = StateObject(wrappedValue: EngineState(platform: platform))
@@ -92,95 +93,142 @@ struct ContentView: View {
 
             // Handle knobs and sliders (key down only)
             if pressed {
+                // Track repeat count for acceleration
+                if event.isARepeat {
+                    keyRepeatCount[char, default: 0] += 1
+                } else {
+                    keyRepeatCount[char] = 0
+                }
+
+                // Calculate increment based on repeat count
+                // First press: 1, after 5 repeats: start accelerating
+                let repeatCount = keyRepeatCount[char, default: 0]
+                let increment: UInt8 = repeatCount > 5 ? min(10, UInt8(repeatCount / 2)) : 1
+
                 switch char {
                 // Mode (R1)
                 case "k":
-                    if engine.rotaryPots[0] > 0 {
-                        engine.setRotaryPot(0, value: engine.rotaryPots[0] - 1)
+                    if engine.rotaryPots[0] >= increment {
+                        engine.setRotaryPot(0, value: engine.rotaryPots[0] - increment)
+                    } else {
+                        engine.setRotaryPot(0, value: 0)
                     }
                     return nil
                 case "l":
-                    if engine.rotaryPots[0] < 127 {
-                        engine.setRotaryPot(0, value: engine.rotaryPots[0] + 1)
+                    if engine.rotaryPots[0] <= 127 - increment {
+                        engine.setRotaryPot(0, value: engine.rotaryPots[0] + increment)
+                    } else {
+                        engine.setRotaryPot(0, value: 127)
                     }
                     return nil
                 // Tempo (R2)
                 case ";":
-                    if engine.rotaryPots[1] > 0 {
-                        engine.setRotaryPot(1, value: engine.rotaryPots[1] - 1)
+                    if engine.rotaryPots[1] >= increment {
+                        engine.setRotaryPot(1, value: engine.rotaryPots[1] - increment)
+                    } else {
+                        engine.setRotaryPot(1, value: 0)
                     }
                     return nil
                 case "'":
-                    if engine.rotaryPots[1] < 127 {
-                        engine.setRotaryPot(1, value: engine.rotaryPots[1] + 1)
+                    if engine.rotaryPots[1] <= 127 - increment {
+                        engine.setRotaryPot(1, value: engine.rotaryPots[1] + increment)
+                    } else {
+                        engine.setRotaryPot(1, value: 127)
                     }
                     return nil
                 // Pattern (R3)
                 case "m":
-                    if engine.rotaryPots[2] > 0 {
-                        engine.setRotaryPot(2, value: engine.rotaryPots[2] - 1)
+                    if engine.rotaryPots[2] >= increment {
+                        engine.setRotaryPot(2, value: engine.rotaryPots[2] - increment)
+                    } else {
+                        engine.setRotaryPot(2, value: 0)
                     }
                     return nil
                 case ",":
-                    if engine.rotaryPots[2] < 127 {
-                        engine.setRotaryPot(2, value: engine.rotaryPots[2] + 1)
+                    if engine.rotaryPots[2] <= 127 - increment {
+                        engine.setRotaryPot(2, value: engine.rotaryPots[2] + increment)
+                    } else {
+                        engine.setRotaryPot(2, value: 127)
                     }
                     return nil
                 // Track (R4)
                 case ".":
-                    if engine.rotaryPots[3] > 0 {
-                        engine.setRotaryPot(3, value: engine.rotaryPots[3] - 1)
+                    if engine.rotaryPots[3] >= increment {
+                        engine.setRotaryPot(3, value: engine.rotaryPots[3] - increment)
+                    } else {
+                        engine.setRotaryPot(3, value: 0)
                     }
                     return nil
                 case "/":
-                    if engine.rotaryPots[3] < 127 {
-                        engine.setRotaryPot(3, value: engine.rotaryPots[3] + 1)
+                    if engine.rotaryPots[3] <= 127 - increment {
+                        engine.setRotaryPot(3, value: engine.rotaryPots[3] + increment)
+                    } else {
+                        engine.setRotaryPot(3, value: 127)
                     }
                     return nil
                 // Sliders
                 case "9":
-                    if engine.sliderPots[0] > 0 {
-                        engine.setSliderPot(0, value: engine.sliderPots[0] - 1)
+                    if engine.sliderPots[0] >= increment {
+                        engine.setSliderPot(0, value: engine.sliderPots[0] - increment)
+                    } else {
+                        engine.setSliderPot(0, value: 0)
                     }
                     return nil
                 case "i":
-                    if engine.sliderPots[0] < 127 {
-                        engine.setSliderPot(0, value: engine.sliderPots[0] + 1)
+                    if engine.sliderPots[0] <= 127 - increment {
+                        engine.setSliderPot(0, value: engine.sliderPots[0] + increment)
+                    } else {
+                        engine.setSliderPot(0, value: 127)
                     }
                     return nil
                 case "0":
-                    if engine.sliderPots[1] > 0 {
-                        engine.setSliderPot(1, value: engine.sliderPots[1] - 1)
+                    if engine.sliderPots[1] >= increment {
+                        engine.setSliderPot(1, value: engine.sliderPots[1] - increment)
+                    } else {
+                        engine.setSliderPot(1, value: 0)
                     }
                     return nil
                 case "o":
-                    if engine.sliderPots[1] < 127 {
-                        engine.setSliderPot(1, value: engine.sliderPots[1] + 1)
+                    if engine.sliderPots[1] <= 127 - increment {
+                        engine.setSliderPot(1, value: engine.sliderPots[1] + increment)
+                    } else {
+                        engine.setSliderPot(1, value: 127)
                     }
                     return nil
                 case "-":
-                    if engine.sliderPots[2] > 0 {
-                        engine.setSliderPot(2, value: engine.sliderPots[2] - 1)
+                    if engine.sliderPots[2] >= increment {
+                        engine.setSliderPot(2, value: engine.sliderPots[2] - increment)
+                    } else {
+                        engine.setSliderPot(2, value: 0)
                     }
                     return nil
                 case "p":
-                    if engine.sliderPots[2] < 127 {
-                        engine.setSliderPot(2, value: engine.sliderPots[2] + 1)
+                    if engine.sliderPots[2] <= 127 - increment {
+                        engine.setSliderPot(2, value: engine.sliderPots[2] + increment)
+                    } else {
+                        engine.setSliderPot(2, value: 127)
                     }
                     return nil
                 case "=":
-                    if engine.sliderPots[3] > 0 {
-                        engine.setSliderPot(3, value: engine.sliderPots[3] - 1)
+                    if engine.sliderPots[3] >= increment {
+                        engine.setSliderPot(3, value: engine.sliderPots[3] - increment)
+                    } else {
+                        engine.setSliderPot(3, value: 0)
                     }
                     return nil
                 case "[":
-                    if engine.sliderPots[3] < 127 {
-                        engine.setSliderPot(3, value: engine.sliderPots[3] + 1)
+                    if engine.sliderPots[3] <= 127 - increment {
+                        engine.setSliderPot(3, value: engine.sliderPots[3] + increment)
+                    } else {
+                        engine.setSliderPot(3, value: 127)
                     }
                     return nil
                 default:
                     break
                 }
+            } else {
+                // Key released - reset repeat count
+                keyRepeatCount[char] = nil
             }
 
             return event // Pass through unhandled events

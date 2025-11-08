@@ -123,7 +123,11 @@ void Engine::update() {
 
         // Mode 0 runs at 1/16th speed: advance song_mode_step_ when current_step_ wraps to 0
         if (current_step_ == 0) {
+            int old_step = song_mode_step_;
             song_mode_step_ = (song_mode_step_ + 1) % song_mode_loop_length_;
+            // Debug logging for Mode 0 step advancement
+            std::cout << "Mode 0 step: " << old_step << " -> " << song_mode_step_
+                     << " (loop length: " << song_mode_loop_length_ << ")" << std::endl;
         }
     }
 }
@@ -563,7 +567,7 @@ void Engine::calculateMode0LoopLength() {
     Mode& mode0 = song_->getMode(0);
     Pattern& pattern = mode0.getPattern(0);
 
-    int max_step = 0;  // Default to 1 bar minimum
+    int max_step = 15;  // Default to 16 steps (full bar)
     for (int track = 0; track < Pattern::NUM_TRACKS; ++track) {  // All 8 tracks
         for (int step = 0; step < 16; ++step) {
             const Event& event = pattern.getEvent(track, step);
