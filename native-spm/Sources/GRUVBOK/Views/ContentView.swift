@@ -73,6 +73,11 @@ struct ContentView: View {
                 return event
             }
 
+            // Don't intercept keys with Command modifier (allow Command-Q, Command-W, etc.)
+            if event.modifierFlags.contains(.command) {
+                return event
+            }
+
             let pressed = (event.type == .keyDown)
             print("NSEvent monitor: key '\(char)', pressed: \(pressed)")
 

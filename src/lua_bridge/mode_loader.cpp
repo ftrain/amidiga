@@ -25,14 +25,15 @@ bool ModeLoader::loadMode(int mode_number, const std::string& filepath, int temp
         return false;
     }
 
-    // Set the MIDI channel (mode number = channel)
-    context->setChannel(static_cast<uint8_t>(mode_number));
+    // Set the MIDI channel (Mode 0 = no output, Mode 1 → Ch 0, Mode 2 → Ch 1, etc.)
+    uint8_t channel = (mode_number > 0) ? mode_number - 1 : 0;
+    context->setChannel(channel);
 
     // Call init
     LuaInitContext init_ctx;
     init_ctx.tempo = tempo;
     init_ctx.mode_number = mode_number;
-    init_ctx.midi_channel = mode_number;
+    init_ctx.midi_channel = channel;  // Mode 0 = no output, Mode 1 → Ch 0 (displayed as Ch 1), etc.
 
     if (!context->callInit(init_ctx)) {
         std::cerr << "Failed to initialize mode " << mode_number << ": " << context->getError() << std::endl;

@@ -79,6 +79,9 @@ public:
     void setAudioGain(float gain);
     float getAudioGain() const;
 
+    // Mode 0 loop length calculation (public so it can be called after loading content)
+    void calculateMode0LoopLength();
+
 private:
     Song* song_;
     HardwareInterface* hardware_;
@@ -144,7 +147,6 @@ private:
     void reinitLuaModes();  // Reinitialize all Lua modes with current tempo
 
     // Mode 0 helpers
-    void calculateMode0LoopLength();  // Determine loop length from highest button pressed
     void parseMode0Event(const Event& event, int target_mode);  // Parse S1-S4 from Mode 0 event
     void applyMode0Parameters();  // Apply Mode 0 params to all modes during playback
 

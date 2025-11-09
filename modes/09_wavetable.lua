@@ -1,5 +1,5 @@
 --[[
-  Mode 10: Wave Table Scanner
+  Mode 9: Wave Table Scanner
 
   Treats the 16 programmed events as a wavetable and smoothly scans
   through it, creating gliding arpeggios and smooth pitch sweeps.

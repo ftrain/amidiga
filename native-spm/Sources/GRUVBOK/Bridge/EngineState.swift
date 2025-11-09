@@ -318,6 +318,15 @@ class EngineState: ObservableObject {
         return engineWrapper.getModeProgram(mode)
     }
 
+    // Dynamic mode metadata from Lua files
+    func getModeName(_ mode: Int) -> String {
+        return engineWrapper.getModeName(mode)
+    }
+
+    func getSliderLabels(_ mode: Int) -> [String] {
+        return engineWrapper.getSliderLabels(mode) as [String]
+    }
+
     // Direct event editing
     func setEventPot(mode: Int, pattern: Int, track: Int, step: Int, pot: Int, value: UInt8) {
         engineWrapper.setEventPot(mode, pattern: pattern, track: track, step: step, pot: pot, value: value)

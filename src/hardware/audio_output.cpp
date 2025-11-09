@@ -112,19 +112,20 @@ bool AudioOutput::loadSoundFont(const std::string& soundfont_path) {
 
     std::cout << "[AudioOutput] SoundFont loaded successfully (ID: " << impl_->soundfont_id << ")\n";
 
-    // Set up default instruments for GRUVBOK modes (Mode N → MIDI Channel N)
-    // Note: MIDI channels are 0-indexed, so Mode 10 → Channel 9 in FluidSynth API
+    // Set up default instruments for GRUVBOK modes
+    // Mode 1 → Channel 0, Mode 2 → Channel 1, ..., Mode 10 → Channel 9 (GM drums)
+    // Note: FluidSynth channels are 0-indexed (0-15)
 
-    // Mode 10 (Channel 9 in API, Channel 10 in GM) = Drums
+    // Mode 10 → Channel 9 (GM Percussion on channel 10 in user-facing terms)
     fluid_synth_bank_select(impl_->synth, 9, 128);  // Bank 128 = GM Percussion
     fluid_synth_program_change(impl_->synth, 9, 0);  // Program 0 = Standard Kit
-    std::cout << "[AudioOutput] Mode 10 (Channel 10): GM Drum Kit\n";
+    std::cout << "[AudioOutput] Mode 10 (Channel 9/MIDI Ch 10): GM Drum Kit\n";
 
     // Set sensible defaults for other modes (will be overridden by Program Change)
-    fluid_synth_program_change(impl_->synth, 1, 0);   // Mode 1: Acoustic Grand Piano
-    fluid_synth_program_change(impl_->synth, 2, 33);  // Mode 2: Electric Bass
-    fluid_synth_program_change(impl_->synth, 3, 48);  // Mode 3: String Ensemble
-    fluid_synth_program_change(impl_->synth, 4, 81);  // Mode 4: Sawtooth Lead
+    fluid_synth_program_change(impl_->synth, 0, 0);   // Mode 1 → Ch 0: Acoustic Grand Piano
+    fluid_synth_program_change(impl_->synth, 1, 33);  // Mode 2 → Ch 1: Electric Bass
+    fluid_synth_program_change(impl_->synth, 2, 48);  // Mode 3 → Ch 2: String Ensemble
+    fluid_synth_program_change(impl_->synth, 3, 81);  // Mode 4 → Ch 3: Sawtooth Lead
     std::cout << "[AudioOutput] Default instruments set for modes 1-4\n";
 
     return true;

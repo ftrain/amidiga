@@ -322,32 +322,32 @@ struct OutputView: View {
 
             HStack(spacing: 8) {
                 Button("Drums → M10") {
-                    // GM channel 10 is always drums - Mode 10 outputs on channel 10
-                    engine.setModeProgram(mode: 10, program: 0)  // Any program on ch 10 = drums
+                    // Mode 10 outputs on GM channel 9 (displayed as channel 10)
+                    engine.setModeProgram(mode: 10, program: 0)  // Any program on GM ch 10 = drums
                 }
                 .buttonStyle(.bordered)
                 .font(.system(size: 11))
 
-                Button("Piano → M1") {
-                    engine.setModeProgram(mode: 1, program: 0)  // Acoustic Grand Piano
+                Button("Chords → M1") {
+                    engine.setModeProgram(mode: 1, program: 48)  // String Ensemble for chords
                 }
                 .buttonStyle(.bordered)
                 .font(.system(size: 11))
 
                 Button("Bass → M2") {
-                    engine.setModeProgram(mode: 2, program: 33)  // Electric Bass (finger)
+                    engine.setModeProgram(mode: 2, program: 33)  // Electric Bass (acid bassline)
                 }
                 .buttonStyle(.bordered)
                 .font(.system(size: 11))
 
-                Button("Strings → M3") {
-                    engine.setModeProgram(mode: 3, program: 48)  // String Ensemble
+                Button("Synth → M3") {
+                    engine.setModeProgram(mode: 3, program: 38)  // Synth Bass (cellular)
                 }
                 .buttonStyle(.bordered)
                 .font(.system(size: 11))
 
-                Button("Synth Lead → M4") {
-                    engine.setModeProgram(mode: 4, program: 81)  // Sawtooth Lead
+                Button("Lead → M4") {
+                    engine.setModeProgram(mode: 4, program: 81)  // Sawtooth Lead (arpeggiator)
                 }
                 .buttonStyle(.bordered)
                 .font(.system(size: 11))

@@ -91,6 +91,8 @@ NS_ASSUME_NONNULL_BEGIN
 // Lua mode management
 - (BOOL)reloadMode:(NSInteger)mode;
 - (BOOL)validateLuaScript:(NSString *)path outError:(NSString *_Nullable *_Nullable)outError;
+- (NSString *)getModeName:(NSInteger)mode;  // Get mode name from Lua MODE_NAME
+- (NSArray<NSString *> *)getSliderLabels:(NSInteger)mode;  // Get slider labels from Lua SLIDER_LABELS
 
 // MIDI program mapping (instrument selection per mode)
 - (void)setModeProgram:(NSInteger)mode program:(uint8_t)program;

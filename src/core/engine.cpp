@@ -43,16 +43,16 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
 
     // Set sensible default instruments for each mode (General MIDI)
     mode_programs_[0] = 0;    // Mode 0: Song sequencer (no MIDI output)
-    mode_programs_[1] = 0;    // Mode 1: Acoustic Grand Piano
-    mode_programs_[2] = 33;   // Mode 2: Electric Bass (finger)
-    mode_programs_[3] = 48;   // Mode 3: String Ensemble
-    mode_programs_[4] = 81;   // Mode 4: Sawtooth Lead
-    mode_programs_[5] = 24;   // Mode 5: Acoustic Guitar (nylon)
-    mode_programs_[6] = 88;   // Mode 6: New Age Pad
-    mode_programs_[7] = 56;   // Mode 7: Trumpet
-    mode_programs_[8] = 4;    // Mode 8: Electric Piano 1
-    mode_programs_[9] = 38;   // Mode 9: Synth Bass 1
-    mode_programs_[10] = 0;   // Mode 10: Drums (GM channel 10 is always drums)
+    mode_programs_[1] = 48;   // Mode 1: Chords → String Ensemble
+    mode_programs_[2] = 33;   // Mode 2: Acid Bassline → Electric Bass (finger)
+    mode_programs_[3] = 38;   // Mode 3: Cellular Automata → Synth Bass 1
+    mode_programs_[4] = 81;   // Mode 4: Arpeggiator → Sawtooth Lead
+    mode_programs_[5] = 24;   // Mode 5: Euclidean → Acoustic Guitar (nylon)
+    mode_programs_[6] = 88;   // Mode 6: Random → New Age Pad
+    mode_programs_[7] = 56;   // Mode 7: Sample & Hold → Trumpet
+    mode_programs_[8] = 4;    // Mode 8: Drunk Walk → Electric Piano 1
+    mode_programs_[9] = 81;   // Mode 9: Wavetable → Sawtooth Lead
+    mode_programs_[10] = 0;   // Mode 10: Drums → GM Drums (channel 10, program ignored)
     mode_programs_[11] = 40;  // Mode 11: Violin
     mode_programs_[12] = 16;  // Mode 12: Drawbar Organ
     mode_programs_[13] = 65;  // Mode 13: Alto Sax
@@ -238,18 +238,26 @@ void Engine::sendMidiClock() {
 
 void Engine::processStep() {
     // Parse Mode 0 parameters at the start of each bar (current_step_ == 0)
-    // Mode 0 contains configuration for all modes: pattern, scale, velocity
-    if (current_step_ == 0) {
+    // Only apply Mode 0 pattern sequence when in Mode 0
+    if (current_step_ == 0 && current_mode_ == 0) {
         applyMode0Parameters();
     }
 
     // Determine which pattern to play for each mode
-    // Mode 0 controls which pattern each mode plays via mode_pattern_overrides_
+    // Mode 0: Follow pattern sequence from mode_pattern_overrides_
+    // Modes 1-15: Loop current_pattern_ only (for editing)
     for (int mode_num = 1; mode_num < Song::NUM_MODES; ++mode_num) {
-        // Use pattern override if set, otherwise use current_pattern_
-        int pattern_to_play = (mode_pattern_overrides_[mode_num] >= 0)
-            ? mode_pattern_overrides_[mode_num]
-            : current_pattern_;
+        int pattern_to_play;
+
+        if (current_mode_ == 0) {
+            // In Mode 0: Use pattern override if set, otherwise use current_pattern_
+            pattern_to_play = (mode_pattern_overrides_[mode_num] >= 0)
+                ? mode_pattern_overrides_[mode_num]
+                : current_pattern_;
+        } else {
+            // In edit modes (1-15): Always loop current_pattern_ (ignore Mode 0 sequence)
+            pattern_to_play = current_pattern_;
+        }
 
         Mode& mode = song_->getMode(mode_num);
         Pattern& pattern = mode.getPattern(pattern_to_play);
@@ -321,19 +329,16 @@ void Engine::handleInput() {
     // When a button is pressed, parameter-lock the current slider values to that event
     for (int btn = 0; btn < 16; ++btn) {
         if (hardware_->readButton(btn)) {
-            // In Mode 0, buttons write to Mode 0 Pattern 0 using target_mode_ as "track"
+            // In Mode 0, buttons write to Mode 0 Pattern 0 Track 0 (pattern sequence)
             // In other modes, buttons write to current mode/pattern/track
             int edit_mode, edit_pattern, edit_track;
 
             if (current_mode_ == 0) {
-                // Mode 0: Always edit Mode 0, Pattern 0, use target_mode_ as "track"
+                // Mode 0: Always edit Mode 0, Pattern 0, Track 0
+                // All 16 buttons program the pattern sequence on Track 0
                 edit_mode = 0;
                 edit_pattern = 0;
-                edit_track = target_mode_;  // target_mode_ is 1-14, but we need 0-13 for track index
-                if (edit_track < 1 || edit_track >= Song::NUM_MODES) {
-                    edit_track = 1;  // Safety clamp
-                }
-                edit_track -= 1;  // Convert to 0-13
+                edit_track = 0;  // Mode 0 only uses Track 0
             } else {
                 // Normal mode: edit current mode/pattern/track
                 edit_mode = current_mode_;
@@ -515,9 +520,9 @@ void Engine::reinitLuaModes() {
         LuaContext* lua_mode = mode_loader_->getMode(mode_num);
         if (lua_mode && lua_mode->isValid()) {
             context.mode_number = mode_num;
-            // Modes 1-14 output on MIDI channels 1-14
             // Mode 0 produces no MIDI output (it's the song sequencer)
-            context.midi_channel = mode_num;
+            // Modes 1-15 output on MIDI channels 0-14 (displayed as channels 1-15)
+            context.midi_channel = (mode_num > 0) ? mode_num - 1 : 0;
             context.scale_root = global_scale_root_;
             context.scale_type = global_scale_type_;
             context.velocity_offset = mode_velocity_offsets_[mode_num];
@@ -526,7 +531,7 @@ void Engine::reinitLuaModes() {
             // Send Program Change message to set instrument for this mode
             if (mode_num > 0) {  // Skip Mode 0 (no MIDI output)
                 uint8_t program = mode_programs_[mode_num];
-                uint8_t channel = mode_num;  // Mode N → MIDI channel N
+                uint8_t channel = mode_num - 1;  // Mode N → MIDI channel N-1 (Mode 1 → Ch 0, displayed as Ch 1)
 
                 // Create Program Change MIDI message (0xC0 + channel)
                 std::vector<uint8_t> program_change = {
@@ -616,28 +621,29 @@ float Engine::getAudioGain() const {
 // ============================================================================
 
 void Engine::calculateMode0LoopLength() {
-    // Scan Mode 0, Pattern 0, all 8 tracks
+    // Scan Mode 0, Pattern 0, Track 0 only (Mode 0 uses only Track 0)
     // Find the highest step number with switch on
     Mode& mode0 = song_->getMode(0);
     Pattern& pattern = mode0.getPattern(0);
 
-    int max_step = 15;  // Default to 16 steps (full bar)
-    for (int track = 0; track < Pattern::NUM_TRACKS; ++track) {  // All 8 tracks
-        for (int step = 0; step < 16; ++step) {
-            const Event& event = pattern.getEvent(track, step);
-            if (event.getSwitch() && step > max_step) {
-                max_step = step;
-            }
+    int max_step = -1;  // Start at -1 so first active step sets it
+    for (int step = 0; step < 16; ++step) {
+        const Event& event = pattern.getEvent(0, step);  // Track 0 only
+        if (event.getSwitch()) {
+            max_step = step;  // Keep updating to find the highest active step
         }
     }
 
     // Loop length is max_step + 1 (e.g., if B4 is pressed, max_step=3, loop_length=4)
     song_mode_loop_length_ = max_step + 1;
 
-    // If no buttons pressed, default to 1 bar
+    // If no buttons pressed, default to 16 bars (full loop)
     if (song_mode_loop_length_ < 1) {
-        song_mode_loop_length_ = 1;
+        song_mode_loop_length_ = 16;
     }
+
+    std::cout << "[Mode 0] Loop length: " << song_mode_loop_length_
+              << " steps (last active: " << max_step << ")" << std::endl;
 }
 
 void Engine::parseMode0Event(const Event& event, int target_mode) {
@@ -738,7 +744,7 @@ void Engine::setModeProgram(int mode, uint8_t program) {
 
     // Send Program Change message immediately if this mode is active
     if (mode > 0) {  // Skip Mode 0 (no MIDI output)
-        uint8_t channel = mode;  // Mode N → MIDI channel N
+        uint8_t channel = mode - 1;  // Mode N → MIDI channel N-1 (Mode 1 → Ch 0, displayed as Ch 1)
 
         // Create Program Change MIDI message (0xC0 + channel)
         std::vector<uint8_t> program_change = {

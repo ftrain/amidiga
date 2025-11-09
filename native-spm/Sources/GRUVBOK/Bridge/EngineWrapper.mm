@@ -438,7 +438,7 @@ using namespace gruvbok;
         event.setPot(0, 0);
     }
 
-    // Mode 10: Drums (GM channel 10)
+    // Mode 10: Drums (outputs on GM channel 9, displayed as channel 10)
     Mode& mode10 = song_->getMode(10);
     Pattern& drum_pattern = mode10.getPattern(0);
 
@@ -513,6 +513,11 @@ using namespace gruvbok;
     acid_pattern.getEvent(0, 10).setPot(1, 35);
     acid_pattern.getEvent(0, 10).setPot(2, 40);
     acid_pattern.getEvent(0, 10).setPot(3, 65);
+
+    // Recalculate Mode 0 loop length now that demo content is loaded
+    if (engine_) {
+        engine_->calculateMode0LoopLength();
+    }
 
     if (hardware_) {
         hardware_->addLog("✓ Demo content loaded (Drums + Acid)");
@@ -620,6 +625,44 @@ using namespace gruvbok;
         *outError = nil;
     }
     return YES;
+}
+
+- (NSString *)getModeName:(NSInteger)mode {
+    if (!modeLoader_) {
+        return [NSString stringWithFormat:@"Mode %ld", (long)mode];
+    }
+
+    gruvbok::LuaContext* luaMode = modeLoader_->getMode((int)mode);
+    if (!luaMode || !luaMode->isValid()) {
+        return [NSString stringWithFormat:@"Mode %ld", (long)mode];
+    }
+
+    std::string modeName = luaMode->getModeName();
+    return [NSString stringWithUTF8String:modeName.c_str()];
+}
+
+- (NSArray<NSString *> *)getSliderLabels:(NSInteger)mode {
+    if (!modeLoader_) {
+        return @[@"S1", @"S2", @"S3", @"S4"];
+    }
+
+    gruvbok::LuaContext* luaMode = modeLoader_->getMode((int)mode);
+    if (!luaMode || !luaMode->isValid()) {
+        return @[@"S1", @"S2", @"S3", @"S4"];
+    }
+
+    std::vector<std::string> labels = luaMode->getSliderLabels();
+    NSMutableArray<NSString *> *result = [NSMutableArray arrayWithCapacity:labels.size()];
+    for (const auto& label : labels) {
+        [result addObject:[NSString stringWithUTF8String:label.c_str()]];
+    }
+
+    // Ensure we always return 4 labels
+    while (result.count < 4) {
+        [result addObject:[NSString stringWithFormat:@"S%ld", (long)result.count + 1]];
+    }
+
+    return result;
 }
 
 - (void)setModeProgram:(NSInteger)mode program:(uint8_t)program {

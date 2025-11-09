@@ -4,6 +4,7 @@ import GRUVBOKBridge
 struct SongDataExplorerView: View {
     @ObservedObject var engine: EngineState
     @State private var editingValues: [Int: [Int: String]] = [:] // [step: [pot: value]]
+    @State private var selectedStep: Int? = nil // Track selected row
 
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -21,7 +22,7 @@ struct SongDataExplorerView: View {
                         displayText: "\(engine.currentMode)",
                         size: 60
                     )
-                    Text(ModeLabels.getModeName(engine.currentMode))
+                    Text(ModeLabels.getModeName(engine.currentMode, engine: engine))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
@@ -135,19 +136,40 @@ struct SongDataExplorerView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     ForEach(Array(engine.trackEvents.enumerated()), id: \.element.step) { index, event in
-                        HStack(spacing: 0) {
+                        eventRow(index: index, event: event)
+
+                        if index < 15 {
+                            Divider()
+                        }
+                    }
+                }
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+        )
+        .padding(.horizontal)
+    }
+
+    private func eventRow(index: Int, event: EventData) -> some View {
+        let isPlaying = index == (engine.currentMode == 0 ? engine.songModeStep : engine.currentStep)
+        let isSelected = selectedStep == index
+        let backgroundColor = isSelected ? Color.blue.opacity(0.4) : (isPlaying ? Color.cyan.opacity(0.3) : Color.clear)
+
+        return HStack(spacing: 0) {
                             // Step number
                             Text("\(index + 1)")
                                 .frame(width: 60, alignment: .center)
                                 .padding(.vertical, 8)
-                                .background(index == (engine.currentMode == 0 ? engine.songModeStep : engine.currentStep) ? Color.cyan.opacity(0.3) : Color.clear)
+                                .background(backgroundColor)
 
                             // Switch (editable with tap)
                             Image(systemName: event.switchOn ? "checkmark.circle.fill" : "circle")
                                 .foregroundColor(event.switchOn ? .cyan : .gray)
                                 .frame(width: 80, alignment: .center)
                                 .padding(.vertical, 8)
-                                .background(index == (engine.currentMode == 0 ? engine.songModeStep : engine.currentStep) ? Color.cyan.opacity(0.3) : Color.clear)
+                                .background(backgroundColor)
                                 .onTapGesture {
                                     engine.toggleButton(index)
                                 }
@@ -167,7 +189,7 @@ struct SongDataExplorerView: View {
                                         // Auto-save: validate and apply
                                         if let intValue = Int(newValue), intValue >= 0, intValue <= 127 {
                                             let clampedValue = UInt8(min(127, max(0, intValue)))
-                                            // Set slider value
+                                            // Set slider value in real-time
                                             engine.setSliderPot(pot, value: clampedValue)
                                             // Toggle button to save
                                             engine.toggleButton(index)
@@ -178,23 +200,18 @@ struct SongDataExplorerView: View {
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 8)
-                                .background(index == (engine.currentMode == 0 ? engine.songModeStep : engine.currentStep) ? Color.cyan.opacity(0.3) : Color.clear)
+                                .background(backgroundColor)
                                 .foregroundColor(event.switchOn ? .primary : .secondary)
                             }
                         }
-                        .font(.system(size: 12, design: .monospaced))
-
-                        if index < 15 {
-                            Divider()
-                        }
-                    }
-                }
+        .font(.system(size: 12, design: .monospaced))
+        .contentShape(Rectangle())  // Make entire row tappable
+        .onTapGesture {
+            // Select row and load pot values into sliders
+            selectedStep = index
+            for pot in 0..<4 {
+                engine.setSliderPot(pot, value: event.pots[pot].uint8Value)
             }
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-        )
-        .padding(.horizontal)
     }
 }

@@ -78,7 +78,7 @@ struct HardwareControlsView: View {
                         .frame(height: sliderHeight)
 
                         // Labels
-                        Text(ModeLabels.getSliderLabel(sliderIndex: slider, modeNumber: engine.currentMode))
+                        Text(ModeLabels.getSliderLabel(sliderIndex: slider, modeNumber: engine.currentMode, engine: engine))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.cyan.opacity(0.8))
                             .lineLimit(1)
@@ -146,7 +146,7 @@ struct HardwareControlsView: View {
                             displayText: "\(engine.currentMode)",
                             size: knobSize
                         )
-                        Text(ModeLabels.getModeName(engine.currentMode))
+                        Text(ModeLabels.getModeName(engine.currentMode, engine: engine))
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                             .lineLimit(1)

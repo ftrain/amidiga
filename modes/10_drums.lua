@@ -1,5 +1,5 @@
 --[[
-  Mode 1: Drum Machine
+  Mode 10: Drum Machine
 
   808-style beat machine with 8 drum sounds across 8 tracks.
 
