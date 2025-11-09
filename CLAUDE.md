@@ -601,6 +601,17 @@ The desktop version is fully functional with all core features implemented. See 
 apt-get install liblua5.4-dev lua5.4 libasound2-dev libsdl2-dev
 ```
 
+### Recent Refactoring (November 2025)
+
+**Code Quality Improvements:**
+- ✅ **Lua GC Tuning:** Added garbage collector configuration to prevent timing jitter during real-time playback
+- ✅ **Dynamic Slider Labels:** Removed 30+ lines of hardcoded labels, now extracted dynamically from Lua modes
+- ✅ **Hardware Utilities Library:** Created `hardware_utils.h` with common validation, mapping, and filtering functions
+- ✅ **Reduced Duplication:** Eliminated code duplication between DesktopHardware and TeensyHardware implementations
+- ✅ **Comprehensive Documentation:** Added CODEBASE_ANALYSIS.md (1,400+ lines), REFACTORING_SUMMARY.md, and inline docs
+
+See `REFACTORING_SUMMARY.md` for complete details of all improvements.
+
 ### Next Steps (Teensy Port)
 
 **Completed:**

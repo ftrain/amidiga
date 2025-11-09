@@ -80,38 +80,6 @@ bool Knob(const char* label, int* value, int min_val, int max_val, const char* d
     return value_changed;
 }
 
-// Get slider labels for current mode
-const char* GetSliderLabel(int slider_index, int mode_number) {
-    if (mode_number == 0) {  // Song/Pattern Sequencer
-        const char* labels[] = {"Pattern", "---", "---", "---"};
-        return labels[slider_index];
-    } else if (mode_number == 1) {  // Drums
-        const char* labels[] = {"Velocity", "Length", "S3", "S4"};
-        return labels[slider_index];
-    } else if (mode_number == 2) {  // Acid
-        const char* labels[] = {"Pitch", "Length", "Slide", "Filter"};
-        return labels[slider_index];
-    } else if (mode_number == 3) {  // Chords
-        const char* labels[] = {"Root", "Type", "Velocity", "Length"};
-        return labels[slider_index];
-    } else if (mode_number == 4) {  // Arpeggiator
-        const char* labels[] = {"Root", "Pattern", "Velocity", "Length"};
-        return labels[slider_index];
-    } else if (mode_number == 5) {  // Euclidean
-        const char* labels[] = {"Hits", "Rotate", "Pitch", "Velocity"};
-        return labels[slider_index];
-    } else if (mode_number == 6) {  // Random
-        const char* labels[] = {"Prob", "Center", "Range", "Velocity"};
-        return labels[slider_index];
-    } else if (mode_number == 7) {  // Sample & Hold
-        const char* labels[] = {"Rate", "Quant", "Glitch", "Mod"};
-        return labels[slider_index];
-    } else {
-        const char* labels[] = {"S1", "S2", "S3", "S4"};
-        return labels[slider_index];
-    }
-}
-
 int main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
@@ -666,17 +634,22 @@ int main(int argc, char* argv[]) {
             int s3 = hardware->readSliderPot(2);
             int s4 = hardware->readSliderPot(3);
 
+            // Get slider labels dynamically from Lua mode (or defaults if mode not loaded)
+            std::vector<std::string> slider_labels = lua_mode && lua_mode->isValid()
+                ? lua_mode->getSliderLabels()
+                : std::vector<std::string>{"S1", "S2", "S3", "S4"};
+
             char s1_label[64], s2_label[64], s3_label[64], s4_label[64];
             // For Mode 0, S1 represents pattern number (1-32), not raw MIDI value
             if (current_mode == 0) {
                 int pattern_num = ((s1 * 32) / 128) + 1;  // Convert 0-127 to 1-32
-                snprintf(s1_label, sizeof(s1_label), "%s\n%d", GetSliderLabel(0, current_mode), pattern_num);
+                snprintf(s1_label, sizeof(s1_label), "%s\n%d", slider_labels[0].c_str(), pattern_num);
             } else {
-                snprintf(s1_label, sizeof(s1_label), "%s\n%d", GetSliderLabel(0, current_mode), s1);
+                snprintf(s1_label, sizeof(s1_label), "%s\n%d", slider_labels[0].c_str(), s1);
             }
-            snprintf(s2_label, sizeof(s2_label), "%s\n%d", GetSliderLabel(1, current_mode), s2);
-            snprintf(s3_label, sizeof(s3_label), "%s\n%d", GetSliderLabel(2, current_mode), s3);
-            snprintf(s4_label, sizeof(s4_label), "%s\n%d", GetSliderLabel(3, current_mode), s4);
+            snprintf(s2_label, sizeof(s2_label), "%s\n%d", slider_labels[1].c_str(), s2);
+            snprintf(s3_label, sizeof(s3_label), "%s\n%d", slider_labels[2].c_str(), s3);
+            snprintf(s4_label, sizeof(s4_label), "%s\n%d", slider_labels[3].c_str(), s4);
 
             // Sliders now only set values when you press a button (parameter lock)
             if (ImGui::VSliderInt("##S1", ImVec2(40, 140), &s1, 0, 127, s1_label)) {

@@ -96,7 +96,6 @@ private:
     uint32_t start_time_ms_;
 
     // Helper functions
-    uint8_t mapAdcToMidi(uint16_t adc_value);
     bool readButtonRaw(int button);
     uint16_t readPotRaw(int pin);
 };
