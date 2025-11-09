@@ -1,6 +1,7 @@
 #pragma once
 
 #include "song.h"
+#include "led_controller.h"
 #include "../hardware/hardware_interface.h"
 #include "../hardware/midi_scheduler.h"
 #include "../hardware/audio_output.h"
@@ -55,18 +56,8 @@ public:
     // Direct event editing (for UI table)
     void setEventPot(int mode, int pattern, int track, int step, int pot, uint8_t value);
 
-    // LED pattern control (public enum for external access)
-    enum class LEDPattern {
-        TEMPO_BEAT,
-        BUTTON_HELD,
-        SAVING,
-        LOADING,
-        ERROR,
-        MIRROR_MODE
-    };
+    // LED pattern control (delegated to LEDController)
     void triggerLEDPattern(LEDPattern pattern, uint8_t brightness = 255);
-
-    // Trigger LED pattern by name (for Lua API)
     void triggerLEDByName(const std::string& pattern_name, uint8_t brightness = 255);
 
     // Audio output control
@@ -88,6 +79,7 @@ private:
     ModeLoader* mode_loader_;
     std::unique_ptr<MidiScheduler> scheduler_;
     std::unique_ptr<AudioOutput> audio_output_;
+    std::unique_ptr<LEDController> led_controller_;
 
     bool is_playing_;
     int tempo_;  // BPM
@@ -123,16 +115,6 @@ private:
     uint32_t clock_pulse_count_;    // Number of clock pulses sent
     double clock_interval_ms_;      // Interval between clock pulses (float for precision)
 
-    // LED tempo indicator with patterns
-    LEDPattern led_pattern_;
-    bool led_on_;
-    uint8_t led_brightness_;  // 0-255 (for PWM hardware support)
-    uint32_t led_state_start_time_;
-    uint32_t led_phase_start_time_;
-    int led_blink_count_;
-
-    static constexpr uint32_t LED_TEMPO_DURATION_MS = 50;  // LED stays on for 50ms
-
     // Debounced Lua reinit when tempo changes
     bool lua_reinit_pending_;
     uint32_t last_tempo_change_time_;
@@ -143,7 +125,6 @@ private:
     void sendMidiClock();
     void processStep();
     void handleInput();
-    void updateLED();
     void reinitLuaModes();  // Reinitialize all Lua modes with current tempo
 
     // Mode 0 helpers

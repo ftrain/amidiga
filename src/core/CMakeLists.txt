@@ -4,6 +4,7 @@ add_library(gruvbok_core STATIC
     pattern.cpp
     song.cpp
     engine.cpp
+    led_controller.cpp
 )
 
 target_include_directories(gruvbok_core PUBLIC
