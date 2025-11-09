@@ -36,6 +36,10 @@ public:
     LuaContext();
     ~LuaContext();
 
+    // Prevent copying (Lua state cannot be safely copied)
+    LuaContext(const LuaContext&) = delete;
+    LuaContext& operator=(const LuaContext&) = delete;
+
     // Load Lua script from file
     bool loadScript(const std::string& filepath);
 

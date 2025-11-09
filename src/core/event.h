@@ -47,6 +47,12 @@ private:
     static constexpr int POT2_SHIFT = 15;
     static constexpr int POT3_SHIFT = 22;
     static constexpr uint32_t POT_MASK = 0x7F;  // 7 bits
+
+    // Compile-time validation of bit packing layout
+    static_assert(POT0_SHIFT + 7 <= 32, "POT0 would overflow uint32_t");
+    static_assert(POT1_SHIFT + 7 <= 32, "POT1 would overflow uint32_t");
+    static_assert(POT2_SHIFT + 7 <= 32, "POT2 would overflow uint32_t");
+    static_assert(POT3_SHIFT + 7 <= 32, "POT3 would overflow uint32_t");
 };
 
 } // namespace gruvbok

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <cstdint>
+#include <memory>
 
 namespace gruvbok {
 
@@ -64,7 +65,7 @@ public:
     void setGain(float gain);
 
 private:
-    FluidSynthImpl* impl_;  // Opaque pointer to FluidSynth implementation
+    std::unique_ptr<FluidSynthImpl> impl_;  // Opaque pointer to FluidSynth implementation
     bool initialized_;
 };
 

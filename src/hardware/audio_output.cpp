@@ -18,7 +18,7 @@ struct FluidSynthImpl {
 };
 
 AudioOutput::AudioOutput()
-    : impl_(new FluidSynthImpl())
+    : impl_(std::make_unique<FluidSynthImpl>())
     , initialized_(false)
 {
 }
@@ -35,11 +35,10 @@ AudioOutput::~AudioOutput() {
         if (impl_->settings) {
             delete_fluid_settings(impl_->settings);
         }
-        delete impl_;
     }
-#else
-    delete impl_;
+    // impl_ is automatically deleted by unique_ptr
 #endif
+    // impl_ is automatically deleted by unique_ptr in all cases
 }
 
 bool AudioOutput::init(int sample_rate) {

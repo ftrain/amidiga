@@ -13,11 +13,17 @@
 
 using namespace gruvbok;
 
-// Global instances
-Song* song = nullptr;
-TeensyHardware* hardware = nullptr;
-ModeLoader* mode_loader = nullptr;
-Engine* engine = nullptr;
+// Global instances - using static storage to avoid heap allocation
+// Note: These are never destroyed (intentional for embedded firmware that runs forever)
+static TeensyHardware hardware_instance;
+static Song song_instance;
+static ModeLoader mode_loader_instance;
+
+// Pointers for compatibility with Engine API
+TeensyHardware* hardware = &hardware_instance;
+Song* song = &song_instance;
+ModeLoader* mode_loader = &mode_loader_instance;
+Engine* engine = nullptr;  // Still heap-allocated due to size, but properly managed
 
 void setup() {
     // Initialize serial for debugging
@@ -30,7 +36,6 @@ void setup() {
 
     // Initialize hardware
     Serial.println("Initializing hardware...");
-    hardware = new TeensyHardware();
     if (!hardware->init()) {
         Serial.println("ERROR: Hardware initialization failed!");
         while (1) {
@@ -39,10 +44,8 @@ void setup() {
     }
     Serial.println("Hardware initialized successfully");
 
-    // Create song data structure
-    Serial.println("Creating song...");
-    song = new Song();
-    Serial.println("Song created");
+    // Song is already constructed via static storage
+    Serial.println("Song initialized");
 
     // Initialize SD card
     Serial.println("Initializing SD card...");
@@ -50,14 +53,11 @@ void setup() {
         Serial.println("WARNING: SD card initialization failed!");
         Serial.println("         Insert microSD card with /modes directory");
         Serial.println("         Continuing without Lua modes (no MIDI output)");
-        mode_loader = new ModeLoader();
     } else {
         Serial.println("SD card initialized successfully");
 
         // Load Lua modes from SD card
         Serial.println("Loading Lua modes from SD:/modes/...");
-        mode_loader = new ModeLoader();
-
         int loaded_count = mode_loader->loadModesFromDirectory("/modes", 120);
 
         if (loaded_count > 0) {
