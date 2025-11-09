@@ -19,7 +19,7 @@ public:
      */
     static uint8_t mapAdcToMidi(uint16_t adc_value, uint16_t adc_max) {
         uint32_t midi_value = (static_cast<uint32_t>(adc_value) * 127) / adc_max;
-        return static_cast<uint8_t>(std::min(midi_value, 127U));
+        return static_cast<uint8_t>(std::min(midi_value, static_cast<uint32_t>(127)));
     }
 
     /**
