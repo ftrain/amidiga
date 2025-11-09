@@ -1,4 +1,5 @@
 #include "desktop_hardware.h"
+#include "../hardware/hardware_utils.h"
 #include "RtMidi.h"
 #include <iostream>
 #include <iomanip>
@@ -63,21 +64,21 @@ void DesktopHardware::shutdown() {
 }
 
 bool DesktopHardware::readButton(int button) {
-    if (button < 0 || button >= 16) {
+    if (!HardwareUtils::isValidButton(button)) {
         return false;
     }
     return buttons_[button];
 }
 
 uint8_t DesktopHardware::readRotaryPot(int pot) {
-    if (pot < 0 || pot >= 4) {
+    if (!HardwareUtils::isValidPot(pot)) {
         return 0;
     }
     return rotary_pots_[pot];
 }
 
 uint8_t DesktopHardware::readSliderPot(int pot) {
-    if (pot < 0 || pot >= 4) {
+    if (!HardwareUtils::isValidPot(pot)) {
         return 0;
     }
     return slider_pots_[pot];
@@ -120,14 +121,14 @@ void DesktopHardware::simulateButton(int button, bool pressed) {
 }
 
 void DesktopHardware::simulateRotaryPot(int pot, uint8_t value) {
-    if (pot >= 0 && pot < 4) {
-        rotary_pots_[pot] = std::min(value, static_cast<uint8_t>(127));
+    if (HardwareUtils::isValidPot(pot)) {
+        rotary_pots_[pot] = HardwareUtils::clampToMidi(value);
     }
 }
 
 void DesktopHardware::simulateSliderPot(int pot, uint8_t value) {
-    if (pot >= 0 && pot < 4) {
-        slider_pots_[pot] = std::min(value, static_cast<uint8_t>(127));
+    if (HardwareUtils::isValidPot(pot)) {
+        slider_pots_[pot] = HardwareUtils::clampToMidi(value);
     }
 }
 

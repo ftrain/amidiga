@@ -1,4 +1,5 @@
 #include "teensy_hardware.h"
+#include "../hardware/hardware_utils.h"
 #include <usb_midi.h>
 
 namespace gruvbok {
@@ -52,24 +53,24 @@ void TeensyHardware::shutdown() {
 }
 
 bool TeensyHardware::readButton(int button) {
-    if (button < 0 || button >= 16) {
+    if (!HardwareUtils::isValidButton(button)) {
         return false;
     }
     return button_states_[button];
 }
 
 uint8_t TeensyHardware::readRotaryPot(int pot) {
-    if (pot < 0 || pot >= 4) {
+    if (!HardwareUtils::isValidPot(pot)) {
         return 0;
     }
-    return mapAdcToMidi(rotary_pot_values_[pot]);
+    return HardwareUtils::mapAdcToMidi(rotary_pot_values_[pot], ADC_MAX);
 }
 
 uint8_t TeensyHardware::readSliderPot(int pot) {
-    if (pot < 0 || pot >= 4) {
+    if (!HardwareUtils::isValidPot(pot)) {
         return 0;
     }
-    return mapAdcToMidi(slider_pot_values_[pot]);
+    return HardwareUtils::mapAdcToMidi(slider_pot_values_[pot], ADC_MAX);
 }
 
 void TeensyHardware::sendMidiMessage(const MidiMessage& msg) {
@@ -166,13 +167,13 @@ void TeensyHardware::update() {
         button_last_states_[i] = reading;
     }
 
-    // Update pot values (simple averaging for noise reduction)
+    // Update pot values with IIR filter for noise reduction
     for (int i = 0; i < 4; i++) {
         uint16_t new_value = readPotRaw(ROTARY_POT_PINS[i]);
-        rotary_pot_values_[i] = (rotary_pot_values_[i] * 3 + new_value) / 4;  // Simple IIR filter
+        rotary_pot_values_[i] = HardwareUtils::applyIIRFilter(new_value, rotary_pot_values_[i], 64);
 
         new_value = readPotRaw(SLIDER_POT_PINS[i]);
-        slider_pot_values_[i] = (slider_pot_values_[i] * 3 + new_value) / 4;
+        slider_pot_values_[i] = HardwareUtils::applyIIRFilter(new_value, slider_pot_values_[i], 64);
     }
 
     // Read and discard any incoming USB MIDI messages (we don't handle MIDI input yet)
@@ -182,12 +183,6 @@ void TeensyHardware::update() {
 }
 
 // Private helper functions
-
-uint8_t TeensyHardware::mapAdcToMidi(uint16_t adc_value) {
-    // Map 0-1023 (10-bit ADC) to 0-127 (7-bit MIDI)
-    uint32_t midi_value = (adc_value * 127) / ADC_MAX;
-    return static_cast<uint8_t>(midi_value);
-}
 
 bool TeensyHardware::readButtonRaw(int button) {
     if (button < 0 || button >= 16) {

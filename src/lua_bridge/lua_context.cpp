@@ -58,6 +58,13 @@ LuaContext::LuaContext()
     LuaAPI::registerAPI(L_);
     LuaAPI::setEventBuffer(L_, &event_buffer_);
 
+    // Configure Lua GC to minimize pauses during real-time playback
+    // setpause(200): GC runs when memory is 200% of previous collection (less frequent, larger pauses)
+    // setstep(200): GC performs more work per step (reduces total pause count)
+    // This balances memory usage vs. pause frequency for real-time MIDI timing
+    lua_gc(L_, LUA_GCSETPAUSE, 200);
+    lua_gc(L_, LUA_GCSETSTEPMUL, 200);
+
     // Context is valid (Lua state created successfully)
     // is_valid_ will be set to false if script loading fails
     is_valid_ = true;
