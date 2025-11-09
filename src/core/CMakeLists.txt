@@ -5,6 +5,9 @@ add_library(gruvbok_core STATIC
     song.cpp
     engine.cpp
     led_controller.cpp
+    midi_clock_manager.cpp
+    mode0_sequencer.cpp
+    playback_state.cpp
 )
 
 target_include_directories(gruvbok_core PUBLIC

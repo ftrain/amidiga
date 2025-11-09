@@ -8,32 +8,8 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     : song_(song)
     , hardware_(hardware)
     , mode_loader_(mode_loader)
-    , is_playing_(false)
-    , tempo_(120)
-    , current_mode_(1)  // Start with mode 1 (drums)
-    , current_pattern_(0)
-    , current_track_(0)
-    , current_step_(0)
-    , song_mode_step_(0)
-    , song_mode_loop_length_(16)  // Default to 16 bars
-    , target_mode_(1)  // Default target mode for Mode 0 editing
-    , global_scale_root_(0)  // C
-    , global_scale_type_(0)  // Ionian/Major
     , dirty_(false)
-    , last_autosave_time_(0)
-    , last_step_time_(0)
-    , step_interval_ms_(0)
-    , clock_start_time_(0)
-    , clock_pulse_count_(0)
-    , clock_interval_ms_(0.0)
-    , lua_reinit_pending_(false)
-    , last_tempo_change_time_(0) {
-
-    // Initialize per-mode arrays
-    for (int i = 0; i < Song::NUM_MODES; ++i) {
-        mode_velocity_offsets_[i] = 0;
-        mode_pattern_overrides_[i] = -1;  // -1 means use default pattern
-    }
+    , last_autosave_time_(0) {
 
     // Set sensible default instruments for each mode (General MIDI)
     mode_programs_[0] = 0;    // Mode 0: Song sequencer (no MIDI output)
@@ -52,11 +28,15 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     mode_programs_[13] = 65;  // Mode 13: Alto Sax
     mode_programs_[14] = 98;  // Mode 14: Crystal (FX)
 
+    // Create components
     scheduler_ = std::make_unique<MidiScheduler>(hardware);
     led_controller_ = std::make_unique<LEDController>(hardware);
-    calculateStepInterval();
-    calculateClockInterval();
-    calculateMode0LoopLength();  // Calculate initial loop length from Mode 0
+    clock_manager_ = std::make_unique<MidiClockManager>(scheduler_.get(), hardware);
+    mode0_sequencer_ = std::make_unique<Mode0Sequencer>(song);
+    playback_state_ = std::make_unique<PlaybackState>(hardware);
+
+    // Calculate initial Mode 0 loop length
+    mode0_sequencer_->calculateLoopLength();
 
     // Set Engine instance on all loaded Lua modes for LED control
     if (mode_loader_) {
@@ -65,28 +45,18 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
 }
 
 void Engine::start() {
-    is_playing_ = true;
-    current_step_ = 0;
-    song_mode_step_ = 0;  // Reset Mode 0 position
-    last_step_time_ = hardware_->getMillis();
-
-    // Reset MIDI clock timing (absolute timing to prevent drift)
-    clock_start_time_ = last_step_time_;
-    clock_pulse_count_ = 0;
+    playback_state_->start();
+    mode0_sequencer_->start();
+    clock_manager_->start();
 
     // Initialize Lua modes and send Program Change messages for all instruments
     reinitLuaModes();
-
-    // Send MIDI start message
-    scheduler_->sendStart();
 }
 
 void Engine::stop() {
-    is_playing_ = false;
+    playback_state_->stop();
+    clock_manager_->stop();
     scheduler_->clear();
-
-    // Send MIDI stop message
-    scheduler_->sendStop();
 }
 
 void Engine::update() {
@@ -96,13 +66,14 @@ void Engine::update() {
     // Update LED controller
     led_controller_->update();
 
+    // Update MIDI clock
+    clock_manager_->update();
+
     // Check for debounced Lua reinit
-    if (lua_reinit_pending_) {
-        uint32_t current_time = hardware_->getMillis();
-        if (current_time - last_tempo_change_time_ >= TEMPO_DEBOUNCE_MS) {
-            reinitLuaModes();
-            lua_reinit_pending_ = false;
-        }
+    uint32_t current_time = hardware_->getMillis();
+    if (playback_state_->isLuaReinitPending(current_time)) {
+        reinitLuaModes();
+        playback_state_->clearLuaReinitPending();
     }
 
     // Check for autosave (dirty flag + 20 second timer)
@@ -111,74 +82,76 @@ void Engine::update() {
     // Handle input
     handleInput();
 
-    if (!is_playing_) {
+    if (!playback_state_->isPlaying()) {
         return;
     }
 
-    uint32_t current_time = hardware_->getMillis();
-
-    // Send MIDI clock messages at 24 PPQN using absolute timing to prevent drift
-    // Calculate when the next clock pulse should occur
-    uint32_t next_clock_time = clock_start_time_ + (uint32_t)(clock_pulse_count_ * clock_interval_ms_);
-
-    // Send clock pulses for all that are due (can catch up if we fell behind)
-    while (current_time >= next_clock_time) {
-        sendMidiClock();
-        clock_pulse_count_++;
-        next_clock_time = clock_start_time_ + (uint32_t)(clock_pulse_count_ * clock_interval_ms_);
-    }
-
     // Check if it's time for next step
-    if (current_time - last_step_time_ >= step_interval_ms_) {
+    if (playback_state_->shouldAdvanceStep(current_time)) {
         processStep();
-        last_step_time_ = current_time;
-
-        // Advance step
-        current_step_ = (current_step_ + 1) % 16;
+        playback_state_->advanceStep(current_time);
 
         // Mode 0 runs at 1/16th speed: advance song_mode_step_ when current_step_ wraps to 0
-        if (current_step_ == 0) {
-            int old_step = song_mode_step_;
-            song_mode_step_ = (song_mode_step_ + 1) % song_mode_loop_length_;
-            // Debug logging for Mode 0 step advancement
-            std::cout << "Mode 0 step: " << old_step << " -> " << song_mode_step_
-                     << " (loop length: " << song_mode_loop_length_ << ")" << std::endl;
+        if (playback_state_->getCurrentStep() == 0) {
+            mode0_sequencer_->advanceStep();
         }
     }
 }
 
 void Engine::setTempo(int bpm) {
-    tempo_ = std::clamp(bpm, 1, 1000);
-    calculateStepInterval();
-    calculateClockInterval();
-
-    // Mark Lua reinit as pending (debounced)
-    lua_reinit_pending_ = true;
-    last_tempo_change_time_ = hardware_->getMillis();
+    playback_state_->setTempo(bpm);
+    clock_manager_->setTempo(bpm);
 }
 
 void Engine::setMode(int mode) {
-    if (mode >= 0 && mode < Song::NUM_MODES) {
-        current_mode_ = mode;
-    }
+    playback_state_->setMode(mode);
 }
 
 void Engine::setPattern(int pattern) {
-    if (pattern >= 0 && pattern < Mode::NUM_PATTERNS) {
-        current_pattern_ = pattern;
-    }
+    playback_state_->setPattern(pattern);
 }
 
 void Engine::setTrack(int track) {
-    if (track >= 0 && track < Pattern::NUM_TRACKS) {
-        current_track_ = track;
-    }
+    playback_state_->setTrack(track);
+}
+
+// Getter implementations (delegate to components)
+bool Engine::isPlaying() const {
+    return playback_state_->isPlaying();
+}
+
+int Engine::getTempo() const {
+    return playback_state_->getTempo();
+}
+
+int Engine::getCurrentMode() const {
+    return playback_state_->getCurrentMode();
+}
+
+int Engine::getCurrentPattern() const {
+    return playback_state_->getCurrentPattern();
+}
+
+int Engine::getCurrentTrack() const {
+    return playback_state_->getCurrentTrack();
+}
+
+int Engine::getCurrentStep() const {
+    return playback_state_->getCurrentStep();
+}
+
+int Engine::getSongModeStep() const {
+    return mode0_sequencer_->getCurrentStep();
+}
+
+int Engine::getTargetMode() const {
+    return playback_state_->getTargetMode();
 }
 
 void Engine::toggleCurrentSwitch() {
-    Mode& mode = song_->getMode(current_mode_);
-    Pattern& pattern = mode.getPattern(current_pattern_);
-    Event& event = pattern.getEvent(current_track_, current_step_);
+    Mode& mode = song_->getMode(playback_state_->getCurrentMode());
+    Pattern& pattern = mode.getPattern(playback_state_->getCurrentPattern());
+    Event& event = pattern.getEvent(playback_state_->getCurrentTrack(), playback_state_->getCurrentStep());
 
     event.setSwitch(!event.getSwitch());
     markDirty();
@@ -187,9 +160,9 @@ void Engine::toggleCurrentSwitch() {
 void Engine::setCurrentPot(int pot, uint8_t value) {
     if (pot < 0 || pot >= 4) return;
 
-    Mode& mode = song_->getMode(current_mode_);
-    Pattern& pattern = mode.getPattern(current_pattern_);
-    Event& event = pattern.getEvent(current_track_, current_step_);
+    Mode& mode = song_->getMode(playback_state_->getCurrentMode());
+    Pattern& pattern = mode.getPattern(playback_state_->getCurrentPattern());
+    Event& event = pattern.getEvent(playback_state_->getCurrentTrack(), playback_state_->getCurrentStep());
 
     event.setPot(pot, value);
     markDirty();
@@ -212,46 +185,30 @@ void Engine::setEventPot(int mode, int pattern, int track, int step, int pot, ui
     markDirty();
 }
 
-void Engine::calculateStepInterval() {
-    // Calculate time per step in milliseconds
-    // At 120 BPM: 1 beat = 500ms, 16 steps per bar = 4 beats, so 1 step = 125ms
-    // Formula: (60000 / BPM) / 4 = ms per step (assuming 16th notes)
-    step_interval_ms_ = (60000 / tempo_) / 4;
-}
-
-void Engine::calculateClockInterval() {
-    // MIDI clock runs at 24 PPQN (pulses per quarter note)
-    // Formula: (60000 / BPM) / 24 = ms per clock pulse
-    // At 120 BPM: 60000 / 120 / 24 = 20.833333... ms per clock
-    // Use double precision to prevent rounding errors
-    clock_interval_ms_ = (60000.0 / static_cast<double>(tempo_)) / 24.0;
-}
-
-void Engine::sendMidiClock() {
-    scheduler_->sendClock();
-}
-
 void Engine::processStep() {
-    // Parse Mode 0 parameters at the start of each bar (current_step_ == 0)
+    int current_step = playback_state_->getCurrentStep();
+    int current_mode = playback_state_->getCurrentMode();
+    int current_pattern = playback_state_->getCurrentPattern();
+
+    // Parse Mode 0 parameters at the start of each bar (current_step == 0)
     // Only apply Mode 0 pattern sequence when in Mode 0
-    if (current_step_ == 0 && current_mode_ == 0) {
-        applyMode0Parameters();
+    if (current_step == 0 && current_mode == 0) {
+        mode0_sequencer_->applyParameters();
     }
 
     // Determine which pattern to play for each mode
-    // Mode 0: Follow pattern sequence from mode_pattern_overrides_
-    // Modes 1-15: Loop current_pattern_ only (for editing)
+    // Mode 0: Follow pattern sequence from mode0_sequencer_
+    // Modes 1-15: Loop current_pattern only (for editing)
     for (int mode_num = 1; mode_num < Song::NUM_MODES; ++mode_num) {
         int pattern_to_play;
 
-        if (current_mode_ == 0) {
-            // In Mode 0: Use pattern override if set, otherwise use current_pattern_
-            pattern_to_play = (mode_pattern_overrides_[mode_num] >= 0)
-                ? mode_pattern_overrides_[mode_num]
-                : current_pattern_;
+        if (current_mode == 0) {
+            // In Mode 0: Use pattern override if set, otherwise use current_pattern
+            int override = mode0_sequencer_->getPatternOverride(mode_num);
+            pattern_to_play = (override >= 0) ? override : current_pattern;
         } else {
-            // In edit modes (1-15): Always loop current_pattern_ (ignore Mode 0 sequence)
-            pattern_to_play = current_pattern_;
+            // In edit modes (1-15): Always loop current_pattern (ignore Mode 0 sequence)
+            pattern_to_play = current_pattern;
         }
 
         Mode& mode = song_->getMode(mode_num);
@@ -262,7 +219,7 @@ void Engine::processStep() {
         if (lua_mode && lua_mode->isValid()) {
             // Process all tracks for this mode
             for (int track = 0; track < Pattern::NUM_TRACKS; ++track) {
-                const Event& event = pattern.getEvent(track, current_step_);
+                const Event& event = pattern.getEvent(track, current_step);
 
                 // Call Lua to process event
                 // TODO: Pass global scale and velocity offset to Lua
@@ -275,7 +232,7 @@ void Engine::processStep() {
     }
 
     // LED tempo indicator: blink on every beat (every 4 steps)
-    if (current_step_ % 4 == 0) {
+    if (current_step % 4 == 0) {
         led_controller_->triggerPattern(LEDPattern::TEMPO_BEAT);
     }
 }
@@ -289,33 +246,34 @@ void Engine::handleInput() {
 
     // Map R1 to mode (0-127 -> 0-14)
     int new_mode = std::min((r1 * 15) / 128, 14);
-    if (new_mode != current_mode_) {
+    if (new_mode != playback_state_->getCurrentMode()) {
         setMode(new_mode);
     }
 
     // Map R2 to tempo (0-127 -> 60-240 BPM for now)
     int new_tempo = 60 + (r2 * 180) / 127;
-    if (std::abs(new_tempo - tempo_) > 5) {  // Hysteresis
+    if (std::abs(new_tempo - playback_state_->getTempo()) > 5) {  // Hysteresis
         setTempo(new_tempo);
     }
 
     // Map R3 to pattern (0-127 -> 0-31)
     int new_pattern = std::min((r3 * 32) / 128, 31);
-    if (new_pattern != current_pattern_) {
+    if (new_pattern != playback_state_->getCurrentPattern()) {
         setPattern(new_pattern);
     }
 
     // Map R4: In Mode 0, it selects target mode (1-14). Otherwise, it selects track (0-7).
-    if (current_mode_ == 0) {
+    int current_mode = playback_state_->getCurrentMode();
+    if (current_mode == 0) {
         // Mode 0: R4 selects target mode (1-14)
         int new_target_mode = std::min(1 + (r4 * 14) / 128, 14);  // Map to 1-14
-        if (new_target_mode != target_mode_) {
-            target_mode_ = new_target_mode;
+        if (new_target_mode != playback_state_->getTargetMode()) {
+            playback_state_->setTargetMode(new_target_mode);
         }
     } else {
         // Other modes: R4 selects track (0-7)
         int new_track = std::min((r4 * 8) / 128, 7);
-        if (new_track != current_track_) {
+        if (new_track != playback_state_->getCurrentTrack()) {
             setTrack(new_track);
         }
     }
@@ -328,7 +286,7 @@ void Engine::handleInput() {
             // In other modes, buttons write to current mode/pattern/track
             int edit_mode, edit_pattern, edit_track;
 
-            if (current_mode_ == 0) {
+            if (current_mode == 0) {
                 // Mode 0: Always edit Mode 0, Pattern 0, Track 0
                 // All 16 buttons program the pattern sequence on Track 0
                 edit_mode = 0;
@@ -336,9 +294,9 @@ void Engine::handleInput() {
                 edit_track = 0;  // Mode 0 only uses Track 0
             } else {
                 // Normal mode: edit current mode/pattern/track
-                edit_mode = current_mode_;
-                edit_pattern = current_pattern_;
-                edit_track = current_track_;
+                edit_mode = playback_state_->getCurrentMode();
+                edit_pattern = playback_state_->getCurrentPattern();
+                edit_track = playback_state_->getCurrentTrack();
             }
 
             // Toggle the event
@@ -359,8 +317,8 @@ void Engine::handleInput() {
 
             // Mark dirty and recalculate Mode 0 loop length if in Mode 0
             markDirty();
-            if (current_mode_ == 0) {
-                calculateMode0LoopLength();
+            if (current_mode == 0) {
+                mode0_sequencer_->calculateLoopLength();
             }
         }
     }
@@ -380,10 +338,11 @@ void Engine::triggerLEDByName(const std::string& pattern_name, uint8_t brightnes
 void Engine::reinitLuaModes() {
     // Reinitialize all Lua modes with current tempo and Mode 0 context
     // This is called after tempo changes (debounced)
-    std::cout << "Reinitializing Lua modes with tempo=" << tempo_ << " BPM" << std::endl;
+    int tempo = playback_state_->getTempo();
+    std::cout << "Reinitializing Lua modes with tempo=" << tempo << " BPM" << std::endl;
 
     LuaInitContext context;
-    context.tempo = tempo_;
+    context.tempo = tempo;
 
     for (int mode_num = 0; mode_num < Song::NUM_MODES; ++mode_num) {
         LuaContext* lua_mode = mode_loader_->getMode(mode_num);
@@ -392,9 +351,9 @@ void Engine::reinitLuaModes() {
             // Mode 0 produces no MIDI output (it's the song sequencer)
             // Modes 1-15 output on MIDI channels 0-14 (displayed as channels 1-15)
             context.midi_channel = (mode_num > 0) ? mode_num - 1 : 0;
-            context.scale_root = global_scale_root_;
-            context.scale_type = global_scale_type_;
-            context.velocity_offset = mode_velocity_offsets_[mode_num];
+            context.scale_root = mode0_sequencer_->getScaleRoot();
+            context.scale_type = mode0_sequencer_->getScaleType();
+            context.velocity_offset = mode0_sequencer_->getVelocityOffset(mode_num);
             lua_mode->callInit(context);
 
             // Send Program Change message to set instrument for this mode
@@ -486,86 +445,12 @@ float Engine::getAudioGain() const {
 }
 
 // ============================================================================
-// Mode 0 Helpers
+// Mode 0 Helpers (delegated to Mode0Sequencer)
 // ============================================================================
 
 void Engine::calculateMode0LoopLength() {
-    // Scan Mode 0, Pattern 0, Track 0 only (Mode 0 uses only Track 0)
-    // Find the highest step number with switch on
-    Mode& mode0 = song_->getMode(0);
-    Pattern& pattern = mode0.getPattern(0);
-
-    int max_step = -1;  // Start at -1 so first active step sets it
-    for (int step = 0; step < 16; ++step) {
-        const Event& event = pattern.getEvent(0, step);  // Track 0 only
-        if (event.getSwitch()) {
-            max_step = step;  // Keep updating to find the highest active step
-        }
-    }
-
-    // Loop length is max_step + 1 (e.g., if B4 is pressed, max_step=3, loop_length=4)
-    song_mode_loop_length_ = max_step + 1;
-
-    // If no buttons pressed, default to 16 bars (full loop)
-    if (song_mode_loop_length_ < 1) {
-        song_mode_loop_length_ = 16;
-    }
-
-    std::cout << "[Mode 0] Loop length: " << song_mode_loop_length_
-              << " steps (last active: " << max_step << ")" << std::endl;
-}
-
-void Engine::parseMode0Event(const Event& event, int target_mode) {
-    // Extract parameters from Mode 0 event:
-    // S1: Pattern (0-31)
-    // S2: Scale root (0-11, C-B)
-    // S3: Scale type (0-N)
-    // S4: Velocity offset (-64 to +63)
-
-    if (!event.getSwitch()) {
-        return;  // Event is off, don't override
-    }
-
-    // S1: Pattern (0-127 maps to 0-31)
-    uint8_t s1 = event.getPot(0);
-    int pattern = (s1 * 32) / 128;
-    mode_pattern_overrides_[target_mode] = pattern;
-
-    // S2: Scale root (0-127 maps to 0-11)
-    uint8_t s2 = event.getPot(1);
-    global_scale_root_ = (s2 * 12) / 128;
-
-    // S3: Scale type (0-127 maps to 0-N, TBD how many scale types)
-    uint8_t s3 = event.getPot(2);
-    global_scale_type_ = (s3 * 8) / 128;  // Assume 8 scale types for now
-
-    // S4: Velocity offset (-64 to +63, map from 0-127)
-    uint8_t s4 = event.getPot(3);
-    int velocity_offset = (int)s4 - 64;  // Map 0-127 to -64 to +63
-    mode_velocity_offsets_[target_mode] = velocity_offset;
-}
-
-void Engine::applyMode0Parameters() {
-    // Read Mode 0 Track 0 event at the current song_mode_step_
-    // Mode 0 uses only Track 0 to set pattern for ALL modes simultaneously
-    Mode& mode0 = song_->getMode(0);
-    Pattern& pattern = mode0.getPattern(0);
-
-    // Get event for current song mode step (Track 0 only)
-    const Event& event = pattern.getEvent(0, song_mode_step_);
-
-    // If this step is active, apply pattern to all modes 1-14
-    if (event.getSwitch()) {
-        // S1: Pattern (0-127 maps to 0-31)
-        uint8_t s1 = event.getPot(0);
-        int selected_pattern = (s1 * 32) / 128;
-
-        // Apply this pattern to all modes 1-14
-        for (int mode_num = 1; mode_num < Song::NUM_MODES; ++mode_num) {
-            mode_pattern_overrides_[mode_num] = selected_pattern;
-        }
-    }
-    // If step is inactive (button off), keep previous pattern (no override change)
+    // Delegate to mode0_sequencer_
+    mode0_sequencer_->calculateLoopLength();
 }
 
 // ============================================================================
