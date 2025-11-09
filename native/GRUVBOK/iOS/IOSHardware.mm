@@ -17,11 +17,8 @@ IOSHardware::IOSHardware()
     , audio_initialized_(false)
     , use_internal_audio_(true)  // Default ON for iOS
     , haptic_generator_(nullptr)
-    , led_state_(false) {
-
-    buttons_.fill(false);
-    rotary_pots_.fill(64);
-    slider_pots_.fill(64);
+    , ios_start_time_(0) {
+    // Base class constructor initializes buttons_, pots_, led_state_, start_time_
 }
 
 IOSHardware::~IOSHardware() {
@@ -29,7 +26,7 @@ IOSHardware::~IOSHardware() {
 }
 
 bool IOSHardware::init() {
-    start_time_ = mach_absolute_time();
+    ios_start_time_ = mach_absolute_time();
 
     // Initialize haptic feedback
     @autoreleasepool {
@@ -163,20 +160,8 @@ void IOSHardware::shutdown() {
     }
 }
 
-bool IOSHardware::readButton(int button) {
-    if (button < 0 || button >= 16) return false;
-    return buttons_[button];
-}
-
-uint8_t IOSHardware::readRotaryPot(int pot) {
-    if (pot < 0 || pot >= 4) return 0;
-    return rotary_pots_[pot];
-}
-
-uint8_t IOSHardware::readSliderPot(int pot) {
-    if (pot < 0 || pot >= 4) return 0;
-    return slider_pots_[pot];
-}
+// Note: readButton(), readRotaryPot(), readSliderPot() inherited from HardwareBase
+// But we override setLED() and simulateButton() to add haptic feedback
 
 void IOSHardware::sendMidiMessage(const MidiMessage& msg) {
     if (use_external_midi_ && midi_initialized_) {
@@ -230,15 +215,6 @@ void IOSHardware::sendToAudioEngine(const MidiMessage& msg) {
     }
 }
 
-void IOSHardware::setLED(bool on) {
-    led_state_ = on;
-
-    // Trigger haptic feedback on beat (when LED turns on)
-    if (on) {
-        triggerHaptic();
-    }
-}
-
 void IOSHardware::triggerHaptic() {
     @autoreleasepool {
         if (haptic_generator_) {
@@ -254,36 +230,13 @@ uint32_t IOSHardware::getMillis() {
     }
 
     uint64_t now = mach_absolute_time();
-    uint64_t elapsed = now - start_time_;
+    uint64_t elapsed = now - ios_start_time_;
     uint64_t nanos = elapsed * timebase.numer / timebase.denom;
     return static_cast<uint32_t>(nanos / 1000000);
 }
 
 void IOSHardware::update() {
     // Nothing to update for iOS (no polling needed)
-}
-
-void IOSHardware::simulateButton(int button, bool pressed) {
-    if (button >= 0 && button < 16) {
-        buttons_[button] = pressed;
-
-        // Haptic feedback on button press
-        if (pressed) {
-            triggerHaptic();
-        }
-    }
-}
-
-void IOSHardware::simulateRotaryPot(int pot, uint8_t value) {
-    if (pot >= 0 && pot < 4) {
-        rotary_pots_[pot] = std::min(value, static_cast<uint8_t>(127));
-    }
-}
-
-void IOSHardware::simulateSliderPot(int pot, uint8_t value) {
-    if (pot >= 0 && pot < 4) {
-        slider_pots_[pot] = std::min(value, static_cast<uint8_t>(127));
-    }
 }
 
 void IOSHardware::setAudioGain(float gain) {

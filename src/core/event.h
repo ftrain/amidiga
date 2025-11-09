@@ -1,5 +1,6 @@
 #pragma once
 
+#include "config.h"
 #include <cstdint>
 
 namespace gruvbok {
@@ -41,12 +42,13 @@ public:
 private:
     uint32_t data_;
 
-    static constexpr uint32_t SWITCH_MASK = 0x00000001;
-    static constexpr int POT0_SHIFT = 1;
-    static constexpr int POT1_SHIFT = 8;
-    static constexpr int POT2_SHIFT = 15;
-    static constexpr int POT3_SHIFT = 22;
-    static constexpr uint32_t POT_MASK = 0x7F;  // 7 bits
+    // Use centralized constants from config.h
+    static constexpr uint32_t SWITCH_MASK = config::EVENT_SWITCH_MASK;
+    static constexpr int POT0_SHIFT = config::EVENT_POT0_SHIFT;
+    static constexpr int POT1_SHIFT = config::EVENT_POT1_SHIFT;
+    static constexpr int POT2_SHIFT = config::EVENT_POT2_SHIFT;
+    static constexpr int POT3_SHIFT = config::EVENT_POT3_SHIFT;
+    static constexpr uint32_t POT_MASK = config::EVENT_POT_MASK;
 };
 
 } // namespace gruvbok

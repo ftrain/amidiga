@@ -11,6 +11,7 @@
 
 #include "../src/lua_bridge/lua_context.h"
 #include "../src/lua_bridge/lua_api.h"
+#include "../src/lua_bridge/mode_loader.h"
 #include "../src/core/event.h"
 #include <iostream>
 #include <cassert>
@@ -420,6 +421,134 @@ TEST(generate_all_notes_off) {
 }
 
 // ============================================================================
+// ModeLoader Tests
+// ============================================================================
+
+TEST(mode_loader_creation) {
+    ModeLoader loader;
+
+    // Initially no modes should be loaded
+    for (int i = 0; i < ModeLoader::NUM_MODES; i++) {
+        ASSERT_FALSE(loader.isModeLoaded(i));
+        ASSERT_TRUE(loader.getMode(i) == nullptr);
+    }
+}
+
+TEST(mode_loader_load_single_mode) {
+    std::string script = createTempLuaScript(R"(
+        MODE_NAME = "Test Drum Mode"
+
+        function init(context)
+        end
+
+        function process_event(track, event)
+        end
+    )");
+
+    ModeLoader loader;
+    ASSERT_TRUE(loader.loadMode(1, script, 120));
+    ASSERT_TRUE(loader.isModeLoaded(1));
+
+    LuaContext* ctx = loader.getMode(1);
+    ASSERT_TRUE(ctx != nullptr);
+    ASSERT_TRUE(ctx->isValid());
+    ASSERT_EQ(ctx->getModeName(), "Test Drum Mode");
+}
+
+TEST(mode_loader_reject_invalid_mode_number) {
+    std::string script = createTempLuaScript(R"(
+        function init(context) end
+        function process_event(track, event) end
+    )");
+
+    ModeLoader loader;
+    ASSERT_FALSE(loader.loadMode(-1, script, 120));  // Too low
+    ASSERT_FALSE(loader.loadMode(15, script, 120));  // Too high (0-14 valid)
+    ASSERT_FALSE(loader.loadMode(100, script, 120)); // Way too high
+}
+
+TEST(mode_loader_reject_invalid_script) {
+    std::string bad_script = createTempLuaScript(R"(
+        function init(context) end
+        -- Missing process_event
+    )");
+
+    ModeLoader loader;
+    ASSERT_FALSE(loader.loadMode(1, bad_script, 120));
+    ASSERT_FALSE(loader.isModeLoaded(1));
+}
+
+TEST(mode_loader_multiple_modes) {
+    std::string script1 = createTempLuaScript(R"(
+        MODE_NAME = "Mode 1"
+        function init(context) end
+        function process_event(track, event) end
+    )");
+
+    std::string script2 = createTempLuaScript(R"(
+        MODE_NAME = "Mode 2"
+        function init(context) end
+        function process_event(track, event) end
+    )");
+
+    ModeLoader loader;
+    ASSERT_TRUE(loader.loadMode(1, script1, 120));
+    ASSERT_TRUE(loader.loadMode(2, script2, 120));
+
+    ASSERT_TRUE(loader.isModeLoaded(1));
+    ASSERT_TRUE(loader.isModeLoaded(2));
+
+    ASSERT_EQ(loader.getMode(1)->getModeName(), "Mode 1");
+    ASSERT_EQ(loader.getMode(2)->getModeName(), "Mode 2");
+}
+
+TEST(mode_loader_channel_assignment) {
+    std::string script = createTempLuaScript(R"(
+        received_channel = -1
+
+        function init(context)
+            received_channel = context.midi_channel
+        end
+
+        function process_event(track, event)
+        end
+    )");
+
+    ModeLoader loader;
+    ASSERT_TRUE(loader.loadMode(5, script, 120));
+
+    LuaContext* ctx = loader.getMode(5);
+    lua_State* L = ctx->getState();
+
+    // Verify the mode was initialized with channel 5
+    lua_getglobal(L, "received_channel");
+    ASSERT_EQ(lua_tointeger(L, -1), 5);
+    lua_pop(L, 1);
+}
+
+TEST(mode_loader_replace_mode) {
+    std::string script1 = createTempLuaScript(R"(
+        MODE_NAME = "Original"
+        function init(context) end
+        function process_event(track, event) end
+    )");
+
+    std::string script2 = createTempLuaScript(R"(
+        MODE_NAME = "Replacement"
+        function init(context) end
+        function process_event(track, event) end
+    )");
+
+    ModeLoader loader;
+    ASSERT_TRUE(loader.loadMode(3, script1, 120));
+    ASSERT_EQ(loader.getMode(3)->getModeName(), "Original");
+
+    // Load a new mode in the same slot - should replace
+    ASSERT_TRUE(loader.loadMode(3, script2, 120));
+    ASSERT_EQ(loader.getMode(3)->getModeName(), "Replacement");
+}
+
+// ============================================================================
 // Lua 5.1 Compatibility Tests (Features NOT to use)
 // ============================================================================
 
@@ -494,6 +623,15 @@ int main() {
     // MIDI generation
     run_test_generate_control_change();
     run_test_generate_all_notes_off();
+
+    // ModeLoader tests
+    run_test_mode_loader_creation();
+    run_test_mode_loader_load_single_mode();
+    run_test_mode_loader_reject_invalid_mode_number();
+    run_test_mode_loader_reject_invalid_script();
+    run_test_mode_loader_multiple_modes();
+    run_test_mode_loader_channel_assignment();
+    run_test_mode_loader_replace_mode();
 
     // Lua 5.1 compatibility
     run_test_lua_5_1_no_integer_division();

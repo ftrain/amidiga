@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../src/hardware/hardware_interface.h"
-#include <array>
+#include "../../../../src/hardware/hardware_base.h"
 #include <memory>
 #include <deque>
 #include <string>
@@ -21,32 +20,35 @@ typedef struct objc_object UIImpactFeedbackGenerator;
 namespace gruvbok {
 
 /**
- * Native iOS implementation using CoreMIDI and AVAudioEngine
- * Optimized for touch input with haptic feedback
+ * @brief Native iOS implementation using CoreMIDI and AVAudioEngine
+ *
+ * Inherits common functionality from HardwareBase and adds:
+ * - CoreMIDI output (for external hardware)
+ * - AVAudioEngine for internal synthesis (prioritized on iOS)
+ * - Haptic feedback for touch interactions
+ * - Logging functionality
+ *
+ * Optimized for touch input with haptic feedback.
+ *
+ * @note Inherits button/pot/LED state management from HardwareBase
+ * @see HardwareBase for inherited functionality
  */
-class IOSHardware : public HardwareInterface {
+class IOSHardware : public HardwareBase {
 public:
     IOSHardware();
     ~IOSHardware() override;
 
+    // HardwareInterface implementation
     bool init() override;
     void shutdown() override;
-
-    bool readButton(int button) override;
-    uint8_t readRotaryPot(int pot) override;
-    uint8_t readSliderPot(int pot) override;
-
     void sendMidiMessage(const MidiMessage& msg) override;
-    void setLED(bool on) override;
-    bool getLED() const override { return led_state_; }
-    uint32_t getMillis() override;
-
     void update() override;
+    uint32_t getMillis() override;  // Override with mach_absolute_time
 
-    // Simulation methods (called from SwiftUI)
-    void simulateButton(int button, bool pressed);
-    void simulateRotaryPot(int pot, uint8_t value);
-    void simulateSliderPot(int pot, uint8_t value);
+    // Note: Button/pot/LED/simulation methods inherited from HardwareBase
+    // - readButton(), readRotaryPot(), readSliderPot()
+    // - setLED(), getLED()
+    // - simulateButton(), simulateRotaryPot(), simulateSliderPot()
 
     // Audio control (iOS prioritizes internal audio)
     bool initAudio(const std::string& soundfont_path = "");
@@ -66,28 +68,24 @@ public:
     bool selectMidiOutput(int index);
 
 private:
-    // MIDI (optional on iOS - most users use internal audio)
+    // iOS-specific MIDI state (optional - most users use internal audio)
     MIDIClientRef midi_client_;
     MIDIPortRef midi_output_port_;
     int current_midi_output_;
     bool midi_initialized_;
     bool use_external_midi_;
 
-    // Audio (Objective-C++ objects)
+    // iOS-specific audio state (Objective-C++ objects)
     AVAudioEngine* audio_engine_;
     AVAudioUnitSampler* sampler_;
     bool audio_initialized_;
     bool use_internal_audio_;
 
-    // Haptic feedback
+    // iOS-specific haptic feedback
     UIImpactFeedbackGenerator* haptic_generator_;
 
-    // Hardware state
-    std::array<bool, 16> buttons_;
-    std::array<uint8_t, 4> rotary_pots_;
-    std::array<uint8_t, 4> slider_pots_;
-    uint64_t start_time_;
-    bool led_state_;
+    // Timing (iOS-specific, overrides base implementation)
+    uint64_t ios_start_time_;  // mach_absolute_time at init
 
     // Logging
     std::deque<std::string> log_messages_;

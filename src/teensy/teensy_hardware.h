@@ -1,20 +1,25 @@
 #pragma once
 
-#include "../hardware/hardware_interface.h"
+#include "../hardware/hardware_base.h"
 #include <Arduino.h>
 #include <array>
-#include <vector>
 
 namespace gruvbok {
 
 /**
- * Teensy 4.1 hardware implementation
+ * @brief Teensy 4.1 hardware implementation
  *
- * Pin Mappings (example - adjust based on your actual hardware):
+ * Inherits common functionality from HardwareBase and adds:
+ * - GPIO button input with debouncing
+ * - ADC pot input with filtering
+ * - PWM LED output with brightness control
+ * - USB MIDI output
  *
- * Buttons (B1-B16): Digital input pins with pullup
+ * Pin Mappings (example - adjust based on actual hardware):
+ *
+ * Buttons (B1-B16): Digital input pins with pullup (active-low)
  * - B1-B8:   Pins 0-7
- * - B9-B16:  Pins 8-15
+ * - B9-B16:  Pins 8, 9, 10, 11, 12, 24, 25, 26
  *
  * Rotary Pots (R1-R4): Analog input pins
  * - R1 (Mode):    A0 (pin 14)
@@ -28,30 +33,34 @@ namespace gruvbok {
  * - S3: A6 (pin 20)
  * - S4: A7 (pin 21)
  *
- * LED: Digital output pin
+ * LED: Digital output pin (PWM capable)
  * - LED: Pin 13 (onboard LED)
  *
  * MIDI: USB MIDI (no additional pins needed)
+ *
+ * @note Inherits button/pot/LED state management from HardwareBase
+ * @note update() actively reads hardware and updates inherited state arrays
+ * @see HardwareBase for inherited functionality
  */
-class TeensyHardware : public HardwareInterface {
+class TeensyHardware : public HardwareBase {
 public:
     TeensyHardware();
     ~TeensyHardware() override = default;
 
+    // HardwareInterface implementation
     bool init() override;
     void shutdown() override;
-
-    bool readButton(int button) override;
-    uint8_t readRotaryPot(int pot) override;
-    uint8_t readSliderPot(int pot) override;
-
     void sendMidiMessage(const MidiMessage& msg) override;
-    void setLED(bool on) override;
-    void setLEDBrightness(uint8_t brightness);  // Set PWM brightness 0-255
-    bool getLED() const override { return led_state_; }
-    uint32_t getMillis() override;
+    void setLED(bool on) override;  // Override for PWM brightness control
+    void update() override;  // Actively polls hardware GPIO/ADC
+    uint32_t getMillis() override;  // Override with Arduino millis()
 
-    void update() override;
+    // Teensy-specific: PWM LED brightness control
+    void setLEDBrightness(uint8_t brightness);
+
+    // Note: readButton(), readRotaryPot(), readSliderPot(), getLED()
+    //       inherited from HardwareBase
+    // update() reads hardware and updates inherited buttons_/pots_ arrays
 
 private:
     // Pin definitions
@@ -74,29 +83,26 @@ private:
         A7   // S4
     };
 
-    static constexpr int LED_PIN = 13;  // Onboard LED
+    static constexpr int LED_PIN = 13;  // Onboard LED (PWM capable)
 
     // ADC resolution (Teensy 4.1 supports 10-bit ADC)
     static constexpr int ADC_RESOLUTION = 10;  // 0-1023
     static constexpr int ADC_MAX = (1 << ADC_RESOLUTION) - 1;  // 1023
 
-    // Button debounce
+    // Button debounce delay
     static constexpr uint32_t DEBOUNCE_DELAY_MS = 20;
 
-    // State
-    std::array<bool, 16> button_states_;
+    // Teensy-specific state (for hardware polling)
     std::array<bool, 16> button_last_states_;
     std::array<uint32_t, 16> button_last_debounce_time_;
 
-    std::array<uint16_t, 4> rotary_pot_values_;  // Raw ADC values
-    std::array<uint16_t, 4> slider_pot_values_;  // Raw ADC values
+    std::array<uint16_t, 4> rotary_pot_raw_values_;  // Raw ADC values with filtering
+    std::array<uint16_t, 4> slider_pot_raw_values_;  // Raw ADC values with filtering
 
-    bool led_state_;
     uint8_t led_brightness_;  // 0-255 for PWM (analogWrite)
-    uint32_t start_time_ms_;
+    uint32_t teensy_start_time_ms_;  // Arduino millis() at init
 
     // Helper functions
-    uint8_t mapAdcToMidi(uint16_t adc_value);
     bool readButtonRaw(int button);
     uint16_t readPotRaw(int pin);
 };

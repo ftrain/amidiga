@@ -17,11 +17,8 @@ MacOSHardware::MacOSHardware()
     , sampler_(nullptr)
     , audio_initialized_(false)
     , use_internal_audio_(false)
-    , led_state_(false) {
-
-    buttons_.fill(false);
-    rotary_pots_.fill(64);  // Default middle value
-    slider_pots_.fill(64);
+    , macos_start_time_(0) {
+    // Base class constructor initializes buttons_, pots_, led_state_, start_time_
 }
 
 MacOSHardware::~MacOSHardware() {
@@ -29,7 +26,7 @@ MacOSHardware::~MacOSHardware() {
 }
 
 bool MacOSHardware::init() {
-    start_time_ = mach_absolute_time();
+    macos_start_time_ = mach_absolute_time();
 
     // Initialize CoreMIDI
     OSStatus status = MIDIClientCreate(CFSTR("GRUVBOK"), nullptr, nullptr, &midi_client_);
@@ -150,20 +147,9 @@ void MacOSHardware::shutdown() {
     }
 }
 
-bool MacOSHardware::readButton(int button) {
-    if (button < 0 || button >= 16) return false;
-    return buttons_[button];
-}
-
-uint8_t MacOSHardware::readRotaryPot(int pot) {
-    if (pot < 0 || pot >= 4) return 0;
-    return rotary_pots_[pot];
-}
-
-uint8_t MacOSHardware::readSliderPot(int pot) {
-    if (pot < 0 || pot >= 4) return 0;
-    return slider_pots_[pot];
-}
+// Note: readButton(), readRotaryPot(), readSliderPot(), setLED(), getLED(),
+//       simulateButton(), simulateRotaryPot(), simulateSliderPot()
+//       are now inherited from HardwareBase
 
 void MacOSHardware::sendMidiMessage(const MidiMessage& msg) {
     if (use_external_midi_ && midi_initialized_) {
@@ -233,10 +219,6 @@ void MacOSHardware::sendToAudioEngine(const MidiMessage& msg) {
     }
 }
 
-void MacOSHardware::setLED(bool on) {
-    led_state_ = on;
-}
-
 uint32_t MacOSHardware::getMillis() {
     static mach_timebase_info_data_t timebase;
     if (timebase.denom == 0) {
@@ -244,31 +226,13 @@ uint32_t MacOSHardware::getMillis() {
     }
 
     uint64_t now = mach_absolute_time();
-    uint64_t elapsed = now - start_time_;
+    uint64_t elapsed = now - macos_start_time_;
     uint64_t nanos = elapsed * timebase.numer / timebase.denom;
     return static_cast<uint32_t>(nanos / 1000000);
 }
 
 void MacOSHardware::update() {
     // Nothing to update for macOS (no polling needed)
-}
-
-void MacOSHardware::simulateButton(int button, bool pressed) {
-    if (button >= 0 && button < 16) {
-        buttons_[button] = pressed;
-    }
-}
-
-void MacOSHardware::simulateRotaryPot(int pot, uint8_t value) {
-    if (pot >= 0 && pot < 4) {
-        rotary_pots_[pot] = std::min(value, static_cast<uint8_t>(127));
-    }
-}
-
-void MacOSHardware::simulateSliderPot(int pot, uint8_t value) {
-    if (pot >= 0 && pot < 4) {
-        slider_pots_[pot] = std::min(value, static_cast<uint8_t>(127));
-    }
 }
 
 void MacOSHardware::setAudioGain(float gain) {

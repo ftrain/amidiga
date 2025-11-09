@@ -4,15 +4,15 @@
 namespace gruvbok {
 
 TeensyHardware::TeensyHardware()
-    : led_state_(false)
-    , led_brightness_(255)
-    , start_time_ms_(0) {
+    : led_brightness_(255)
+    , teensy_start_time_ms_(0) {
+    // Base class constructor initializes buttons_, rotary_pots_, slider_pots_, led_state_
 
-    button_states_.fill(false);
+    // Initialize Teensy-specific state
     button_last_states_.fill(false);
     button_last_debounce_time_.fill(0);
-    rotary_pot_values_.fill(0);
-    slider_pot_values_.fill(0);
+    rotary_pot_raw_values_.fill(0);
+    slider_pot_raw_values_.fill(0);
 }
 
 bool TeensyHardware::init() {
@@ -30,13 +30,13 @@ bool TeensyHardware::init() {
 
     // Initialize pot values by reading them once
     for (int i = 0; i < 4; i++) {
-        rotary_pot_values_[i] = readPotRaw(ROTARY_POT_PINS[i]);
-        slider_pot_values_[i] = readPotRaw(SLIDER_POT_PINS[i]);
+        rotary_pot_raw_values_[i] = readPotRaw(ROTARY_POT_PINS[i]);
+        slider_pot_raw_values_[i] = readPotRaw(SLIDER_POT_PINS[i]);
     }
 
     // USB MIDI is automatically initialized by Teensy USB stack
     // Just record start time
-    start_time_ms_ = millis();
+    teensy_start_time_ms_ = millis();
 
     return true;
 }
@@ -51,26 +51,9 @@ void TeensyHardware::shutdown() {
     }
 }
 
-bool TeensyHardware::readButton(int button) {
-    if (button < 0 || button >= 16) {
-        return false;
-    }
-    return button_states_[button];
-}
-
-uint8_t TeensyHardware::readRotaryPot(int pot) {
-    if (pot < 0 || pot >= 4) {
-        return 0;
-    }
-    return mapAdcToMidi(rotary_pot_values_[pot]);
-}
-
-uint8_t TeensyHardware::readSliderPot(int pot) {
-    if (pot < 0 || pot >= 4) {
-        return 0;
-    }
-    return mapAdcToMidi(slider_pot_values_[pot]);
-}
+// Note: readButton(), readRotaryPot(), readSliderPot(), getLED()
+//       are inherited from HardwareBase and read from the inherited arrays
+// update() reads hardware and updates those inherited arrays
 
 void TeensyHardware::sendMidiMessage(const MidiMessage& msg) {
     if (msg.data.empty()) {
@@ -124,7 +107,7 @@ void TeensyHardware::sendMidiMessage(const MidiMessage& msg) {
 }
 
 void TeensyHardware::setLED(bool on) {
-    led_state_ = on;
+    led_state_ = on;  // Update inherited state from HardwareBase
     if (on) {
         analogWrite(LED_PIN, led_brightness_);  // PWM with current brightness
     } else {
@@ -141,13 +124,14 @@ void TeensyHardware::setLEDBrightness(uint8_t brightness) {
 }
 
 uint32_t TeensyHardware::getMillis() {
-    return millis() - start_time_ms_;
+    return millis() - teensy_start_time_ms_;
 }
 
 void TeensyHardware::update() {
     uint32_t current_time = millis();
 
     // Update button states with debouncing
+    // Results are stored in inherited buttons_ array from HardwareBase
     for (int i = 0; i < 16; i++) {
         bool reading = readButtonRaw(i);
 
@@ -158,8 +142,8 @@ void TeensyHardware::update() {
 
         // If enough time has passed, accept the new state
         if ((current_time - button_last_debounce_time_[i]) > DEBOUNCE_DELAY_MS) {
-            if (reading != button_states_[i]) {
-                button_states_[i] = reading;
+            if (reading != buttons_[i]) {  // Update inherited array
+                buttons_[i] = reading;
             }
         }
 
@@ -167,12 +151,15 @@ void TeensyHardware::update() {
     }
 
     // Update pot values (simple averaging for noise reduction)
+    // Convert to MIDI values and store in inherited pots_ arrays from HardwareBase
     for (int i = 0; i < 4; i++) {
         uint16_t new_value = readPotRaw(ROTARY_POT_PINS[i]);
-        rotary_pot_values_[i] = (rotary_pot_values_[i] * 3 + new_value) / 4;  // Simple IIR filter
+        rotary_pot_raw_values_[i] = (rotary_pot_raw_values_[i] * 3 + new_value) / 4;  // Simple IIR filter
+        rotary_pots_[i] = mapAdcToMidi(rotary_pot_raw_values_[i], ADC_MAX);  // Update inherited array
 
         new_value = readPotRaw(SLIDER_POT_PINS[i]);
-        slider_pot_values_[i] = (slider_pot_values_[i] * 3 + new_value) / 4;
+        slider_pot_raw_values_[i] = (slider_pot_raw_values_[i] * 3 + new_value) / 4;
+        slider_pots_[i] = mapAdcToMidi(slider_pot_raw_values_[i], ADC_MAX);  // Update inherited array
     }
 
     // Read and discard any incoming USB MIDI messages (we don't handle MIDI input yet)
@@ -182,12 +169,6 @@ void TeensyHardware::update() {
 }
 
 // Private helper functions
-
-uint8_t TeensyHardware::mapAdcToMidi(uint16_t adc_value) {
-    // Map 0-1023 (10-bit ADC) to 0-127 (7-bit MIDI)
-    uint32_t midi_value = (adc_value * 127) / ADC_MAX;
-    return static_cast<uint8_t>(midi_value);
-}
 
 bool TeensyHardware::readButtonRaw(int button) {
     if (button < 0 || button >= 16) {

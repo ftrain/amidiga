@@ -9,13 +9,13 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , hardware_(hardware)
     , mode_loader_(mode_loader)
     , is_playing_(false)
-    , tempo_(120)
+    , tempo_(config::TEMPO_DEFAULT_BPM)
     , current_mode_(1)  // Start with mode 1 (drums)
     , current_pattern_(0)
     , current_track_(0)
     , current_step_(0)
     , song_mode_step_(0)
-    , song_mode_loop_length_(16)  // Default to 16 bars
+    , song_mode_loop_length_(config::SONG_MODE_DEFAULT_LOOP_LENGTH)
     , target_mode_(1)  // Default target mode for Mode 0 editing
     , global_scale_root_(0)  // C
     , global_scale_type_(0)  // Ionian/Major
@@ -28,7 +28,7 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , clock_interval_ms_(0.0)
     , led_pattern_(LEDPattern::TEMPO_BEAT)
     , led_on_(false)
-    , led_brightness_(255)
+    , led_brightness_(config::LED_BRIGHTNESS_MAX)
     , led_state_start_time_(0)
     , led_phase_start_time_(0)
     , led_blink_count_(0)
@@ -119,7 +119,7 @@ void Engine::update() {
         last_step_time_ = current_time;
 
         // Advance step
-        current_step_ = (current_step_ + 1) % 16;
+        current_step_ = (current_step_ + 1) % config::STEPS_PER_BAR;
 
         // Mode 0 runs at 1/16th speed: advance song_mode_step_ when current_step_ wraps to 0
         if (current_step_ == 0) {
@@ -129,7 +129,7 @@ void Engine::update() {
 }
 
 void Engine::setTempo(int bpm) {
-    tempo_ = std::clamp(bpm, 1, 1000);
+    tempo_ = std::clamp(bpm, config::TEMPO_MIN_BPM, config::TEMPO_MAX_BPM);
     calculateStepInterval();
     calculateClockInterval();
 
@@ -179,16 +179,16 @@ void Engine::setCurrentPot(int pot, uint8_t value) {
 void Engine::calculateStepInterval() {
     // Calculate time per step in milliseconds
     // At 120 BPM: 1 beat = 500ms, 16 steps per bar = 4 beats, so 1 step = 125ms
-    // Formula: (60000 / BPM) / 4 = ms per step (assuming 16th notes)
-    step_interval_ms_ = (60000 / tempo_) / 4;
+    // Formula: (MS_PER_MINUTE / BPM) / DIVISIONS_PER_QUARTER = ms per step (assuming 16th notes)
+    step_interval_ms_ = (config::MS_PER_MINUTE / tempo_) / config::DIVISIONS_PER_QUARTER;
 }
 
 void Engine::calculateClockInterval() {
     // MIDI clock runs at 24 PPQN (pulses per quarter note)
-    // Formula: (60000 / BPM) / 24 = ms per clock pulse
+    // Formula: (MS_PER_MINUTE / BPM) / MIDI_PPQN = ms per clock pulse
     // At 120 BPM: 60000 / 120 / 24 = 20.833333... ms per clock
     // Use double precision to prevent rounding errors
-    clock_interval_ms_ = (60000.0 / static_cast<double>(tempo_)) / 24.0;
+    clock_interval_ms_ = (static_cast<double>(config::MS_PER_MINUTE) / static_cast<double>(tempo_)) / static_cast<double>(config::MIDI_PPQN);
 }
 
 void Engine::sendMidiClock() {
@@ -238,25 +238,26 @@ void Engine::processStep() {
 
 void Engine::handleInput() {
     // Read rotary pots for global controls
-    uint8_t r1 = hardware_->readRotaryPot(0);  // Mode: 0-14
-    uint8_t r2 = hardware_->readRotaryPot(1);  // Tempo: 0-1000
-    uint8_t r3 = hardware_->readRotaryPot(2);  // Pattern: 0-31
-    uint8_t r4 = hardware_->readRotaryPot(3);  // Track OR target mode (when in Mode 0)
+    uint8_t r1 = hardware_->readRotaryPot(config::POT_MODE);     // Mode: 0-14
+    uint8_t r2 = hardware_->readRotaryPot(config::POT_TEMPO);    // Tempo: 60-240 BPM
+    uint8_t r3 = hardware_->readRotaryPot(config::POT_PATTERN);  // Pattern: 0-31
+    uint8_t r4 = hardware_->readRotaryPot(config::POT_TRACK);    // Track OR target mode (when in Mode 0)
 
     // Map R1 to mode (0-127 -> 0-14)
-    int new_mode = std::min((r1 * 15) / 128, 14);
+    int new_mode = std::min((r1 * config::NUM_MODES) / (config::MIDI_MAX_VALUE + 1), config::NUM_MODES - 1);
     if (new_mode != current_mode_) {
         setMode(new_mode);
     }
 
-    // Map R2 to tempo (0-127 -> 60-240 BPM for now)
-    int new_tempo = 60 + (r2 * 180) / 127;
+    // Map R2 to tempo (0-127 -> 60-240 BPM)
+    int tempo_range = config::TEMPO_MAX_BPM - config::TEMPO_MIN_BPM;
+    int new_tempo = config::TEMPO_MIN_BPM + (r2 * tempo_range) / config::MIDI_MAX_VALUE;
     if (std::abs(new_tempo - tempo_) > 5) {  // Hysteresis
         setTempo(new_tempo);
     }
 
     // Map R3 to pattern (0-127 -> 0-31)
-    int new_pattern = std::min((r3 * 32) / 128, 31);
+    int new_pattern = std::min((r3 * config::PATTERNS_PER_MODE) / (config::MIDI_MAX_VALUE + 1), config::PATTERNS_PER_MODE - 1);
     if (new_pattern != current_pattern_) {
         setPattern(new_pattern);
     }
@@ -264,13 +265,13 @@ void Engine::handleInput() {
     // Map R4: In Mode 0, it selects target mode (1-14). Otherwise, it selects track (0-7).
     if (current_mode_ == 0) {
         // Mode 0: R4 selects target mode (1-14)
-        int new_target_mode = std::min(1 + (r4 * 14) / 128, 14);  // Map to 1-14
+        int new_target_mode = std::min(1 + (r4 * (config::NUM_MODES - 1)) / (config::MIDI_MAX_VALUE + 1), config::NUM_MODES - 1);
         if (new_target_mode != target_mode_) {
             target_mode_ = new_target_mode;
         }
     } else {
         // Other modes: R4 selects track (0-7)
-        int new_track = std::min((r4 * 8) / 128, 7);
+        int new_track = std::min((r4 * config::TRACKS_PER_PATTERN) / (config::MIDI_MAX_VALUE + 1), config::TRACKS_PER_PATTERN - 1);
         if (new_track != current_track_) {
             setTrack(new_track);
         }
@@ -278,7 +279,7 @@ void Engine::handleInput() {
 
     // Read buttons (B1-B16) to toggle steps
     // When a button is pressed, parameter-lock the current slider values to that event
-    for (int btn = 0; btn < 16; ++btn) {
+    for (int btn = 0; btn < config::NUM_BUTTONS; ++btn) {
         if (hardware_->readButton(btn)) {
             // In Mode 0, buttons write to Mode 0 Pattern 0 using target_mode_ as "track"
             // In other modes, buttons write to current mode/pattern/track
@@ -366,23 +367,23 @@ void Engine::updateLED() {
             break;
 
         case LEDPattern::BUTTON_HELD:
-            // Fast double-blink: 100ms on, 50ms off, 100ms on, 150ms off (repeat)
-            if (pattern_elapsed < 100) {
+            // Fast double-blink: on1, off, on2, pause (repeat)
+            if (pattern_elapsed < config::LED_FAST_BLINK_ON1_MS) {
                 if (!led_on_) {
                     hardware_->setLED(true);
                     led_on_ = true;
                 }
-            } else if (pattern_elapsed < 150) {
+            } else if (pattern_elapsed < config::LED_FAST_BLINK_ON1_MS + config::LED_FAST_BLINK_OFF_MS) {
                 if (led_on_) {
                     hardware_->setLED(false);
                     led_on_ = false;
                 }
-            } else if (pattern_elapsed < 250) {
+            } else if (pattern_elapsed < config::LED_FAST_BLINK_ON1_MS + config::LED_FAST_BLINK_OFF_MS + config::LED_FAST_BLINK_ON2_MS) {
                 if (!led_on_) {
                     hardware_->setLED(true);
                     led_on_ = true;
                 }
-            } else if (pattern_elapsed < 400) {
+            } else if (pattern_elapsed < config::LED_FAST_BLINK_CYCLE_MS) {
                 if (led_on_) {
                     hardware_->setLED(false);
                     led_on_ = false;

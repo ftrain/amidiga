@@ -1,6 +1,7 @@
 #pragma once
 
 #include "song.h"
+#include "config.h"
 #include "../hardware/hardware_interface.h"
 #include "../hardware/midi_scheduler.h"
 #include "../hardware/audio_output.h"
@@ -102,7 +103,7 @@ private:
     // Dirty flag and autosave
     bool dirty_;                 // True if data has been modified
     uint32_t last_autosave_time_;
-    static constexpr uint32_t AUTOSAVE_INTERVAL_MS = 20000;  // 20 seconds
+    static constexpr uint32_t AUTOSAVE_INTERVAL_MS = config::AUTOSAVE_INTERVAL_MS;
 
     uint32_t last_step_time_;
     uint32_t step_interval_ms_;
@@ -120,12 +121,12 @@ private:
     uint32_t led_phase_start_time_;
     int led_blink_count_;
 
-    static constexpr uint32_t LED_TEMPO_DURATION_MS = 50;  // LED stays on for 50ms
+    static constexpr uint32_t LED_TEMPO_DURATION_MS = config::LED_TEMPO_DURATION_MS;
 
     // Debounced Lua reinit when tempo changes
     bool lua_reinit_pending_;
     uint32_t last_tempo_change_time_;
-    static constexpr uint32_t TEMPO_DEBOUNCE_MS = 1000;  // Wait 1 second after last tempo change
+    static constexpr uint32_t TEMPO_DEBOUNCE_MS = config::TEMPO_DEBOUNCE_MS;
 
     void calculateStepInterval();
     void calculateClockInterval();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pattern.h"
+#include "config.h"
 #include <array>
 #include <string>
 
@@ -20,7 +21,7 @@ public:
     void setPattern(int pattern_num, const Pattern& pattern);
     void clear();
 
-    static constexpr int NUM_PATTERNS = 32;
+    static constexpr int NUM_PATTERNS = config::PATTERNS_PER_MODE;
 
 private:
     std::array<Pattern, NUM_PATTERNS> patterns_;
@@ -48,7 +49,7 @@ public:
     bool saveBinary(const std::string& filepath);
     bool loadBinary(const std::string& filepath);
 
-    static constexpr int NUM_MODES = 15;
+    static constexpr int NUM_MODES = config::NUM_MODES;
 
     // Calculate memory footprint
     static size_t getMemoryFootprint();

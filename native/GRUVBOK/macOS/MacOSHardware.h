@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../src/hardware/hardware_interface.h"
-#include <array>
+#include "../../../../src/hardware/hardware_base.h"
 #include <memory>
 #include <deque>
 #include <string>
@@ -19,31 +18,32 @@ typedef struct objc_object AVAudioUnitSampler;
 namespace gruvbok {
 
 /**
- * Native macOS implementation using CoreMIDI and AVAudioEngine
+ * @brief Native macOS implementation using CoreMIDI and AVAudioEngine
+ *
+ * Inherits common functionality from HardwareBase and adds:
+ * - CoreMIDI output (virtual source + physical destinations)
+ * - AVAudioEngine for internal synthesis
+ * - Logging functionality
+ *
+ * @note Inherits button/pot/LED state management from HardwareBase
+ * @see HardwareBase for inherited functionality
  */
-class MacOSHardware : public HardwareInterface {
+class MacOSHardware : public HardwareBase {
 public:
     MacOSHardware();
     ~MacOSHardware() override;
 
+    // HardwareInterface implementation
     bool init() override;
     void shutdown() override;
-
-    bool readButton(int button) override;
-    uint8_t readRotaryPot(int pot) override;
-    uint8_t readSliderPot(int pot) override;
-
     void sendMidiMessage(const MidiMessage& msg) override;
-    void setLED(bool on) override;
-    bool getLED() const override { return led_state_; }
-    uint32_t getMillis() override;
-
     void update() override;
+    uint32_t getMillis() override;  // Override with mach_absolute_time
 
-    // Simulation methods (called from SwiftUI)
-    void simulateButton(int button, bool pressed);
-    void simulateRotaryPot(int pot, uint8_t value);
-    void simulateSliderPot(int pot, uint8_t value);
+    // Note: Button/pot/LED/simulation methods inherited from HardwareBase
+    // - readButton(), readRotaryPot(), readSliderPot()
+    // - setLED(), getLED()
+    // - simulateButton(), simulateRotaryPot(), simulateSliderPot()
 
     // Audio control
     bool initAudio(const std::string& soundfont_path = "");
@@ -63,7 +63,7 @@ public:
     bool selectMidiOutput(int index);
 
 private:
-    // MIDI
+    // macOS-specific MIDI state
     MIDIClientRef midi_client_;
     MIDIPortRef midi_output_port_;
     MIDIEndpointRef midi_virtual_source_;
@@ -71,18 +71,14 @@ private:
     bool midi_initialized_;
     bool use_external_midi_;
 
-    // Audio (Objective-C++ objects)
+    // macOS-specific audio state (Objective-C++ objects)
     AVAudioEngine* audio_engine_;
     AVAudioUnitSampler* sampler_;
     bool audio_initialized_;
     bool use_internal_audio_;
 
-    // Hardware state
-    std::array<bool, 16> buttons_;
-    std::array<uint8_t, 4> rotary_pots_;
-    std::array<uint8_t, 4> slider_pots_;
-    uint64_t start_time_;
-    bool led_state_;
+    // Timing (macOS-specific, overrides base implementation)
+    uint64_t macos_start_time_;  // mach_absolute_time at init
 
     // Logging
     std::deque<std::string> log_messages_;

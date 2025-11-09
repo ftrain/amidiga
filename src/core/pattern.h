@@ -1,6 +1,7 @@
 #pragma once
 
 #include "event.h"
+#include "config.h"
 #include <array>
 
 namespace gruvbok {
@@ -18,7 +19,7 @@ public:
     void setEvent(int step, const Event& event);
     void clear();
 
-    static constexpr int NUM_EVENTS = 16;
+    static constexpr int NUM_EVENTS = config::EVENTS_PER_TRACK;
 
 private:
     std::array<Event, NUM_EVENTS> events_;
@@ -40,7 +41,7 @@ public:
     void setEvent(int track_num, int step, const Event& event);
     void clear();
 
-    static constexpr int NUM_TRACKS = 8;
+    static constexpr int NUM_TRACKS = config::TRACKS_PER_PATTERN;
 
 private:
     std::array<Track, NUM_TRACKS> tracks_;
