@@ -1,6 +1,7 @@
 #include "engine.h"
 #include <iostream>
 #include <algorithm>
+#include <stdexcept>
 
 namespace gruvbok {
 
@@ -34,6 +35,15 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , led_blink_count_(0)
     , lua_reinit_pending_(false)
     , last_tempo_change_time_(0) {
+
+    // Validate required dependencies
+    if (!song_) {
+        throw std::invalid_argument("Engine: song cannot be null");
+    }
+    if (!hardware_) {
+        throw std::invalid_argument("Engine: hardware cannot be null");
+    }
+    // mode_loader_ can be null (checked with if (mode_loader_) throughout)
 
     // Initialize per-mode arrays
     for (int i = 0; i < Song::NUM_MODES; ++i) {

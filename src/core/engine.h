@@ -17,6 +17,12 @@ class Engine {
 public:
     Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader);
 
+    // Prevent copying and moving (Engine has complex state and manages hardware)
+    Engine(const Engine&) = delete;
+    Engine& operator=(const Engine&) = delete;
+    Engine(Engine&&) = delete;
+    Engine& operator=(Engine&&) = delete;
+
     // Start/stop playback
     void start();
     void stop();
