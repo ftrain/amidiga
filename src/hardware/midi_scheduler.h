@@ -2,9 +2,9 @@
 
 #include "hardware_interface.h"
 #include "audio_output.h"
-#include <queue>
+#include <array>
 #include <vector>
-#include <functional>
+#include <algorithm>
 
 namespace gruvbok {
 
@@ -21,14 +21,17 @@ struct ScheduledMidiEvent {
 };
 
 /**
- * Internal event with absolute timing (for priority queue)
+ * Internal event with absolute timing (for static array)
  */
 struct AbsoluteMidiEvent {
     MidiMessage message;
     uint32_t absolute_time_ms;
+    bool active;  // Whether this slot is in use
 
-    bool operator>(const AbsoluteMidiEvent& other) const {
-        return absolute_time_ms > other.absolute_time_ms;
+    AbsoluteMidiEvent() : absolute_time_ms(0), active(false) {}
+
+    bool operator<(const AbsoluteMidiEvent& other) const {
+        return absolute_time_ms < other.absolute_time_ms;
     }
 };
 
@@ -36,6 +39,12 @@ struct AbsoluteMidiEvent {
  * MIDI Scheduler handles delta-timed MIDI events
  * Converts relative timing to absolute and sends at precise times
  * Supports routing to external MIDI and/or internal audio (FluidSynth)
+ *
+ * IMPLEMENTATION NOTE:
+ * Uses a static array instead of std::priority_queue to avoid dynamic
+ * allocations in real-time code. Typical usage is 1-16 events per step,
+ * so a fixed-size buffer of 64 events is more than sufficient and provides
+ * predictable, allocation-free performance suitable for embedded systems.
  */
 class MidiScheduler {
 public:
@@ -70,12 +79,26 @@ public:
     void sendStop();        // Send MIDI stop message (0xFC)
     void sendContinue();    // Send MIDI continue message (0xFB)
 
+    // Statistics (for debugging/monitoring)
+    int getQueuedEventCount() const;
+    int getMaxQueueCapacity() const { return MAX_QUEUED_EVENTS; }
+
 private:
     HardwareInterface* hardware_;
     AudioOutput* audio_output_;
     bool use_internal_audio_;
     bool use_external_midi_;
-    std::priority_queue<AbsoluteMidiEvent, std::vector<AbsoluteMidiEvent>, std::greater<AbsoluteMidiEvent>> event_queue_;
+
+    // Static event buffer (no dynamic allocation)
+    static constexpr int MAX_QUEUED_EVENTS = 64;
+    std::array<AbsoluteMidiEvent, MAX_QUEUED_EVENTS> event_buffer_;
+    int event_count_;
+
+    // Helper to find next free slot
+    int findFreeSlot();
+
+    // Helper to sort active events by time
+    void sortEvents();
 };
 
 } // namespace gruvbok

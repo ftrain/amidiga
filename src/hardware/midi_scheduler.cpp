@@ -6,7 +6,12 @@ MidiScheduler::MidiScheduler(HardwareInterface* hardware)
     : hardware_(hardware)
     , audio_output_(nullptr)
     , use_internal_audio_(false)
-    , use_external_midi_(true) {  // Default to external MIDI
+    , use_external_midi_(true)  // Default to external MIDI
+    , event_count_(0) {
+    // Initialize all slots as inactive
+    for (auto& event : event_buffer_) {
+        event.active = false;
+    }
 }
 
 void MidiScheduler::schedule(const std::vector<ScheduledMidiEvent>& events) {
@@ -16,6 +21,13 @@ void MidiScheduler::schedule(const std::vector<ScheduledMidiEvent>& events) {
 }
 
 void MidiScheduler::schedule(const ScheduledMidiEvent& event) {
+    // Find a free slot
+    int slot = findFreeSlot();
+    if (slot < 0) {
+        // Buffer full - drop event (could log warning in debug builds)
+        return;
+    }
+
     uint32_t current_time = hardware_->getMillis();
     uint32_t absolute_time = current_time + event.delta_ms;
 
@@ -26,41 +38,92 @@ void MidiScheduler::schedule(const ScheduledMidiEvent& event) {
         data[0] = status | (event.channel & 0x0F);  // Lower nibble = channel
     }
 
-    AbsoluteMidiEvent abs_event;
-    abs_event.message = MidiMessage(data, absolute_time);
-    abs_event.absolute_time_ms = absolute_time;
+    // Store in buffer
+    event_buffer_[slot].message = MidiMessage(data, absolute_time);
+    event_buffer_[slot].absolute_time_ms = absolute_time;
+    event_buffer_[slot].active = true;
+    event_count_++;
 
-    event_queue_.push(abs_event);
+    // Keep events sorted by time (insertion sort is fast for small arrays)
+    // Only sort if we have more than one event
+    if (event_count_ > 1) {
+        sortEvents();
+    }
 }
 
 void MidiScheduler::update() {
     uint32_t current_time = hardware_->getMillis();
 
-    while (!event_queue_.empty()) {
-        const auto& next_event = event_queue_.top();
+    // Process events in order (buffer is kept sorted)
+    for (int i = 0; i < MAX_QUEUED_EVENTS && event_count_ > 0; ++i) {
+        if (!event_buffer_[i].active) {
+            continue;
+        }
 
-        if (next_event.absolute_time_ms <= current_time) {
+        if (event_buffer_[i].absolute_time_ms <= current_time) {
             // Send to external MIDI
             if (use_external_midi_) {
-                hardware_->sendMidiMessage(next_event.message);
+                hardware_->sendMidiMessage(event_buffer_[i].message);
             }
 
             // Send to internal audio (FluidSynth)
             if (use_internal_audio_ && audio_output_ && audio_output_->isReady()) {
-                audio_output_->sendMidiMessage(next_event.message.data.data(), next_event.message.data.size());
+                audio_output_->sendMidiMessage(
+                    event_buffer_[i].message.data.data(),
+                    event_buffer_[i].message.data.size()
+                );
             }
 
-            event_queue_.pop();
+            // Mark slot as free
+            event_buffer_[i].active = false;
+            event_count_--;
         } else {
-            break;  // No more events ready
+            // Events are sorted, so we can stop at first future event
+            break;
         }
     }
 }
 
 void MidiScheduler::clear() {
-    while (!event_queue_.empty()) {
-        event_queue_.pop();
+    for (auto& event : event_buffer_) {
+        event.active = false;
     }
+    event_count_ = 0;
+}
+
+int MidiScheduler::findFreeSlot() {
+    for (int i = 0; i < MAX_QUEUED_EVENTS; ++i) {
+        if (!event_buffer_[i].active) {
+            return i;
+        }
+    }
+    return -1;  // Buffer full
+}
+
+void MidiScheduler::sortEvents() {
+    // Simple insertion sort - efficient for small, nearly-sorted arrays
+    // We only sort the active events by moving them to the front
+    for (int i = 1; i < MAX_QUEUED_EVENTS; ++i) {
+        if (!event_buffer_[i].active) {
+            continue;
+        }
+
+        AbsoluteMidiEvent temp = event_buffer_[i];
+        int j = i - 1;
+
+        // Move earlier events that are later in time
+        while (j >= 0 && event_buffer_[j].active &&
+               event_buffer_[j].absolute_time_ms > temp.absolute_time_ms) {
+            event_buffer_[j + 1] = event_buffer_[j];
+            j--;
+        }
+
+        event_buffer_[j + 1] = temp;
+    }
+}
+
+int MidiScheduler::getQueuedEventCount() const {
+    return event_count_;
 }
 
 // ============================================================================
