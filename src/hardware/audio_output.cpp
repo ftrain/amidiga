@@ -113,20 +113,20 @@ bool AudioOutput::loadSoundFont(const std::string& soundfont_path) {
     std::cout << "[AudioOutput] SoundFont loaded successfully (ID: " << impl_->soundfont_id << ")\n";
 
     // Set up default instruments for GRUVBOK modes
-    // Mode 1 (Channel 1) = Drums - need to select percussion bank
-    fluid_synth_bank_select(impl_->synth, 1, 128);  // Bank 128 = GM Percussion
-    fluid_synth_program_change(impl_->synth, 1, 0);  // Program 0 = Standard Kit
-    std::cout << "[AudioOutput] Channel 1 (Mode 1): GM Drum Kit\n";
+    // Mode 1 → Channel 0, Mode 2 → Channel 1, ..., Mode 10 → Channel 9 (GM drums)
+    // Note: FluidSynth channels are 0-indexed (0-15)
 
-    // Mode 2 (Channel 2) = Acid Bass - synth bass sound
-    fluid_synth_program_change(impl_->synth, 2, 38);  // Program 38 = Synth Bass 1
-    std::cout << "[AudioOutput] Channel 2 (Mode 2): Synth Bass\n";
+    // Mode 10 → Channel 9 (GM Percussion on channel 10 in user-facing terms)
+    fluid_synth_bank_select(impl_->synth, 9, 128);  // Bank 128 = GM Percussion
+    fluid_synth_program_change(impl_->synth, 9, 0);  // Program 0 = Standard Kit
+    std::cout << "[AudioOutput] Mode 10 (Channel 9/MIDI Ch 10): GM Drum Kit\n";
 
-    // Mode 3 (Channel 3) = Chords - electric piano
-    fluid_synth_program_change(impl_->synth, 3, 4);  // Program 4 = Electric Piano 1
-    std::cout << "[AudioOutput] Channel 3 (Mode 3): Electric Piano\n";
-
-    // Other channels default to Acoustic Grand Piano (program 0)
+    // Set sensible defaults for other modes (will be overridden by Program Change)
+    fluid_synth_program_change(impl_->synth, 0, 0);   // Mode 1 → Ch 0: Acoustic Grand Piano
+    fluid_synth_program_change(impl_->synth, 1, 33);  // Mode 2 → Ch 1: Electric Bass
+    fluid_synth_program_change(impl_->synth, 2, 48);  // Mode 3 → Ch 2: String Ensemble
+    fluid_synth_program_change(impl_->synth, 3, 81);  // Mode 4 → Ch 3: Sawtooth Lead
+    std::cout << "[AudioOutput] Default instruments set for modes 1-4\n";
 
     return true;
 #else
@@ -175,6 +175,10 @@ void AudioOutput::sendMidiMessage(const uint8_t* data, size_t length) {
 
         case 0xC0:  // Program Change
             if (length >= 2) {
+                // For GM channel 10 (index 9), we need to select the drum bank
+                if (channel == 9) {
+                    fluid_synth_bank_select(impl_->synth, channel, 128);  // Bank 128 = GM Percussion
+                }
                 fluid_synth_program_change(impl_->synth, channel, data[1]);
             }
             break;

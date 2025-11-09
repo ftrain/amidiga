@@ -700,12 +700,33 @@ int main(int argc, char* argv[]) {
             ImGui::Separator();
 
             // Pattern grid visualization
-            ImGui::Text("Pattern Grid (Track %d)", engine->getCurrentTrack() + 1);  // Display as 1-8
+            // Mode 0 always uses Track 0 - all 16 buttons program pattern sequence
+            // Other modes use current track
+            int display_track_number;
+            int edit_track_index;
+            Mode* editing_mode_ptr;
+            Pattern* current_pattern_ptr;
+
+            if (engine->getCurrentMode() == 0) {
+                // Mode 0: Always uses Track 0 for pattern sequence
+                display_track_number = 1;  // Track 0 displayed as "Track 1"
+                edit_track_index = 0;  // Always Track 0 in Mode 0
+                editing_mode_ptr = &song->getMode(0);
+                current_pattern_ptr = &editing_mode_ptr->getPattern(0);
+                ImGui::Text("Mode 0: Pattern Sequence (Track %d)", display_track_number);
+            } else {
+                // Other modes: Normal track display
+                display_track_number = engine->getCurrentTrack() + 1;
+                edit_track_index = engine->getCurrentTrack();
+                editing_mode_ptr = &song->getMode(engine->getCurrentMode());
+                current_pattern_ptr = &editing_mode_ptr->getPattern(engine->getCurrentPattern());
+                ImGui::Text("Pattern Grid (Track %d)", display_track_number);
+            }
+
             ImGui::BeginGroup();
 
-            Mode& editing_mode = song->getMode(engine->getCurrentMode());
-            Pattern& current_pattern = editing_mode.getPattern(engine->getCurrentPattern());
-            Track& current_track = current_pattern.getTrack(engine->getCurrentTrack());
+            Pattern& current_pattern = *current_pattern_ptr;
+            Track& current_track = current_pattern.getTrack(edit_track_index);
 
             float step_width = 50.0f;
 

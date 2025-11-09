@@ -39,6 +39,10 @@ public:
     int getSongModeStep() const { return song_mode_step_; }  // For Mode 0 visualization
     int getTargetMode() const { return target_mode_; }  // For Mode 0 target mode selection
 
+    // MIDI Program mapping (instrument selection per mode)
+    void setModeProgram(int mode, uint8_t program);  // Set GM program for a mode (0-127)
+    uint8_t getModeProgram(int mode) const;  // Get GM program for a mode
+
     // Dirty flag (unsaved changes)
     bool isDirty() const { return dirty_; }
     void markDirty();
@@ -47,6 +51,9 @@ public:
     // Edit current event
     void toggleCurrentSwitch();
     void setCurrentPot(int pot, uint8_t value);
+
+    // Direct event editing (for UI table)
+    void setEventPot(int mode, int pattern, int track, int step, int pot, uint8_t value);
 
     // LED pattern control (public enum for external access)
     enum class LEDPattern {
@@ -71,6 +78,9 @@ public:
     bool isAudioOutputReady() const;
     void setAudioGain(float gain);
     float getAudioGain() const;
+
+    // Mode 0 loop length calculation (public so it can be called after loading content)
+    void calculateMode0LoopLength();
 
 private:
     Song* song_;
@@ -98,6 +108,7 @@ private:
     int global_scale_type_;      // 0-N (Ionian, Dorian, etc.)
     int mode_velocity_offsets_[Song::NUM_MODES];  // Per-mode velocity offset (-64 to +63)
     int mode_pattern_overrides_[Song::NUM_MODES]; // Per-mode pattern override (0-31, or -1 for default)
+    uint8_t mode_programs_[Song::NUM_MODES];  // Per-mode MIDI program (GM instrument, 0-127)
 
     // Dirty flag and autosave
     bool dirty_;                 // True if data has been modified
@@ -136,7 +147,6 @@ private:
     void reinitLuaModes();  // Reinitialize all Lua modes with current tempo
 
     // Mode 0 helpers
-    void calculateMode0LoopLength();  // Determine loop length from highest button pressed
     void parseMode0Event(const Event& event, int target_mode);  // Parse S1-S4 from Mode 0 event
     void applyMode0Parameters();  // Apply Mode 0 params to all modes during playback
 

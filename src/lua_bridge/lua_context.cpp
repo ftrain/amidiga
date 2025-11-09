@@ -201,7 +201,7 @@ void LuaContext::setError(const std::string& error) {
 }
 
 std::string LuaContext::getModeName() const {
-    if (!is_valid_) {
+    if (!is_valid_ || !L_) {
         return "Invalid";
     }
 
@@ -209,7 +209,8 @@ std::string LuaContext::getModeName() const {
     lua_getglobal(L_, "MODE_NAME");
 
     if (lua_isstring(L_, -1)) {
-        std::string name = lua_tostring(L_, -1);
+        const char* str = lua_tostring(L_, -1);
+        std::string name = str ? str : "Unnamed";
         lua_pop(L_, 1);
         return name;
     }
@@ -221,7 +222,7 @@ std::string LuaContext::getModeName() const {
 std::vector<std::string> LuaContext::getSliderLabels() const {
     std::vector<std::string> labels = {"S1", "S2", "S3", "S4"};  // Defaults
 
-    if (!is_valid_) {
+    if (!is_valid_ || !L_) {
         return labels;
     }
 
@@ -233,7 +234,10 @@ std::vector<std::string> LuaContext::getSliderLabels() const {
         for (int i = 0; i < 4; ++i) {
             lua_rawgeti(L_, -1, i + 1);  // Lua arrays are 1-indexed
             if (lua_isstring(L_, -1)) {
-                labels[i] = lua_tostring(L_, -1);
+                const char* str = lua_tostring(L_, -1);
+                if (str) {
+                    labels[i] = str;
+                }
             }
             lua_pop(L_, 1);
         }

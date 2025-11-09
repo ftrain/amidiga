@@ -83,6 +83,27 @@ Desktop.ini
 tmp/
 temp/
 *.tmp
+
+# Swift Package Manager (native-spm)
+.build/
+.swiftpm/
+*.xcodeproj
+*.xcworkspace
+Package.resolved
+DerivedData/
+
+# macOS app bundles (build output)
+*.app/
+
+# Icon generation
+AppIcon.icns
+base_icon.png
+AppIcon.iconset/
+create_base_icon.swift
+
+# Python
+__pycache__/
+*.pyc
 external/rtmidi/android/.gradle/8.0/gc.properties
 external/rtmidi/android/.gradle/8.0/checksums/checksums.lock
 external/rtmidi/android/.gradle/8.0/fileHashes/fileHashes.lock
