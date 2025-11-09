@@ -8,15 +8,11 @@ namespace gruvbok {
 DesktopHardware::DesktopHardware()
     : midi_out_(nullptr)
     , midi_in_(nullptr)
-    , led_state_(false)
     , midi_initialized_(false)
     , current_port_(-1)
     , current_input_port_(-1)
     , mirror_mode_enabled_(false) {
-
-    buttons_.fill(false);
-    rotary_pots_.fill(64);  // Default to middle value
-    slider_pots_.fill(64);
+    // Base class constructor initializes buttons_, pots_, led_state_, start_time_
 }
 
 DesktopHardware::~DesktopHardware() {
@@ -24,8 +20,6 @@ DesktopHardware::~DesktopHardware() {
 }
 
 bool DesktopHardware::init() {
-    start_time_ = std::chrono::steady_clock::now();
-
     // Initialize RtMidi
     try {
         midi_out_ = std::make_unique<RtMidiOut>();
@@ -62,27 +56,6 @@ void DesktopHardware::shutdown() {
     }
 }
 
-bool DesktopHardware::readButton(int button) {
-    if (button < 0 || button >= 16) {
-        return false;
-    }
-    return buttons_[button];
-}
-
-uint8_t DesktopHardware::readRotaryPot(int pot) {
-    if (pot < 0 || pot >= 4) {
-        return 0;
-    }
-    return rotary_pots_[pot];
-}
-
-uint8_t DesktopHardware::readSliderPot(int pot) {
-    if (pot < 0 || pot >= 4) {
-        return 0;
-    }
-    return slider_pots_[pot];
-}
-
 void DesktopHardware::sendMidiMessage(const MidiMessage& msg) {
     if (!midi_initialized_ || !midi_out_) {
         return;
@@ -98,40 +71,18 @@ void DesktopHardware::sendMidiMessage(const MidiMessage& msg) {
     }
 }
 
-void DesktopHardware::setLED(bool on) {
-    led_state_ = on;
-    // No console spam for LED!
-}
-
-uint32_t DesktopHardware::getMillis() {
-    auto now = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time_);
-    return static_cast<uint32_t>(duration.count());
-}
-
 void DesktopHardware::update() {
     // Nothing to update for desktop (keyboard input handled elsewhere)
 }
 
-void DesktopHardware::simulateButton(int button, bool pressed) {
-    if (button >= 0 && button < 16) {
-        buttons_[button] = pressed;
-    }
-}
+// Note: readButton(), readRotaryPot(), readSliderPot(), setLED(), getLED(),
+//       getMillis(), simulateButton(), simulateRotaryPot(), simulateSliderPot()
+//       are now inherited from HardwareBase
 
-void DesktopHardware::simulateRotaryPot(int pot, uint8_t value) {
-    if (pot >= 0 && pot < 4) {
-        rotary_pots_[pot] = std::min(value, static_cast<uint8_t>(127));
-    }
-}
+// ============================================================================
+// MIDI Port Management
+// ============================================================================
 
-void DesktopHardware::simulateSliderPot(int pot, uint8_t value) {
-    if (pot >= 0 && pot < 4) {
-        slider_pots_[pot] = std::min(value, static_cast<uint8_t>(127));
-    }
-}
-
-// MIDI port management
 int DesktopHardware::getMidiPortCount() {
     if (!midi_out_) return 0;
     return static_cast<int>(midi_out_->getPortCount());
@@ -179,7 +130,10 @@ bool DesktopHardware::selectMidiPort(int port) {
     }
 }
 
+// ============================================================================
 // Logging
+// ============================================================================
+
 void DesktopHardware::addLog(const std::string& message) {
     log_messages_.push_back(message);
     if (log_messages_.size() > MAX_LOG_MESSAGES) {
@@ -192,7 +146,10 @@ void DesktopHardware::clearLog() {
     log_messages_.clear();
 }
 
-// MIDI input (mirror mode)
+// ============================================================================
+// MIDI Input (Mirror Mode)
+// ============================================================================
+
 int DesktopHardware::getMidiInputPortCount() {
     if (!midi_in_) {
         try {

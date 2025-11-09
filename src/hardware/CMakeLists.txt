@@ -1,5 +1,6 @@
 # Hardware library
 add_library(gruvbok_hardware STATIC
+    hardware_base.cpp
     midi_scheduler.cpp
     audio_output.cpp
 )

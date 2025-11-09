@@ -1,11 +1,8 @@
 #pragma once
 
-#include "../hardware/hardware_interface.h"
+#include "../hardware/hardware_base.h"
 #include <memory>
-#include <array>
-#include <chrono>
 #include <string>
-#include <vector>
 #include <deque>
 
 // Forward declare RtMidi classes to avoid including RtMidi.h in header
@@ -15,32 +12,34 @@ class RtMidiIn;
 namespace gruvbok {
 
 /**
- * Desktop implementation of HardwareInterface
- * Uses keyboard for buttons and virtual MIDI output
+ * @brief Desktop implementation of HardwareInterface
+ *
+ * Inherits common functionality from HardwareBase and adds:
+ * - RtMidi MIDI output
+ * - MIDI input (mirror mode)
+ * - Logging functionality
+ *
+ * Uses keyboard/GUI for button simulation and virtual MIDI output.
+ *
+ * @note Inherits button/pot/LED state management from HardwareBase
+ * @see HardwareBase for inherited functionality
  */
-class DesktopHardware : public HardwareInterface {
+class DesktopHardware : public HardwareBase {
 public:
     DesktopHardware();
     ~DesktopHardware() override;
 
+    // HardwareInterface implementation
     bool init() override;
     void shutdown() override;
-
-    bool readButton(int button) override;
-    uint8_t readRotaryPot(int pot) override;
-    uint8_t readSliderPot(int pot) override;
-
     void sendMidiMessage(const MidiMessage& msg) override;
-    void setLED(bool on) override;
-    bool getLED() const override { return led_state_; }
-    uint32_t getMillis() override;
-
     void update() override;
 
-    // Desktop-specific: simulate button press/release
-    void simulateButton(int button, bool pressed);
-    void simulateRotaryPot(int pot, uint8_t value);
-    void simulateSliderPot(int pot, uint8_t value);
+    // Note: Button/pot/LED methods inherited from HardwareBase
+    // - readButton(), readRotaryPot(), readSliderPot()
+    // - setLED(), getLED()
+    // - getMillis()
+    // - simulateButton(), simulateRotaryPot(), simulateSliderPot()
 
     // MIDI port management
     int getMidiPortCount();
@@ -62,13 +61,9 @@ public:
     void clearLog();
 
 private:
+    // Desktop-specific state
     std::unique_ptr<RtMidiOut> midi_out_;
     std::unique_ptr<RtMidiIn> midi_in_;
-    std::array<bool, 16> buttons_;
-    std::array<uint8_t, 4> rotary_pots_;
-    std::array<uint8_t, 4> slider_pots_;
-    std::chrono::steady_clock::time_point start_time_;
-    bool led_state_;
     bool midi_initialized_;
     int current_port_;
     int current_input_port_;
