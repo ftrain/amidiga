@@ -1,9 +1,6 @@
 #include "engine.h"
 #include <iostream>
 #include <algorithm>
-#ifndef NO_EXCEPTIONS
-#include <stdexcept>
-#endif
 
 namespace gruvbok {
 
@@ -39,24 +36,9 @@ Engine::Engine(Song* song, HardwareInterface* hardware, ModeLoader* mode_loader)
     , last_tempo_change_time_(0) {
 
     // Validate required dependencies
-#ifndef NO_EXCEPTIONS
-    if (!song_) {
-        throw std::invalid_argument("Engine: song cannot be null");
-    }
-    if (!hardware_) {
-        throw std::invalid_argument("Engine: hardware cannot be null");
-    }
-#else
-    // For embedded builds (Teensy), halt on critical errors
-    if (!song_ || !hardware_) {
-        // This should never happen in production firmware, but if it does, halt
-        while (1) {
-            // Infinite loop - firmware cannot continue without song and hardware
-            delay(1000);
-        }
-    }
-#endif
-    // mode_loader_ can be null (checked with if (mode_loader_) throughout)
+    // For embedded builds (Teensy), these should never be null
+    // For desktop, nullptr will cause immediate crash which is acceptable
+    // Note: mode_loader_ can be null (checked with if (mode_loader_) throughout)
 
     // Initialize per-mode arrays
     for (int i = 0; i < Song::NUM_MODES; ++i) {
